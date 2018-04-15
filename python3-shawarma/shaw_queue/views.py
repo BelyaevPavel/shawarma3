@@ -1418,13 +1418,13 @@ def make_order(request):
         print("Sending request to " + order.servery.ip_address)
         print(order)
         if FORCE_TO_LISTNER:
-            send_order_to_listner(order)
+            data = send_order_to_listner(order)
         else:
-            if not send_order_to_1c(order, False):
+            data = send_order_to_1c(order, False)
+            if not data["success"]:
                 send_order_to_listner(order)
 
         print("Request sent.")
-    data["success"] = True
     data["total"] = order.total
     data["content"] = json.dumps(content_to_send)
     data["message"] = ''
@@ -2549,19 +2549,21 @@ def send_order_to_1c(order, is_return):
                                auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
                                json=order_dict)
     except ConnectionError:
+        order.delete()
         data = {
             'success': False,
             'message': 'Connection error occured while sending order data to 1C!'
         }
         client.captureException()
-        return JsonResponse(data)
+        return data
     except:
+        order.delete()
         data = {
             'success': False,
             'message': 'Something wrong happened while sending order data to 1C!'
         }
         client.captureException()
-        return JsonResponse(data)
+        return data
 
     if result.status_code == 200:
         order.sent_to_1c = True
@@ -2573,15 +2575,24 @@ def send_order_to_1c(order, is_return):
                 'message': 'No order GUID in 1C response!'
             }
             client.captureException()
-            return JsonResponse(data)
+            return data
 
         order.save()
-        return True
+
+        return {"success": True}
     else:
         if result.status_code == 400:
-            return False
+            order.delete()
+            return {
+                'success': False,
+                'message': '400 in 1C response!'
+            }
         if result.status_code == 399:
-            return False
+            order.delete()
+            return {
+                'success': False,
+                'message': '399 in 1C response!'
+            }
 
 
 def send_order_to_listner(order):
@@ -2591,20 +2602,20 @@ def send_order_to_listner(order):
         order.delete()
         data = {
             'success': False,
-            'message': 'Connection error occured while sending to 1C!'
+            'message': 'Connection error occured while sending to listner!'
         }
         client.captureException()
-        return JsonResponse(data)
+        return data
     except:
         order.delete()
         data = {
             'success': False,
-            'message': 'Something wrong happened while sending to 1C!'
+            'message': 'Something wrong happened while sending to listner!'
         }
         client.captureException()
-        return JsonResponse(data)
+        return data
 
-    return True
+    return {"success": True}
 
 
 def order_1c_payment(request):
