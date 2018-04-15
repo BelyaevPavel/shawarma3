@@ -14,7 +14,7 @@ from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
-    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL
+    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER
 from raven.contrib.django.raven_compat.models import client
 import requests
 import datetime
@@ -1417,7 +1417,7 @@ def make_order(request):
     if order.is_paid:
         print("Sending request to " + order.servery.ip_address)
         print(order)
-        if not send_order_to_1c(order, False):
+        if not send_order_to_1c(order, False) or FORCE_TO_LISTNER:
             try:            
                 requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
             except ConnectionError:

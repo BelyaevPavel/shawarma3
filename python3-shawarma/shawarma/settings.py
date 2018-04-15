@@ -13,11 +13,12 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 import os
 import raven
 import psycopg2.extensions
-from .my_settings import login, password, db_name, allowed_hosts, debug_flag, listner_url, listner_port, printer_url, raven_dsn, secret_key, server_1c_ip, server_1c_port, getlist_url, server_1c_user, server_1c_pass, order_url
+from .my_settings import login, password, db_name, allowed_hosts, debug_flag, listner_url, listner_port, printer_url, \
+    raven_dsn, secret_key, server_1c_ip, server_1c_port, getlist_url, server_1c_user, server_1c_pass, order_url, \
+    force_to_listner
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -29,7 +30,6 @@ SECRET_KEY = secret_key
 DEBUG = debug_flag
 
 ALLOWED_HOSTS = allowed_hosts
-
 
 # Application definition
 
@@ -163,7 +163,6 @@ LOGGING = {
     },
 }
 
-
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
@@ -181,7 +180,6 @@ DATABASES = {
         }
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
@@ -201,7 +199,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
@@ -214,7 +211,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
@@ -239,10 +235,11 @@ SERVER_1C_USER = server_1c_user
 
 SERVER_1C_PASS = server_1c_pass
 
+FORCE_TO_LISTNER = force_to_listner
+
 LOGIN_REDIRECT_URL = '/shaw_queue/'
 
 STATIC_ROOT = '/home/admintrud/shawarma3/static_content/static/'
-
 
 RAVEN_CONFIG = {
     'dsn': raven_dsn,
