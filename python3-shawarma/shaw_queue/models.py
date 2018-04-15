@@ -10,6 +10,7 @@ class MenuCategory(models.Model):
     title = models.CharField(max_length=20)
     eng_title = models.CharField(max_length=20)
     weight = models.IntegerField(verbose_name="Weight", default=0)
+    hidden = models.BooleanField(default="False")
 
     def __str__(self):
         return "{}".format(self.title)
