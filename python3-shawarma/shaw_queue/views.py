@@ -1073,7 +1073,7 @@ def order_content(request, order_id):
         order_info.content_completed = True
         order_info.supplement_completed = True
     order_info.save()
-    current_order_content = OrderContent.objects.filter(order=order_id)
+    current_order_content = OrderContent.objects.filter(order=order_id).order_by('id')
     template = loader.get_template('shaw_queue/order_content.html')
     context = {
         'order_info': order_info,
