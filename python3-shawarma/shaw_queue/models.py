@@ -52,10 +52,10 @@ class Menu(models.Model):
     category = models.ForeignKey(MenuCategory)
 
     def __str__(self):
-        return "{}".format(self.title + self.guid_1c)
+        return "{}".format(self.title)
 
     def __unicode__(self):
-        return "{}".format(self.title + self.guid_1c)
+        return "{}".format(self.title)
 
 
 class Servery(models.Model):
