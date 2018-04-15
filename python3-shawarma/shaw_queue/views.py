@@ -2526,13 +2526,17 @@ def get_1c_menu(request):
 
 
 def send_order_to_1c(order, is_return):
+    if order.prepared_by is not None:
+        cook = order.prepared_by.user.first_name
+    else:
+        cook = '  '
     order_dict = {
         'servery_number': order.servery.guid_1c,
         'cash': order.paid_with_cash,
         'cashless': not order.paid_with_cash,
         'internet_order': False,
         'queue_number': order.daily_number,
-        'cook': order.prepared_by.user.first_name,
+        'cook': cook,
         'return_of_goods': is_return,
         'total': order.total,
         'Goods': []
