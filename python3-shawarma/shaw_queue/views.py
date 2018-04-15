@@ -1417,25 +1417,11 @@ def make_order(request):
     if order.is_paid:
         print("Sending request to " + order.servery.ip_address)
         print(order)
-        if not send_order_to_1c(order, False) or FORCE_TO_LISTNER:
-            try:            
-                requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
-            except ConnectionError:
-                order.delete()
-                data = {
-                    'success': False,
-                    'message': 'Connection error occured while sending to 1C!'
-                }
-                client.captureException()
-                return JsonResponse(data)
-            except:
-                order.delete()
-                data = {
-                    'success': False,
-                    'message': 'Something wrong happened while sending to 1C!'
-                }
-                client.captureException()
-                return JsonResponse(data)
+        if FORCE_TO_LISTNER:
+            send_order_to_listner(order)
+        else:
+            if not send_order_to_1c(order, False):
+                send_order_to_listner(order)
 
         print("Request sent.")
     data["success"] = True
@@ -2596,6 +2582,30 @@ def send_order_to_1c(order, is_return):
             return False
         if result.status_code == 399:
             return False
+
+
+def send_order_to_listner(order):
+    try:
+        requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
+    except ConnectionError:
+        order.delete()
+        data = {
+            'success': False,
+            'message': 'Connection error occured while sending to 1C!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except:
+        order.delete()
+        data = {
+            'success': False,
+            'message': 'Something wrong happened while sending to 1C!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+
+    return True
+
 
 def order_1c_payment(request):
     order_guid = request.POST.get('GUID', None)
