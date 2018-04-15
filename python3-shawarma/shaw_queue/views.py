@@ -1422,12 +1422,17 @@ def make_order(request):
         else:
             data = send_order_to_1c(order, False)
             if not data["success"]:
-                send_order_to_listner(order)
+                data = send_order_to_listner(order)
+                if not data["success"]:
+                    print("Deleting order.")
+                    order.delete()
 
         print("Request sent.")
-    data["total"] = order.total
-    data["content"] = json.dumps(content_to_send)
-    data["message"] = ''
+    if data["success"]:
+        data["total"] = order.total
+        data["content"] = json.dumps(content_to_send)
+        data["message"] = ''
+        data["daily_number"] = order.daily_number
     return JsonResponse(data)
 
 
@@ -2549,7 +2554,6 @@ def send_order_to_1c(order, is_return):
                                auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
                                json=order_dict)
     except ConnectionError:
-        order.delete()
         data = {
             'success': False,
             'message': 'Connection error occured while sending order data to 1C!'
@@ -2557,7 +2561,6 @@ def send_order_to_1c(order, is_return):
         client.captureException()
         return data
     except:
-        order.delete()
         data = {
             'success': False,
             'message': 'Something wrong happened while sending order data to 1C!'
@@ -2582,13 +2585,11 @@ def send_order_to_1c(order, is_return):
         return {"success": True}
     else:
         if result.status_code == 400:
-            order.delete()
             return {
                 'success': False,
                 'message': '400 in 1C response!'
             }
         if result.status_code == 399:
-            order.delete()
             return {
                 'success': False,
                 'message': '399 in 1C response!'
@@ -2599,7 +2600,6 @@ def send_order_to_listner(order):
     try:
         requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
     except ConnectionError:
-        order.delete()
         data = {
             'success': False,
             'message': 'Connection error occured while sending to listner!'
@@ -2607,7 +2607,6 @@ def send_order_to_listner(order):
         client.captureException()
         return data
     except:
-        order.delete()
         data = {
             'success': False,
             'message': 'Something wrong happened while sending to listner!'
