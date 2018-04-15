@@ -20,7 +20,7 @@ function ReadyOrder(id) {
             },
             dataType: 'json',
             success: function (data) {
-                location.href = $('#current-shaw_queue').parent().attr('href');
+                location.href = $('#current-queue').parent().attr('href');
                 //if (data['success']) {
                 //    alert('Success!');
                 //}
