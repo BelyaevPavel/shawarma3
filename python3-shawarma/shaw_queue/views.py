@@ -1232,7 +1232,7 @@ def voice_all(request):
 @permission_required('shaw_queue.add_order')
 def make_order(request):
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
-    #servery_ip = '127.0.0.1'
+    servery_ip = '127.0.0.1'
     content = json.loads(request.POST['order_content'])
     is_paid = json.loads(request.POST['is_paid'])
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
@@ -2541,15 +2541,13 @@ def send_order_to_1c(order, is_return):
         'total': order.total,
         'Goods': []
     }
-    curr_order_content = OrderContent.objects.filter(order=order)
+    curr_order_content = OrderContent.objects.filter(order=order).values('menu_item__title','menu_item__guid_1c').annotate(count=Count('menu_item__title'))
     for item in curr_order_content:
-        count = OrderContent.objects.filter(menu_item__guid_1c=item.menu_item.guid_1c, order=order).aggregate(count=Count('id'))[
-            'count']
         order_dict['Goods'].append(
             {
-                'Name': item.menu_item.title,
-                'Count': count,
-                'GUID': item.menu_item.guid_1c
+                'Name': item['menu_item__title'],
+                'Count': item['count'],
+                'GUID': item['menu_item__guid_1c']
             }
         )
 
