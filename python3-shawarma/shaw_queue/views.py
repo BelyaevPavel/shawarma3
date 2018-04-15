@@ -13,7 +13,8 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F
 from hashlib import md5
-from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS
+from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
+    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL
 from raven.contrib.django.raven_compat.models import client
 import requests
 import datetime
@@ -1231,7 +1232,7 @@ def voice_all(request):
 @permission_required('shaw_queue.add_order')
 def make_order(request):
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
-    servery_ip = '127.0.0.1'
+    #servery_ip = '127.0.0.1'
     content = json.loads(request.POST['order_content'])
     is_paid = json.loads(request.POST['is_paid'])
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
@@ -1416,24 +1417,25 @@ def make_order(request):
     if order.is_paid:
         print("Sending request to " + order.servery.ip_address)
         print(order)
-        try:
-            requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
-        except ConnectionError:
-            order.delete()
-            data = {
-                'success': False,
-                'message': 'Connection error occured while sending to 1C!'
-            }
-            client.captureException()
-            return JsonResponse(data)
-        except:
-            order.delete()
-            data = {
-                'success': False,
-                'message': 'Something wrong happened while sending to 1C!'
-            }
-            client.captureException()
-            return JsonResponse(data)
+        if not send_order_to_1c(order, False):
+            try:            
+                requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
+            except ConnectionError:
+                order.delete()
+                data = {
+                    'success': False,
+                    'message': 'Connection error occured while sending to 1C!'
+                }
+                client.captureException()
+                return JsonResponse(data)
+            except:
+                order.delete()
+                data = {
+                    'success': False,
+                    'message': 'Something wrong happened while sending to 1C!'
+                }
+                client.captureException()
+                return JsonResponse(data)
 
         print("Request sent.")
     data["success"] = True
@@ -2234,13 +2236,13 @@ def pause_statistic_page(request):
         'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
         'pauses': [{
-                       'staff': pause.staff,
-                       'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-                       'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-                       'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-                   }
-                   for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
-                                                            end_timestamp__contains=datetime.date.today()).order_by(
+            'staff': pause.staff,
+            'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+            'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+            'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+        }
+            for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
+                                                     end_timestamp__contains=datetime.date.today()).order_by(
                 'start_timestamp')]
     }
     return HttpResponse(template.render(context, request))
@@ -2294,13 +2296,13 @@ def pause_statistic_page_ajax(request):
             'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
             'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
             'pauses': [{
-                           'staff': pause.staff,
-                           'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-                           'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-                           'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-                       }
-                       for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
-                                                                end_timestamp__contains=datetime.date.today()).order_by(
+                'staff': pause.staff,
+                'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+                'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+                'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+            }
+                for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
+                                                         end_timestamp__contains=datetime.date.today()).order_by(
                     'start_timestamp')]
         }
     except:
@@ -2494,7 +2496,8 @@ def prepare_json_check(order):
 
 def get_1c_menu(request):
     try:
-        result = requests.get('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + GETLIST_URL, auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS))
+        result = requests.get('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + GETLIST_URL,
+                              auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS))
     except ConnectionError:
         data = {
             'success': False,
@@ -2524,49 +2527,80 @@ def get_1c_menu(request):
         else:
 
             menu_item = Menu(guid_1c=item["GUID"], price=item["Price"], title=item["Name"],
-                             category=undistributed_category,avg_preparation_time=datetime.timedelta(minutes=1), can_be_prepared_by=can_be_prepared)
+                             category=undistributed_category, avg_preparation_time=datetime.timedelta(minutes=1),
+                             can_be_prepared_by=can_be_prepared)
             menu_item.save()
 
     return HttpResponse()
 
 
-def send_order_to_1c(order):
-    order = Order.servery.t
+def send_order_to_1c(order, is_return):
     order_dict = {
-        'servery_number': order.servery.title,
+        'servery_number': order.servery.guid_1c,
         'cash': order.paid_with_cash,
-        'cashless': '',
-        'internet_order': '',
+        'cashless': not order.paid_with_cash,
+        'internet_order': False,
         'queue_number': order.daily_number,
+        'cook': order.prepared_by.user.first_name,
+        'return_of_goods': is_return,
+        'total': order.total,
         'Goods': []
     }
     curr_order_content = OrderContent.objects.filter(order=order)
     for item in curr_order_content:
-        order_dict['items'].append(
+        count = OrderContent.objects.filter(menu_item__guid_1c=item.menu_item.guid_1c, order=order).aggregate(count=Count('id'))[
+            'count']
+        order_dict['Goods'].append(
             {
                 'Name': item.menu_item.title,
-                'Count':
-                    curr_order_content.filter(menu_item__guid_1c=item.menu_item.guid_1c).aggregate(count=Count('id'))[
-                        'count'],
+                'Count': count,
                 'GUID': item.menu_item.guid_1c
             }
         )
 
-
     try:
-        result = requests.post('http://' + SERVER_1C_URL + ':' + SERVER_1C_PORT, auth=('user', 'pass'),
-                               json=json.dumps(order_dict, ensure_ascii=False))
+        result = requests.post('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + ORDER_URL,
+                               auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
+                               json=order_dict)
     except ConnectionError:
         data = {
             'success': False,
-            'message': 'Connection error occured while sending to 1C!'
+            'message': 'Connection error occured while sending order data to 1C!'
         }
         client.captureException()
         return JsonResponse(data)
     except:
         data = {
             'success': False,
-            'message': 'Something wrong happened while sending to 1C!'
+            'message': 'Something wrong happened while sending order data to 1C!'
         }
         client.captureException()
         return JsonResponse(data)
+
+    if result.status_code == 200:
+        order.sent_to_1c = True
+        try:
+            order.guid_1c = result.json()['GUID']
+        except KeyError:
+            data = {
+                'success': False,
+                'message': 'No order GUID in 1C response!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        order.save()
+        return True
+    else:
+        if result.status_code == 400:
+            return False
+        if result.status_code == 399:
+            return False
+
+def order_1c_payment(request):
+    order_guid = request.POST.get('GUID', None)
+    payment_result = request.POST.get('payment_result', None)
+    order = Order.objects.get(guid_1c=order_guid)
+    order.paid_in_1c = payment_result
+    order.save()
+    return HttpResponse()

@@ -60,6 +60,7 @@ class Menu(models.Model):
 class Servery(models.Model):
     title = models.CharField(max_length=500, default="")
     ip_address = models.CharField(max_length=500, default="")
+    guid_1c = models.CharField(max_length=100, default="")
 
     def __str__(self):
         return "{}".format(self.title)
@@ -90,6 +91,10 @@ class Order(models.Model):
     # True - if paid with cash, False - if paid with card.
     paid_with_cash = models.BooleanField(default=True, verbose_name="Paid With Cash")
     servery = models.ForeignKey(Servery, verbose_name="Servery")
+    guid_1c = models.CharField(max_length=100, default="")
+    discount = models.FloatField(default=0, validators=[MinValueValidator(0, "Total can't be negative!")])
+    sent_to_1c = models.BooleanField(verbose_name="Sent To 1C", default=False)
+    paid_in_1c = models.BooleanField(verbose_name="Paid In 1C", default=False)
 
     class Meta:
         permissions = (
