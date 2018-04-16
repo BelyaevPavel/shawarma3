@@ -2,7 +2,7 @@
 my_settings.py
 audio/
 log/
-
+gunicorn*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
