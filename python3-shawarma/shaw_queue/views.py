@@ -1232,7 +1232,7 @@ def voice_all(request):
 @permission_required('shaw_queue.add_order')
 def make_order(request):
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
-    servery_ip = '127.0.0.1'
+    #servery_ip = '127.0.0.1'
     content = json.loads(request.POST['order_content'])
     is_paid = json.loads(request.POST['is_paid'])
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
@@ -2591,11 +2591,17 @@ def send_order_to_1c(order, is_return):
                 'success': False,
                 'message': '400 in 1C response!'
             }
-        if result.status_code == 399:
-            return {
-                'success': False,
-                'message': '399 in 1C response!'
-            }
+        else:
+            if result.status_code == 399:
+                return {
+                    'success': False,
+                    'message': '399 in 1C response!'
+                }
+            else:                
+                return {
+                    'success': False,
+                    'message': '{} in 1C response!'.format(result.status_code)
+                }                
 
 
 def send_order_to_listner(order):
