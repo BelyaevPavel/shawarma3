@@ -14,7 +14,7 @@ from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
-    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER
+    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY
 from raven.contrib.django.raven_compat.models import client
 import requests
 import datetime
@@ -1232,7 +1232,8 @@ def voice_all(request):
 @permission_required('shaw_queue.add_order')
 def make_order(request):
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
-    #servery_ip = '127.0.0.1'
+    if DEBUG_SERVERY:
+        servery_ip = '127.0.0.1'
     content = json.loads(request.POST['order_content'])
     is_paid = json.loads(request.POST['is_paid'])
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
@@ -1414,6 +1415,7 @@ def make_order(request):
     order.shashlyk_completed = not shashlyk_presence
     order.supplement_completed = not supplement_presence
     order.save()
+
     if order.is_paid:
         print("Sending request to " + order.servery.ip_address)
         print(order)
@@ -1428,11 +1430,18 @@ def make_order(request):
                     order.delete()
 
         print("Request sent.")
-    if data["success"]:
+        if data["success"]:
+            data["total"] = order.total
+            data["content"] = json.dumps(content_to_send)
+            data["message"] = ''
+            data["daily_number"] = order.daily_number
+    else:
+        data["success"] = True
         data["total"] = order.total
         data["content"] = json.dumps(content_to_send)
         data["message"] = ''
         data["daily_number"] = order.daily_number
+
     return JsonResponse(data)
 
 
@@ -1939,13 +1948,20 @@ def pay_order(request):
         # order.supplement_completed = not supplement_presence
         # order.content_completed = not content_presence
         order.save()
-        print("Sending request to " + order.servery.ip_address)
         # print order
-        requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
+
+        print("Sending request to " + order.servery.ip_address)
+        if FORCE_TO_LISTNER:
+            data = send_order_to_listner(order)
+        else:
+            data = send_order_to_1c(order, False)
+            if not data["success"]:
+                data = send_order_to_listner(order)
+                print("Payment canceled.")
+                order.is_paid = False
+                order.save()
         print("Request sent.")
-        data = {
-            'success': True
-        }
+
     else:
         data = {
             'success': False
@@ -1958,6 +1974,7 @@ def pay_order(request):
 @permission_required('shaw_queue.change_order')
 def cancel_item(request):
     product_id = request.POST.get('id', None)
+    staff = Staff.objects.get(user=request.user)
     if product_id:
         try:
             item = OrderContent.objects.get(id=product_id)
@@ -1967,7 +1984,7 @@ def cancel_item(request):
                 'message': 'Что-то пошло не так при поиске продуктов!'
             }
             return JsonResponse(data)
-        item.canceled_by = request.user
+        item.canceled_by = staff
         item.is_canceled = True
         item.save()
         data = {
@@ -2227,13 +2244,13 @@ def pause_statistic_page(request):
         'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
         'pauses': [{
-            'staff': pause.staff,
-            'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-            'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-            'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-        }
-            for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
-                                                     end_timestamp__contains=datetime.date.today()).order_by(
+                       'staff': pause.staff,
+                       'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+                       'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+                       'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+                   }
+                   for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
+                                                            end_timestamp__contains=datetime.date.today()).order_by(
                 'start_timestamp')]
     }
     return HttpResponse(template.render(context, request))
@@ -2287,13 +2304,13 @@ def pause_statistic_page_ajax(request):
             'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
             'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
             'pauses': [{
-                'staff': pause.staff,
-                'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-                'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-                'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-            }
-                for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
-                                                         end_timestamp__contains=datetime.date.today()).order_by(
+                           'staff': pause.staff,
+                           'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+                           'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+                           'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+                       }
+                       for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
+                                                                end_timestamp__contains=datetime.date.today()).order_by(
                     'start_timestamp')]
         }
     except:
@@ -2503,7 +2520,6 @@ def get_1c_menu(request):
         }
         print("Unexpected error:", sys.exc_info()[0])
         client.captureException()
-        raise
         return JsonResponse(data)
 
     json_data = result.json()
@@ -2541,7 +2557,9 @@ def send_order_to_1c(order, is_return):
         'total': order.total,
         'Goods': []
     }
-    curr_order_content = OrderContent.objects.filter(order=order).values('menu_item__title','menu_item__guid_1c').annotate(count=Count('menu_item__title'))
+    curr_order_content = OrderContent.objects.filter(order=order).values('menu_item__title',
+                                                                         'menu_item__guid_1c').annotate(
+        count=Count('menu_item__title'))
     for item in curr_order_content:
         order_dict['Goods'].append(
             {
@@ -2597,11 +2615,11 @@ def send_order_to_1c(order, is_return):
                     'success': False,
                     'message': '399 in 1C response!'
                 }
-            else:                
+            else:
                 return {
                     'success': False,
                     'message': '{} in 1C response!'.format(result.status_code)
-                }                
+                }
 
 
 def send_order_to_listner(order):
