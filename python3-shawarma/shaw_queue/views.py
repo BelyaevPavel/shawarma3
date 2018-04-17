@@ -1424,10 +1424,8 @@ def make_order(request):
         else:
             data = send_order_to_1c(order, False)
             if not data["success"]:
-                data = send_order_to_listner(order)
-                if not data["success"]:
-                    print("Deleting order.")
-                    order.delete()
+                print("Deleting order.")
+                order.delete()
 
         print("Request sent.")
         if data["success"]:
@@ -1956,7 +1954,6 @@ def pay_order(request):
         else:
             data = send_order_to_1c(order, False)
             if not data["success"]:
-                data = send_order_to_listner(order)
                 print("Payment canceled.")
                 order.is_paid = False
                 order.save()
@@ -2576,14 +2573,14 @@ def send_order_to_1c(order, is_return):
     except ConnectionError:
         data = {
             'success': False,
-            'message': 'Connection error occured while sending order data to 1C!'
+            'message': 'Возникла проблема соединения с 1C при отправке информации о заказе!'
         }
         client.captureException()
         return data
     except:
         data = {
             'success': False,
-            'message': 'Something wrong happened while sending order data to 1C!'
+            'message': 'Возникло необработанное исключение при отправке информации о заказе в 1C!'
         }
         client.captureException()
         return data
@@ -2595,7 +2592,7 @@ def send_order_to_1c(order, is_return):
         except KeyError:
             data = {
                 'success': False,
-                'message': 'No order GUID in 1C response!'
+                'message': 'Нет GUID в ответе 1С!'
             }
             client.captureException()
             return data
