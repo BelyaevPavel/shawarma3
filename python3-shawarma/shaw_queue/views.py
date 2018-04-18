@@ -1253,7 +1253,7 @@ def make_order(request):
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         servery_ip = '127.0.0.1'
-    define_service_point(servery_ip)
+    result = define_service_point(servery_ip)
     content = json.loads(request.POST['order_content'])
     is_paid = json.loads(request.POST['is_paid'])
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
@@ -1321,7 +1321,11 @@ def make_order(request):
 
     # cooks = Staff.objects.filter(user__last_login__contains=datetime.date.today(), staff_category__title__iexact='Cook')
     try:
-        cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook')
+        if result['success']:
+            cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                         service_point=result['service_point'])
+        else:
+            return JsonResponse(result)
     except:
         data = {
             'success': False,
