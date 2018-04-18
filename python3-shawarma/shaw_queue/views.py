@@ -3,7 +3,8 @@
 
 from django.http.response import HttpResponseRedirect
 
-from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker
+from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker, \
+    ServicePoint
 from django.template import loader
 from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist
 from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
@@ -39,6 +40,9 @@ def redirection(request):
 
 
 def cook_pause(request):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
     user = request.user
     try:
         staff = Staff.objects.get(user=user)
@@ -61,6 +65,7 @@ def cook_pause(request):
         pause = PauseTracker(staff=staff, start_timestamp=datetime.datetime.now())
         pause.save()
         staff.available = False
+        staff.service_point = None
         staff.save()
     else:
         try:
@@ -79,7 +84,12 @@ def cook_pause(request):
             last_pause.save()
 
         staff.available = True
-        staff.save()
+        result = define_service_point(device_ip)
+        if result['success']:
+            staff.service_point = result['service_point']
+            staff.save()
+        else:
+            return JsonResponse(result)
 
     data = {
         'success': True
@@ -129,6 +139,9 @@ def welcomer(request):
 
 @login_required()
 def menu(request):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
     try:
         menu_items = Menu.objects.order_by('title')
     except:
@@ -139,21 +152,27 @@ def menu(request):
         client.captureException()
         return JsonResponse(data)
     template = loader.get_template('shaw_queue/menu_page.html')
-    try:
-        context = {
-            'user': request.user,
-            'available_cookers': Staff.objects.filter(available=True, staff_category__title__iexact='Cook'),
-            'staff_category': StaffCategory.objects.get(staff__user=request.user),
-            'menu_items': menu_items,
-            'menu_categories': MenuCategory.objects.order_by('weight')
-        }
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске последней паузы!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            context = {
+                'user': request.user,
+                'available_cookers': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                                          service_point=result['service_point']),
+                'staff_category': StaffCategory.objects.get(staff__user=request.user),
+                'menu_items': menu_items,
+                'menu_categories': MenuCategory.objects.order_by('weight')
+            }
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске генерации меню!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
+
     return HttpResponse(template.render(context, request))
 
 
@@ -1234,6 +1253,7 @@ def make_order(request):
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         servery_ip = '127.0.0.1'
+    define_service_point(servery_ip)
     content = json.loads(request.POST['order_content'])
     is_paid = json.loads(request.POST['is_paid'])
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
@@ -2548,7 +2568,7 @@ def send_order_to_1c(order, is_return):
         'cash': order.paid_with_cash,
         'cashless': not order.paid_with_cash,
         'internet_order': False,
-        'queue_number': order.daily_number,
+        'queue_number': order.daily_number // 100,
         'cook': cook,
         'return_of_goods': is_return,
         'total': order.total,
@@ -2647,3 +2667,27 @@ def order_1c_payment(request):
     order.paid_in_1c = payment_result
     order.save()
     return HttpResponse()
+
+
+def define_service_point(ip):
+    ip_blocks = ip.split('.')
+    subnet_number = ip_blocks[2]
+    try:
+        service_point = ServicePoint.objects.get(subnetwork=subnet_number)
+    except MultipleObjectsReturned:
+        data = {
+            'success': False,
+            'message': 'Множество экземпляров точек возвращено!'
+        }
+        logger.error('Множество точек возвращено для ip {}!'.format(ip_blocks))
+        client.captureException()
+        return data
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске точки!'
+        }
+        logger.error('Что-то пошло не так при поиске точки для ip {}!'.format(ip_blocks))
+        client.captureException()
+        return data
+    return {'success': True, 'service_point': service_point}

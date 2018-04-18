@@ -29,11 +29,23 @@ class StaffCategory(models.Model):
         return "{}".format(self.title)
 
 
+class ServicePoint(models.Model):
+    title = models.CharField(max_length=100, default="")
+    subnetwork = models.CharField(max_length=10, default="")
+
+    def __str__(self):
+        return "{}".format(self.title)
+
+    def __unicode__(self):
+        return "{}".format(self.title)
+
+
 class Staff(models.Model):
     staff_category = models.ForeignKey(StaffCategory)
     available = models.BooleanField(default="False")
     super_guy = models.BooleanField(default="False")
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
 
     def __str__(self):
         return "{} {} {}".format(self.staff_category, self.user.first_name, self.user.last_name)
@@ -62,6 +74,7 @@ class Servery(models.Model):
     title = models.CharField(max_length=500, default="")
     ip_address = models.CharField(max_length=500, default="")
     guid_1c = models.CharField(max_length=100, default="")
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
 
     def __str__(self):
         return "{}".format(self.title)
