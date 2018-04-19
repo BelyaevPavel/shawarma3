@@ -274,27 +274,37 @@ def evaluate(request):
 
 
 def buyer_queue(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           is_canceled=False, is_ready=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске открытых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            content_completed=True, supplement_completed=True, is_ready=True,
-                                            is_canceled=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске готовых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               is_canceled=False, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске открытых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                content_completed=True, supplement_completed=True, is_ready=True,
+                                                is_canceled=False,
+                                                servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске готовых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
     context = {
         'open_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in open_orders],
         'ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in
@@ -309,27 +319,39 @@ def buyer_queue(request):
 
 
 def buyer_queue_ajax(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           is_canceled=False, is_ready=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске открытых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            content_completed=True, supplement_completed=True, is_ready=True,
-                                            is_canceled=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске готовых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+
+    if result['success']:
+        try:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               is_canceled=False, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске открытых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                content_completed=True, supplement_completed=True, is_ready=True,
+                                                is_canceled=False,
+                                                servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске готовых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
+
     context = {
         'open_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in open_orders],
         'ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in
@@ -353,27 +375,38 @@ def buyer_queue_ajax(request):
 
 @login_required()
 def current_queue(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           is_canceled=False, is_ready=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске открытых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            is_canceled=False, content_completed=True, shashlyk_completed=True,
-                                            supplement_completed=True, is_ready=True).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске готовых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               is_canceled=False, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске открытых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                is_canceled=False, content_completed=True, shashlyk_completed=True,
+                                                supplement_completed=True, is_ready=True,
+                                                servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске готовых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
+
     # print open_orders
     # print ready_orders
 
@@ -418,16 +451,26 @@ def current_queue(request):
 
 @login_required()
 def order_history(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
-                                           is_canceled=False, is_ready=True).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске последней паузы!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
+                                               is_canceled=False, is_ready=True,
+                                               servery__service_point=result['service_point']).order_by('-open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске последней паузы!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
+
     # print open_orders
     # print ready_orders
 
@@ -460,28 +503,38 @@ def order_history(request):
 
 @login_required()
 def current_queue_ajax(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           is_canceled=False, is_ready=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске последней паузы!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
 
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            is_canceled=False, content_completed=True, shashlyk_completed=True,
-                                            supplement_completed=True, is_ready=True).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске последней паузы!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               is_canceled=False, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске последней паузы!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                is_canceled=False, content_completed=True, shashlyk_completed=True,
+                                                supplement_completed=True, is_ready=True,
+                                                servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске последней паузы!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
 
     template = loader.get_template('shaw_queue/current_queue_grid_ajax.html')
     try:
@@ -1084,6 +1137,9 @@ def set_cooker(request, order_id, cooker_id):
 def order_content(request, order_id):
     order_info = get_object_or_404(Order, id=order_id)
     order_content = OrderContent.objects.filter(order_id=order_id)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
     flag = True
     for item in order_content:
         if item.finish_timestamp is None:
@@ -1094,14 +1150,36 @@ def order_content(request, order_id):
     order_info.save()
     current_order_content = OrderContent.objects.filter(order=order_id).order_by('id')
     template = loader.get_template('shaw_queue/order_content.html')
-    context = {
-        'order_info': order_info,
-        'maker': order_info.prepared_by,
-        'staff_category': StaffCategory.objects.get(staff__user=request.user),
-        'order_content': current_order_content,
-        'ready': order_info.content_completed and order_info.supplement_completed,
-        'serveries': Servery.objects.all()
-    }
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            context = {
+                'order_info': order_info,
+                'maker': order_info.prepared_by,
+                'staff_category': StaffCategory.objects.get(staff__user=request.user),
+                'order_content': current_order_content,
+                'ready': order_info.content_completed and order_info.supplement_completed,
+                'serveries': Servery.objects.filter(service_point=result['service_point'])
+            }
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров персонала возвращено!'
+            }
+            logger.error('{} Множество экземпляров персонала возвращено!'.format(request.user))
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так!'
+            }
+            logger.error('{} Что-то пошло не так при поиске персонала!'.format(request.user))
+            return JsonResponse(data)
+    else:
+        JsonResponse(result)
+
     return HttpResponse(template.render(context, request))
 
 
@@ -1138,25 +1216,33 @@ def voice_order(request, order_id):
 
 
 def unvoice_order(request):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
     daily_number = request.POST.get('daily_number', None)
     data = {
         'success': False
     }
     if daily_number:
-        try:
-            order = Order.objects.get(daily_number=daily_number, open_time__contains=datetime.date.today())
-        except:
+        result = define_service_point(device_ip)
+        if result['success']:
+            try:
+                order = Order.objects.get(daily_number=daily_number, open_time__contains=datetime.date.today(), servery__service_point=result['service_point'])
+            except:
+                data = {
+                    'success': False,
+                    'message': 'Что-то пошло не так при поиске заказа!'
+                }
+                client.captureException()
+                return JsonResponse(data)
+            order.is_voiced = True
+            order.save()
             data = {
-                'success': False,
-                'message': 'Что-то пошло не так при поиске заказа!'
+                'success': True
             }
-            client.captureException()
-            return JsonResponse(data)
-        order.is_voiced = True
-        order.save()
-        data = {
-            'success': True
-        }
+        else:
+            return JsonResponse(result)
+
 
     return JsonResponse(data=data)
 
@@ -1230,16 +1316,23 @@ def shashlychnik_select_order(request):
 
 
 def voice_all(request):
-    try:
-        today_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            is_ready=True)
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            today_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                is_ready=True, servery__service_point=result['service_point'])
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
     for order in today_orders:
         order.is_voiced = False
         order.save()
