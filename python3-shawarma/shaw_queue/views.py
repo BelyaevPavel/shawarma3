@@ -2572,7 +2572,7 @@ def send_order_to_1c(order, is_return):
         'cash': order.paid_with_cash,
         'cashless': not order.paid_with_cash,
         'internet_order': False,
-        'queue_number': order.daily_number // 100,
+        'queue_number': order.daily_number % 100,
         'cook': cook,
         'return_of_goods': is_return,
         'total': order.total,
