@@ -1377,23 +1377,27 @@ def make_order(request):
         return JsonResponse(data)
 
     order_next_number = 0
-    try:
-        order_last_daily_number = Order.objects.filter(open_time__contains=datetime.date.today()).aggregate(
-            Max('daily_number'))
-    except EmptyResultSet:
-        data = {
-            'success': False,
-            'message': 'Empty set of orders returned!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    except:
-        data = {
-            'success': False,
-            'message': 'Something wrong happened while getting set of orders!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    if result['success']:
+        try:
+            order_last_daily_number = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           servery__service_point=result['service_point']).aggregate(
+                Max('daily_number'))
+        except EmptyResultSet:
+            data = {
+                'success': False,
+                'message': 'Empty set of orders returned!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Something wrong happened while getting set of orders!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
 
     if order_last_daily_number:
         if order_last_daily_number['daily_number__max'] is not None:
