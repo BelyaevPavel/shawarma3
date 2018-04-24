@@ -17,6 +17,7 @@ from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY
 from raven.contrib.django.raven_compat.models import client
+from itertools import chain
 import requests
 import datetime
 import logging
@@ -379,12 +380,99 @@ def current_queue(request):
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
 
+    shawarma_filter = True
+    if request.COOKIES.get('with_shawarma', 'True') == 'False':
+        shawarma_filter = False
+
+    shashlyk_filter = True
+    if request.COOKIES.get('with_shashlyk', 'True') == 'False':
+        shashlyk_filter = False
+
+    paid_filter = True
+    if request.COOKIES.get('paid', 'True') == 'False':
+        paid_filter = False
+
+    not_paid_filter = True
+    if request.COOKIES.get('not_paid', 'True') == 'False':
+        not_paid_filter = False
+
     result = define_service_point(device_ip)
     if result['success']:
         try:
-            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                               is_canceled=False, is_ready=False,
-                                               servery__service_point=result['service_point']).order_by('open_time')
+            if paid_filter:
+                if not_paid_filter:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+                else:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=True,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,is_paid=True,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter, is_paid=True,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+            else:
+                if not_paid_filter:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=False,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=False,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter, is_paid=False,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+                else:
+                    open_orders = Order.objects.none()
+
         except:
             data = {
                 'success': False,
@@ -444,6 +532,12 @@ def current_queue(request):
         'open_length': len(open_orders),
         'ready_length': len(ready_orders),
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'serveries': [{'servery': servery, 'filtered': request.COOKIES.pop('servery_' + str(servery.id), 'True')} for
+                      servery in Servery.objects.filter(service_point=result['service_point'])],
+        'paid_filtered': request.COOKIES.pop('paid', 'True'),
+        'not_paid_filtered': request.COOKIES.pop('not_paid', 'True'),
+        'with_shawarma_filtered': request.COOKIES.pop('with_shawarma', 'True'),
+        'with_shashlyk_filtered': request.COOKIES.pop('with_shashlyk', 'True'),
     }
     # print context
     return HttpResponse(template.render(context, request))
@@ -507,12 +601,98 @@ def current_queue_ajax(request):
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
 
+    shawarma_filter = True
+    if request.COOKIES.get('with_shawarma', 'True') == 'False':
+        shawarma_filter = False
+
+    shashlyk_filter = True
+    if request.COOKIES.get('with_shashlyk', 'True') == 'False':
+        shashlyk_filter = False
+
+    paid_filter = True
+    if request.COOKIES.get('paid', 'True') == 'False':
+        paid_filter = False
+
+    not_paid_filter = True
+    if request.COOKIES.get('not_paid', 'True') == 'False':
+        not_paid_filter = False
+
     result = define_service_point(device_ip)
     if result['success']:
         try:
-            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                               is_canceled=False, is_ready=False,
-                                               servery__service_point=result['service_point']).order_by('open_time')
+            if paid_filter:
+                if not_paid_filter:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+                else:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=True,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,is_paid=True,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter, is_paid=True,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+            else:
+                if not_paid_filter:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=False,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=False,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter, is_paid=False,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+                else:
+                    open_orders = Order.objects.none()
         except:
             data = {
                 'success': False,
@@ -573,7 +753,15 @@ def current_queue_ajax(request):
             'open_length': len(open_orders),
             'ready_length': len(ready_orders),
             'staff_category': StaffCategory.objects.get(staff__user=request.user),
+            'serveries': [{'servery': servery, 'filtered': request.COOKIES.get('servery_' + str(servery.id), 'True')}
+                          for servery in Servery.objects.filter(service_point=result['service_point'])],
+            'paid_filtered': request.COOKIES.pop('paid', 'True'),
+            'not_paid_filtered': request.COOKIES.pop('not_paid', 'True'),
+            'with_shawarma_filtered': request.COOKIES.pop('with_shawarma', 'True'),
+            'with_shashlyk_filtered': request.COOKIES.pop('with_shashlyk', 'True'),
         }
+        for servery in Servery.objects.filter(service_point=result['service_point']):
+            request.COOKIES.pop('servery_' + str(servery.id), None)
     except:
         data = {
             'success': False,
@@ -1053,6 +1241,18 @@ def shashlychnik_interface(request):
         aux_html = template.render(context, request)
         return HttpResponse(template.render(context, request))
 
+    def unmanaged_queue(request):
+        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                           with_shashlyk=True, is_canceled=False, is_ready=False).order_by('open_time')
+        context = {
+            'open_orders': [{'order': open_order,
+                             'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
+                                 menu_item__can_be_prepared_by__title__iexact='shashlychnik')
+                             } for open_order in open_orders],
+            'open_length': len(open_orders),
+            'staff_category': StaffCategory.objects.get(staff__user=request.user)
+        }
+
     return new_processor_with_queue(request)
 
 
@@ -1227,7 +1427,8 @@ def unvoice_order(request):
         result = define_service_point(device_ip)
         if result['success']:
             try:
-                order = Order.objects.get(daily_number=daily_number, open_time__contains=datetime.date.today(), servery__service_point=result['service_point'])
+                order = Order.objects.get(daily_number=daily_number, open_time__contains=datetime.date.today(),
+                                          servery__service_point=result['service_point'])
             except:
                 data = {
                     'success': False,
@@ -1242,7 +1443,6 @@ def unvoice_order(request):
             }
         else:
             return JsonResponse(result)
-
 
     return JsonResponse(data=data)
 
@@ -1532,6 +1732,8 @@ def make_order(request):
         )
 
     order.total = total
+    order.with_shawarma = content_presence
+    order.with_shashlyk = shashlyk_presence
     order.content_completed = not content_presence
     order.shashlyk_completed = not shashlyk_presence
     order.supplement_completed = not supplement_presence

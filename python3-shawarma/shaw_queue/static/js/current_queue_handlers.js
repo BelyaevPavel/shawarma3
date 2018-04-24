@@ -91,3 +91,10 @@ function VoiceAll() {
 function VoiceOrder(id) {
     $.get(id);
 }
+
+function RememberFilter(id){
+    if ($('#'+id).is(':checked'))
+        document.cookie = id+"=True";
+    else
+        document.cookie = id+"=False";
+}
