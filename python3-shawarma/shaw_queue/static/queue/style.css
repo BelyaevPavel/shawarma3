@@ -227,6 +227,16 @@ div.order-item {
     border-top: solid 1px #D8D8D8;
 }
 
+div.order-item-title {
+    border-bottom: solid 1px #D8D8D8;
+    border-top: solid 1px #D8D8D8;
+}
+
+div.order-item-note {
+    border-bottom: solid 1px #D8D8D8;
+    border-top: solid 1px #D8D8D8;
+}
+
 div.order-total {
     border-top: solid 1px #6e6e6e;
 }

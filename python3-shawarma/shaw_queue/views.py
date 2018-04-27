@@ -9,10 +9,10 @@ from django.template import loader
 from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist
 from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import logout, login, views as auth_views
-from django.db.models import Max, Min, Count, Avg, F
+from django.db.models import Max, Min, Count, Avg, F, Sum
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY
@@ -433,7 +433,7 @@ def current_queue(request):
                                                                    'service_point']).order_by('open_time')
                         else:
                             open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
-                                                               close_time__isnull=True,is_paid=True,
+                                                               close_time__isnull=True, is_paid=True,
                                                                with_shawarma=shawarma_filter,
                                                                with_shashlyk=shashlyk_filter,
                                                                is_canceled=False, is_ready=False,
@@ -654,7 +654,7 @@ def current_queue_ajax(request):
                                                                    'service_point']).order_by('open_time')
                         else:
                             open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
-                                                               close_time__isnull=True,is_paid=True,
+                                                               close_time__isnull=True, is_paid=True,
                                                                with_shawarma=shawarma_filter,
                                                                with_shashlyk=shashlyk_filter,
                                                                is_canceled=False, is_ready=False,
@@ -1242,18 +1242,32 @@ def shashlychnik_interface(request):
         return HttpResponse(template.render(context, request))
 
     def unmanaged_queue(request):
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           with_shashlyk=True, is_canceled=False, is_ready=False).order_by('open_time')
-        context = {
-            'open_orders': [{'order': open_order,
-                             'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
-                                 menu_item__can_be_prepared_by__title__iexact='shashlychnik')
-                             } for open_order in open_orders],
-            'open_length': len(open_orders),
-            'staff_category': StaffCategory.objects.get(staff__user=request.user)
-        }
+        device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if DEBUG_SERVERY:
+            device_ip = '127.0.0.1'
 
-    return new_processor_with_queue(request)
+        result = define_service_point(device_ip)
+        if result['success']:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
+                                               shashlyk_completed=False, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by(
+                'open_time')
+            context = {
+                'open_orders': [{'order': open_order,
+                                 'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
+                                     menu_item__category__eng_title__iexact='shashlyk')
+                                 } for open_order in open_orders],
+                'open_length': len(open_orders)
+            }
+
+            template = loader.get_template('shaw_queue/shashlychnik_queue.html')
+        else:
+            return Http404("Неудалось определить точку обслуживания.")
+
+        return HttpResponse(template.render(context, request))
+
+    return unmanaged_queue(request)
 
 
 @login_required()
@@ -1303,7 +1317,38 @@ def s_i_a(request):
 
         return JsonResponse(data=data)
 
-    return queue_processor(request)
+    def unmanaged_queue(request):
+        device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if DEBUG_SERVERY:
+            device_ip = '127.0.0.1'
+
+        result = define_service_point(device_ip)
+        if result['success']:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
+                                               shashlyk_completed=False, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by(
+                'open_time')
+            context = {
+                'open_orders': [{'order': open_order,
+                                 'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
+                                     menu_item__category__eng_title__iexact='shashlyk')
+                                 } for open_order in open_orders],
+                'open_length': len(open_orders)
+            }
+
+            template = loader.get_template('shaw_queue/shashlychnik_queue_ajax.html')
+            data = {
+                'html': template.render(context, request)
+            }
+        else:
+            data = {
+                'html': "<h1>Неудалось определить точку обслуживания.</h1>"
+            }
+
+        return JsonResponse(data=data)
+
+    return unmanaged_queue(request)
 
 
 @login_required()
@@ -1718,7 +1763,7 @@ def make_order(request):
             menu_item = Menu.objects.get(id=item['id'])
             if menu_item.can_be_prepared_by.title == 'Cook':
                 content_presence = True
-            if menu_item.can_be_prepared_by.title == 'Shashlychnik':
+            if menu_item.category.eng_title == 'shashlyk':
                 shashlyk_presence = True
             if menu_item.can_be_prepared_by.title == 'Operator':
                 supplement_presence = True
@@ -2068,8 +2113,11 @@ def finish_all_content(request):
                                                             menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
         cook_products = OrderContent.objects.filter(order=order,
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
-        products = OrderContent.objects.filter(order=order,
-                                               menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
+        if staff.staff_category.title == 'Operator':
+            products = shashlychnik_products
+        else:
+            products = OrderContent.objects.filter(order=order,
+                                                   menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
         for product in products:
             product.is_in_grill = False
             product.finish_timestamp = datetime.datetime.now()
@@ -2119,8 +2167,11 @@ def grill_all_content(request):
                                                             menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
         cook_products = OrderContent.objects.filter(order=order,
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
-        products = OrderContent.objects.filter(order=order,
-                                               menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
+        if staff.staff_category.title == 'Operator':
+            products = shashlychnik_products
+        else:
+            products = OrderContent.objects.filter(order=order,
+                                                   menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
         for product in products:
             product.start_timestamp = datetime.datetime.now()
             product.grill_timestamp = datetime.datetime.now()
@@ -2879,12 +2930,12 @@ def send_order_to_1c(order, is_return):
     }
     curr_order_content = OrderContent.objects.filter(order=order).values('menu_item__title',
                                                                          'menu_item__guid_1c').annotate(
-        count=Count('menu_item__title'))
+        count=Sum('quantity'))
     for item in curr_order_content:
         order_dict['Goods'].append(
             {
                 'Name': item['menu_item__title'],
-                'Count': item['count'],
+                'Count': round(item['count'], 3),
                 'GUID': item['menu_item__guid_1c']
             }
         )
