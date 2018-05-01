@@ -2673,6 +2673,8 @@ def send_order_to_1c(order, is_return):
         'cook': cook,
         'return_of_goods': is_return,
         'total': order.total,
+        'DC': '111',
+        'Discount': 0,
         'Goods': []
     }
     curr_order_content = OrderContent.objects.filter(order=order).values('menu_item__title',
@@ -2686,7 +2688,6 @@ def send_order_to_1c(order, is_return):
                 'GUID': item['menu_item__guid_1c']
             }
         )
-
     try:
         result = requests.post('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + ORDER_URL,
                                auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
