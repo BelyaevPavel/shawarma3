@@ -227,6 +227,16 @@ div.order-item {
     border-top: solid 1px #D8D8D8;
 }
 
+div.order-item-title {
+    border-bottom: solid 1px #D8D8D8;
+    border-top: solid 1px #D8D8D8;
+}
+
+div.order-item-note {
+    border-bottom: solid 1px #D8D8D8;
+    border-top: solid 1px #D8D8D8;
+}
+
 div.order-total {
     border-top: solid 1px #6e6e6e;
 }
@@ -831,4 +841,9 @@ margin: 5px 0;
 
 .live-search-list-item:hover {
     color: #007fff;
+}
+
+div.filter-container {
+    border-top: rgba(0,0,0,0.5) solid 1px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.33);
 }

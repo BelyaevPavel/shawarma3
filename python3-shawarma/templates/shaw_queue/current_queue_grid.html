@@ -7,6 +7,30 @@
     <input id="urls" hidden data-close-order-url="{% url 'close_order' %}"
            data-cancel-order-url="{% url 'cancel_order' %}" voice-all-url="{% url 'voice_all' %}"
            >
+    <div class="filter-container">
+        <!--{% for servery in serveries %}
+            <input type="checkbox" id="servery_{{ servery.servery.id }}" {% if servery.filtered == 'True' %}
+            checked
+            {% endif %} value="servery_{{ servery.servery.id }}" name="{{ servery.title }}" onchange="RememberFilter('servery_{{ servery.servery.id }}')">
+            <label for="servery_{{ servery.servery.id }}">{{ servery.servery.title }}</label>
+        {% endfor %} -->
+        <input type="checkbox" id="with_shashlyk" {% if with_shashlyk_filtered == 'True' %}
+        checked
+        {% endif %} value="With Shashlyk" name="With Shashlyk" onchange="RememberFilter('with_shashlyk')">
+        <label for="with_shashlyk">С Шашлыком</label>
+        <input type="checkbox" id="with_shawarma" {% if with_shawarma_filtered == 'True' %}
+        checked
+        {% endif %} value="With Shawarma" name="With Shawarma" onchange="RememberFilter('with_shawarma')">
+        <label for="with_shawarma">С Шаурмой</label>
+        <input type="checkbox" id="paid" {% if paid_filtered == 'True' %}
+        checked
+        {% endif %} value="Оплаченые" name="Оплаченые" onchange="RememberFilter('paid')">
+        <label for="paid">Оплаченые</label>
+        <input type="checkbox" id="not_paid" {% if not_paid_filtered == 'True' %}
+        checked
+        {% endif %} value="Не Оплаченые" name="Не Оплаченые" onchange="RememberFilter('not_paid')">
+        <label for="not_paid">Не Оплаченые</label>
+    </div>
     <div class="open-orders">
         {% for open_order in open_orders %}
             {% include 'shaw_queue/open_order_block.html' with open_order=open_order %}

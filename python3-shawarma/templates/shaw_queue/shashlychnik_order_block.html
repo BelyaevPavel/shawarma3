@@ -1,0 +1,42 @@
+{% load static %}
+<div class="order-block-container">
+    <div class="order-block shadowed">
+        <div class="order-block-header">
+            <div class="order-number    {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
+                                                ready
+                                        {% else %}
+                                            {% if open_order.order.is_grilling or open_order.order.is_grilling_shash %}
+                                                inGrill
+                                            {% endif %}
+                                        {% endif %}">
+                <a href="{% url 'order_content' open_order.order.id %}">№ {{ open_order.order.daily_number }}</a>
+            </div>
+            <div class="order-cook-part {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
+                                                ready
+                                        {% else %}
+                                            {% if open_order.order.is_grilling or open_order.order.is_grilling_shash %}
+                                                inGrill
+                                            {% endif %}
+                                        {% endif %}">
+                <a href="{% url 'order_content' open_order.order.id %}">{{ open_order.order.prepared_by.user.first_name }} ({{ open_order.cook_part_ready_count.count }}/{{ open_order.cook_part_count.count }})</a>
+            </div>
+        </div>
+
+        <div class="order-operator-part">
+            <a href="{% url 'order_content' order_id=open_order.order.id %}">
+                {% for oper_content in open_order.shashlychnik_part %}
+                    <div class="order-item">
+                        <p class="order-item-title">
+                            {{ oper_content.menu_item.title }}
+                        </p>
+                        <p class="order-item-note">
+                            {{ oper_content.note }}
+                        </p>
+                    </div>
+                {% empty %}
+                    <p>Нет доп. товаров.</p>
+                {% endfor %}
+            </a>
+        </div>
+    </div>
+</div>
