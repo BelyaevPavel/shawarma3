@@ -185,7 +185,8 @@ def search_comment(request):
     }
     if len(comment_part) > 0:
         try:
-            comments = OrderContent.objects.filter(note__icontains=comment_part).distinct('note')[:5]
+            comments = OrderContent.objects.filter(note__icontains=comment_part).values('note').annotate(
+                count=Count('note')).order_by('-count')[:5]
         except:
             data = {
                 'success': False,

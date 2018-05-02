@@ -247,10 +247,23 @@ function ss(index, id) {
             dataType: 'json',
             success: function (data) {
                 $('#dropdown-list-container').html(data['html']);
-                $('#dropdown-list').css({
+                var dropdown_list = $('#dropdown-list');
+                var is_visible = isScrolledIntoView(dropdown_list);
+
+                dropdown_list.css({
                     left: input_pos.left,
-                    top: input_pos.top + 25,
+                    top: is_visible ? input_pos.top + input.height() - 10 : input_pos.top - dropdown_list.height() - input.height() - 25,
                     position: 'absolute'
+                });
+                dropdown_list.append('<div id="close-cross">x</div>');
+                $('#close-cross').css({
+                    left: dropdown_list.width()+10,
+                    top: 5,
+                    position: 'absolute',
+                    cursor: 'pointer'
+                });
+                $('#close-cross').click(function () {
+                    $('#dropdown-list').remove();
                 });
             }
         }
@@ -268,4 +281,17 @@ function ss(index, id) {
         }
 
     });
+}
+
+function isScrolledIntoView(elem){
+    var $elem = $(elem);
+    var $window = $(window);
+
+    var docViewTop = window.scrollY;
+    var docViewBottom = docViewTop + window.innerHeight;
+
+    var elemTop = $elem.offset().top;
+    var elemBottom = elemTop + $elem.height();
+
+    return ((elemBottom <= docViewBottom) && (elemTop >= docViewTop));
 }
