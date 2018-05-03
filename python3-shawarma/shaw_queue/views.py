@@ -17,6 +17,7 @@ from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY
 from raven.contrib.django.raven_compat.models import client
+from random import sample
 from itertools import chain
 import requests
 import datetime
@@ -1667,6 +1668,7 @@ def make_order(request):
         if result['success']:
             cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                          service_point=result['service_point'])
+            cooks = sample(list(cooks), len(cooks))
         else:
             return JsonResponse(result)
     except:
