@@ -1186,7 +1186,6 @@ def c_i_a(request):
     return queue_processor(request)
 
 
-@login_required()
 def shashlychnik_interface(request):
     def new_processor_with_queue(request):
         user = request.user
@@ -1270,7 +1269,6 @@ def shashlychnik_interface(request):
     return unmanaged_queue(request)
 
 
-@login_required()
 def s_i_a(request):
     def queue_processor(request):
         user = request.user
