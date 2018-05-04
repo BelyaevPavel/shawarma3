@@ -2275,6 +2275,7 @@ def pay_order(request):
     ids = json.loads(request.POST.get('ids', None))
     values = json.loads(request.POST.get('values', None))
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
+    total = 0
     if order_id:
         for index, item_id in enumerate(ids):
             try:
@@ -2286,7 +2287,10 @@ def pay_order(request):
                 }
                 return JsonResponse(data)
             item.quantity = float(values[index])
+            total += item.menu_item.price * item.quantity
             item.save()
+
+        cash_to_throw_out = total % 5
 
         try:
             order = Order.objects.get(id=order_id)
@@ -2314,6 +2318,14 @@ def pay_order(request):
             menu_item = item.menu_item
             if menu_item.can_be_prepared_by.title == 'Cook':
                 content_presence = True
+            if menu_item.can_be_prepared_by.title == 'Shashlychnik':
+                if cash_to_throw_out > 0:
+                    weight_to_throw_out = cash_to_throw_out / menu_item.price
+                    if item.quantity - weight_to_throw_out > 0:
+                        item.quantity -= weight_to_throw_out
+                        item.save()
+                        cash_to_throw_out -= weight_to_throw_out * menu_item.price
+
             if menu_item.can_be_prepared_by.title == 'Operator':
                 supplement_presence = True
             total += menu_item.price * item.quantity
@@ -2430,6 +2442,7 @@ def statistic_page_ajax(request):
         avg_preparation_time = Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv,
                                                     close_time__isnull=False, is_canceled=False).values(
             'open_time', 'close_time').aggregate(preparation_time=Avg(F('close_time') - F('open_time')))
+        aux = list(avg_preparation_time)
     except:
         data = {
             'success': False,
