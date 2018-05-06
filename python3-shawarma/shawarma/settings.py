@@ -126,11 +126,6 @@ LOGGING = {
         },
     },
     'loggers': {
-        'django': {
-            'handlers': ['file_general'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
         'django.request': {
             'handlers': ['file_request'],
             'level': 'DEBUG',
@@ -150,11 +145,6 @@ LOGGING = {
             'handlers': ['file_db'],
             'level': 'DEBUG',
             'propagate': True,
-        },
-        'sentry.errors': {
-            'level': 'DEBUG',
-            'handlers': ['file_general'],
-            'propagate': False,
         }
     },
 }
