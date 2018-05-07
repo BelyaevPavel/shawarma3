@@ -1710,7 +1710,7 @@ def make_order(request):
                     cooks_order_content = OrderContent.objects.filter(order__prepared_by=cooks[cook_index],
                                                                       order__open_time__contains=datetime.date.today(),
                                                                       order__is_canceled=False,
-                                                                      order__close_time__isnull=True,
+                                                                      order__close_time__isnull=True, order__is_ready=False,
                                                                       menu_item__can_be_prepared_by__title__iexact='Cook')
                 except:
                     data = {

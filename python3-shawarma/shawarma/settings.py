@@ -100,12 +100,6 @@ LOGGING = {
             'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
             'tags': {'custom-tag': 'x'},
         },
-        'file_general': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': 'log/debug.log',
-            'formatter': 'verbose'
-        },
         'file_request': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
@@ -132,11 +126,6 @@ LOGGING = {
         },
     },
     'loggers': {
-        'django': {
-            'handlers': ['file_general'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
         'django.request': {
             'handlers': ['file_request'],
             'level': 'DEBUG',
@@ -156,11 +145,6 @@ LOGGING = {
             'handlers': ['file_db'],
             'level': 'DEBUG',
             'propagate': True,
-        },
-        'sentry.errors': {
-            'level': 'DEBUG',
-            'handlers': ['file_general'],
-            'propagate': False,
         }
     },
 }
