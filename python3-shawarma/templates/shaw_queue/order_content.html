@@ -33,18 +33,22 @@
         {% for order_item in order_content %}
             <div class="order-item-container">
                 <div class="order-item-title {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
                     {{ order_item.menu_item }}
                 </div>
                 <div class="order-item-note {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
                     "{{ order_item.note }}"
                 </div>
                 <div class="order-item-maker {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
                     {{ order_item.staff_maker }}
                 </div>
                 <div class="order-item-maker {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
                     <input class="quantityInput" type="text" value="{{ order_item.quantity }}" cost="{{ order_item.menu_item.price }}"
                            item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %}>

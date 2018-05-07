@@ -3,7 +3,7 @@
 <link rel="stylesheet" type="text/css" href="{% static 'queue/style.css' %}">
 <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/shashlychnik_interface_unmanaged.js' %}"></script>
-<input hidden id="urls" data-ajax="{% url 'shashlychnik_interface_ajax' %}">
+<input hidden id="urls" data-ajax="{% url 'shashlychnik_interface_ajax' %}" data-finish-all-content-url="{% url 'finish_all_content' %}" >
 <div id="content">
     {% for open_order in open_orders %}
         {% include 'shaw_queue/shashlychnik_order_block.html' with open_order=open_order %}

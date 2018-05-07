@@ -847,3 +847,7 @@ div.filter-container {
     border-top: rgba(0,0,0,0.5) solid 1px;
     box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.33);
 }
+
+.clickable {
+    cursor: pointer;
+}

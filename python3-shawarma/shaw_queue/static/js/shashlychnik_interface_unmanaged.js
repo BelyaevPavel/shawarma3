@@ -31,3 +31,30 @@ function Refresher() {
     }).fail(function () {
     });
 }
+
+
+function FinishAllContent(id) {
+    var url = $('#urls').attr('data-finish-all-content-url');
+    var confirmation = true;
+    if (confirmation) {
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+            }
+        });
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: {
+                'id': id
+            },
+            dataType: 'json',
+            success: function (data) {
+                //alert('Положите в заказ №' + data['order_number']);
+            },
+            complete: function () {
+                location.reload();
+            }
+        });
+    }
+}
