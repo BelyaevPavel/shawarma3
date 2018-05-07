@@ -1588,6 +1588,7 @@ def voice_all(request):
 @login_required()
 @permission_required('shaw_queue.add_order')
 def make_order(request):
+    file = open('log/cook_choose.log', 'a')
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         servery_ip = '127.0.0.1'
@@ -1703,6 +1704,7 @@ def make_order(request):
         if cook_choose == 'auto':
             min_index = 0
             min_count = 100
+            file.write("Заказ №{}\n".format(order.daily_number))
             for cook_index in range(0, len(cooks)):
                 try:
                     cooks_order_content = OrderContent.objects.filter(order__prepared_by=cooks[cook_index],
@@ -1717,10 +1719,13 @@ def make_order(request):
                     }
                     return JsonResponse(data)
 
+                file.write("{}: {}\n".format(cooks[cook_index], len(cooks_order_content)))
+
                 if min_count > len(cooks_order_content):
                     min_count = len(cooks_order_content)
                     min_index = cook_index
 
+            file.write("Выбранный повар: {}\n".format(cooks[min_index]))
             order.prepared_by = cooks[min_index]
         else:
             try:
