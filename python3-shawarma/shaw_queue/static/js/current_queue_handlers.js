@@ -48,6 +48,38 @@ function CloseOrder(order_id) {
     }
 }
 
+function CloseAll() {
+    var confirmation = confirm("Закрыть все готовые заказы?");
+    if (confirmation == true) {
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+            }
+        });
+        $.ajax({
+                type: 'POST',
+                url: $('#urls').attr('close-all-url'),
+                data: {},
+                dataType: 'json',
+                success: function (data) {
+                    if(!data['success'])
+                        alert(data['message']);
+                        
+                    //alert('Заказ закрыт!');
+                },
+                complete: function () {
+                    location.reload();
+                }
+            }
+        ).fail(function () {
+            alert('У вас нет прав!');
+        });
+    }
+    else {
+        event.preventDefault();
+    }
+}
+
 function PrintOrder(order_id) {
     var confirmation = confirm("Печатать заказ?");
     if (confirmation == true) {

@@ -5,7 +5,7 @@
 {% endblock %}
 {% block content %}
     <input id="urls" hidden data-close-order-url="{% url 'close_order' %}"
-           data-cancel-order-url="{% url 'cancel_order' %}" voice-all-url="{% url 'voice_all' %}"
+           data-cancel-order-url="{% url 'cancel_order' %}" voice-all-url="{% url 'voice_all' %}" close-all-url="{% url 'close_all' %}"
            >
     <div class="filter-container">
         <!--{% for servery in serveries %}
@@ -44,6 +44,9 @@
         <div>
             <button onclick="VoiceAll()">
                 Озвучить всё
+            </button>
+            <button onclick="CloseAll()">
+                Закрыть всё
             </button>
         </div>
         {% for open_order in ready_orders %}

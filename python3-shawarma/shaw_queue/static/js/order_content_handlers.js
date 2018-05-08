@@ -50,7 +50,10 @@ function PayOrderCash(id) {
     for(var i = 0; i<quantity_inputs_values.length; i++){
         total_cost +=prices[i]*quantity_inputs_values[i];
     }
-    var confirmation = confirm("К оплате: " + total_cost);
+    if (total_cost > 5000)
+        var confirmation = confirm("Сумма заказа превышает 5000 р. Вы уверены в корректности ввода?");
+    if (confirmation)   
+        confirmation = confirm("Оплатить заказ?");
     if (confirmation) {
         console.log(id + ' ' + url);
         $.ajaxSetup({
@@ -69,7 +72,15 @@ function PayOrderCash(id) {
             },
             dataType: 'json',
             success: function (data) {
-                location.href = $('#current-queue').parent().attr('href');
+                if (data['success'])
+                {
+                    alert("К оплате: " + data['total']);
+                    location.href = $('#current-queue').parent().attr('href');
+                }
+                else
+                {
+                    alert(data['message']);
+                }
                 //if (data['success']) {
                 //    alert('Success!');
                 //}

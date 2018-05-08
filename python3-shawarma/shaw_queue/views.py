@@ -13,6 +13,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http40
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F, Sum
+from django.utils import timezone
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY
@@ -1250,8 +1251,7 @@ def shashlychnik_interface(request):
         result = define_service_point(device_ip)
         if result['success']:
             open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
-                                               shashlyk_completed=False, is_ready=False,
+                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True, is_ready=False,
                                                servery__service_point=result['service_point']).order_by(
                 'open_time')
             context = {
@@ -1326,8 +1326,7 @@ def s_i_a(request):
         if result['success']:
             open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
                                                with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
-                                               shashlyk_completed=False, is_ready=False,
-                                               servery__service_point=result['service_point']).order_by(
+                                               is_ready=False, servery__service_point=result['service_point']).order_by(
                 'open_time')
             context = {
                 'open_orders': [{'order': open_order,
@@ -1393,7 +1392,7 @@ def order_content(request, order_id):
         order_info.content_completed = True
         order_info.supplement_completed = True
     order_info.save()
-    current_order_content = OrderContent.objects.filter(order=order_id).order_by('id')
+    current_order_content = OrderContent.objects.filter(order=order_id)
     template = loader.get_template('shaw_queue/order_content.html')
 
     result = define_service_point(device_ip)
@@ -1404,7 +1403,7 @@ def order_content(request, order_id):
                 'maker': order_info.prepared_by,
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
                 'order_content': current_order_content,
-                'ready': order_info.content_completed and order_info.supplement_completed,
+                'ready': order_info.content_completed and order_info.supplement_completed and order_info.shashlyk_completed,
                 'serveries': Servery.objects.filter(service_point=result['service_point'])
             }
         except MultipleObjectsReturned:
@@ -1836,6 +1835,36 @@ def close_order(request):
     data = {
         'success': True,
         'received': 'Order №{} is closed.'.format(order.daily_number)
+    }
+
+    return JsonResponse(data)
+
+
+@login_required()
+@permission_required('shaw_queue.change_order')
+def close_all(request):
+    try:
+        ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=True, is_ready=True)
+    except EmptyResultSet:
+        data = {
+            'success': False,
+            'message': 'Заказов не найдено!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске заказов!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    for order in ready_orders:
+        order.close_time = datetime.datetime.now()
+        order.is_ready = True
+        order.save()
+    data = {
+        'success': True
     }
 
     return JsonResponse(data)
@@ -2349,6 +2378,7 @@ def pay_order(request):
                 print("Payment canceled.")
                 order.is_paid = False
                 order.save()
+        data['total'] = order.total
         print("Request sent.")
 
     else:

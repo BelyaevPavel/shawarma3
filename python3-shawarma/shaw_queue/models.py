@@ -112,6 +112,9 @@ class Order(models.Model):
     sent_to_1c = models.BooleanField(verbose_name="Sent To 1C", default=False)
     paid_in_1c = models.BooleanField(verbose_name="Paid In 1C", default=False)
 
+    def __str__(self):
+        return "{} №{}".format(self.servery, self.daily_number)
+
     class Meta:
         permissions = (
             ('can_cancel', 'User can cancel order.'),
