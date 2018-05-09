@@ -2320,11 +2320,10 @@ def pay_order(request):
                     'message': 'Что-то пошло не так при поиске продуктов!'
                 }
                 return JsonResponse(data)
-            item.quantity = float(values[index])
+            item.quantity = round(float(values[index]), 3)
             total += item.menu_item.price * item.quantity
             item.save()
 
-        cash_to_throw_out = total % 5
 
         try:
             order = Order.objects.get(id=order_id)
@@ -2334,6 +2333,11 @@ def pay_order(request):
                 'message': 'Что-то пошло не так при поиске заказа!'
             }
             return JsonResponse(data)
+        cash_to_throw_out = 0
+        rounding_discount = 0
+        if order.with_shashlyk:
+            rounding_discount = (round(total, 2) - order.discount) % 5
+        order.discount += rounding_discount
         order.is_paid = True
         order.paid_with_cash = paid_with_cash
 
@@ -2363,7 +2367,7 @@ def pay_order(request):
             if menu_item.can_be_prepared_by.title == 'Operator':
                 supplement_presence = True
             total += menu_item.price * item.quantity
-        order.total = total
+        order.total = round(total,2)
         # order.supplement_completed = not supplement_presence
         # order.content_completed = not content_presence
         order.save()
@@ -2378,7 +2382,7 @@ def pay_order(request):
                 print("Payment canceled.")
                 order.is_paid = False
                 order.save()
-        data['total'] = order.total
+        data['total'] = order.total - order.discount
         print("Request sent.")
 
     else:
@@ -2976,7 +2980,7 @@ def send_order_to_1c(order, is_return):
         'return_of_goods': is_return,
         'total': order.total,
         'DC': '111',
-        'Discount': 0,
+        'Discount': order.discount,
         'Goods': []
     }
     curr_order_content = OrderContent.objects.filter(order=order).values('menu_item__title',
