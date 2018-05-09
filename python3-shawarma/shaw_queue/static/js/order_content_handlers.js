@@ -50,9 +50,10 @@ function PayOrderCash(id) {
     for(var i = 0; i<quantity_inputs_values.length; i++){
         total_cost +=prices[i]*quantity_inputs_values[i];
     }
+    var confirmation = false;
     if (total_cost > 5000)
-        var confirmation = confirm("Сумма заказа превышает 5000 р. Вы уверены в корректности ввода?");
-    if (confirmation)   
+        confirmation = confirm("Сумма заказа превышает 5000 р. Вы уверены в корректности ввода?");
+    else   
         confirmation = confirm("Оплатить заказ?");
     if (confirmation) {
         console.log(id + ' ' + url);
