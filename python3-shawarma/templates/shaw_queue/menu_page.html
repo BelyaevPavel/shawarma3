@@ -48,24 +48,32 @@
                 <button type="button" class="subm" data-send-url="{% url 'make_order' %}">
                     Принять
                 </button>
-                <p>
-                    <input type="checkbox" id="is_paid" checked value="Оплачен" name="Оплачено">
-                    <label for="is_paid">Оплачено</label>
-                </p>
-                <p>
-                    <input type="checkbox" id="paid_with_cash" checked value="Оплачен наличными" name="Оплачено наличными">
-                    <label for="paid_with_cash">Наличные</label>
-                </p>
-                <p>
-                    <input type="radio" id="cook_auto" name="cook_choose" value="auto" checked>
-                    <label for="cook_auto">Автоназначение</label>
-                </p>
+                <div class="shadowed">
+                    <p>
+                        <input type="radio" id="not_paid" checked value="not_paid" name="payment_choose">
+                        <label for="is_paid">Не Оплачен</label>
+                    </p>
+                    <p>
+                        <input type="radio" id="paid_with_cash" value="paid_with_cash" name="payment_choose">
+                        <label for="paid_with_cash">Наличные</label>
+                    </p>
+                    <p>
+                        <input type="radio" id="paid_without_cash" value="paid_without_cash" name="payment_choose">
+                        <label for="paid_without_cash">Безналичный</label>
+                    </p>
+                </div>
+                <div class="shadowed">
+                    <p>
+                        <input type="radio" id="cook_auto" checked name="cook_choose" value="auto">
+                        <label for="cook_auto">Автоназначение</label>
+                    </p>
                 {% for available_cooker in available_cookers %}
                     <p>
                         <input type="radio" id="cook_{{ available_cooker.id }}" name="cook_choose" value="{{ available_cooker.id }}">
                         <label for="cook_{{ available_cooker.id }}">{{ available_cooker.user.first_name }} {{ available_cooker.user.last_name }}</label>
                     </p>
                 {% endfor %}
+                </div>
 
 
             </tr>

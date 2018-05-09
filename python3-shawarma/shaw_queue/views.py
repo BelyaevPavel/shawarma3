@@ -1593,8 +1593,7 @@ def make_order(request):
         servery_ip = '127.0.0.1'
     result = define_service_point(servery_ip)
     content = json.loads(request.POST['order_content'])
-    is_paid = json.loads(request.POST['is_paid'])
-    paid_with_cash = json.loads(request.POST['paid_with_cash'])
+    payment = request.POST['payment']
     cook_choose = request.POST['cook_choose']
 
     if len(content) == 0:
@@ -1649,6 +1648,15 @@ def make_order(request):
             order_next_number = order_last_daily_number['daily_number__max'] + 1
         else:
             order_next_number = 1
+
+    is_paid = False
+    paid_with_cash = False
+    if payment != 'not_paid':
+        if payment == 'paid_with_cash':
+            paid_with_cash = True
+            is_paid = True
+        else:
+            is_paid = True
 
     try:
         order = Order(open_time=datetime.datetime.now(), daily_number=order_next_number, is_paid=is_paid,

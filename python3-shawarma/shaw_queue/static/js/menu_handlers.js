@@ -17,12 +17,6 @@ $(function () {
         if (currOrder.length > 0) {
             var confirmation = confirm("Подтвердить заказ?");
             var form = $('.subm');
-            var is_paid = false;
-            if ($('#is_paid').is(':checked'))
-                is_paid = true;
-            var paid_with_cash = false;
-            if ($('#paid_with_cash').is(':checked'))
-                paid_with_cash = true;
 
             if (confirmation == true) {
                 $('.subm').prop('disabled', true);
@@ -36,8 +30,7 @@ $(function () {
                         url: form.attr('data-send-url'),
                         data: {
                             "order_content": JSON.stringify(currOrder),
-                            "is_paid": JSON.stringify($('#is_paid').is(':checked')),
-                            "paid_with_cash": JSON.stringify($('#paid_with_cash').is(':checked')),
+                            "payment": $('[name=payment_choose]:checked').val(),
                             "cook_choose": $('[name=cook_choose]:checked').val()
                         },
                         dataType: 'json',
