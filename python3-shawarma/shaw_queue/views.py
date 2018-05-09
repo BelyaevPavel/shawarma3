@@ -1257,7 +1257,7 @@ def shashlychnik_interface(request):
             context = {
                 'open_orders': [{'order': open_order,
                                  'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
-                                     menu_item__category__eng_title__iexact='shashlyk')
+                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
                                  } for open_order in open_orders],
                 'open_length': len(open_orders)
             }
@@ -1331,7 +1331,7 @@ def s_i_a(request):
             context = {
                 'open_orders': [{'order': open_order,
                                  'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
-                                     menu_item__category__eng_title__iexact='shashlyk')
+                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
                                  } for open_order in open_orders],
                 'open_length': len(open_orders)
             }
