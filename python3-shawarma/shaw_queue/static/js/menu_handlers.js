@@ -54,7 +54,7 @@ $(function () {
                         dataType: 'json',
                         success: function (data) {
                             if (data['success']) {
-                                if (is_paid && paid_with_cash) {
+                                if ($('[name=payment_choose]:checked').val() == "paid_with_cash") {
                                     var cash = prompt('Заказ №' + data.daily_number + ' добавлен!, Введите полученную сумму:', "");
                                     alert("Сдача: " + (parseInt(cash) - total))
                                 }
@@ -280,6 +280,7 @@ function ShowModal(index) {
     var modal = document.getElementById('modal-edit');
 
     modal.style.display = "block";
+    note.focus();
 }
 
 function CloseModal() {
