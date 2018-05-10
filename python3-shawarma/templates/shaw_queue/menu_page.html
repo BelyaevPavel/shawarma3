@@ -5,6 +5,23 @@
     <script type="text/javascript" src="{% static 'js/menu_handlers.js' %}"></script>
 {% endblock %}
 {% block content %}
+    <div class="modal" id="modal-edit">
+        <div class="modal-content">
+            <span class="close" id="close-modal">&times;</span>
+            <p id="item-title" class="modal-title">Title</p>
+            <p>
+                <label for="item-quantity" class="modal-label">Количество</label>
+                <input type="text" value="" class="modal-quantity-input" id="item-quantity">
+                <button class="btn info" id="plus-button">+</button>
+                <button class="btn info" id="minus-button">-</button>
+            </p>
+            <p>
+                <label for="item-note" class="modal-label">Комментарий</label>
+                <input type="text" value="" class="live-search-box" id="item-note">
+                <div id="dropdown-list-container"></div>
+            </p>
+        </div>
+    </div>
     <div class="menu-div">
         {% include 'shaw_queue/menu.html' with menu_items=menu_items %}
     </div>

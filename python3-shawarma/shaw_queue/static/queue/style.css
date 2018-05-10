@@ -14,7 +14,7 @@ table.currentQueueTable {
 td.currentOrderTitleCell {
     border-bottom: 1pt solid black;
     text-align: left;
-	cursor: pointer;
+    cursor: pointer;
 }
 
 td.currentOrderActionCell {
@@ -219,7 +219,7 @@ div.cook-order-cook-part {
 }
 
 div.order-cook-part a {
-	display: block;
+    display: block;
 }
 
 div.order-item {
@@ -297,14 +297,13 @@ div.header-buttons {
     border-left: solid 1px #D8D8D8;
 }
 
-
 div.menu-header-div-container {
     position: relative;
     border-bottom: solid 1px #D8D8D8;
     box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.5);
     background: #F6F6F6;
     height: 60px;
-    width: 100%-180px;
+    width: 100% -180px;
     min-width: 400px;
     line-height: 60px;
     left: 0;
@@ -353,7 +352,7 @@ div.header-who-logged {
 div.menu-div {
     width: calc(100% - 294px);
     min-width: 265px;
-	height: 120px;
+    height: 120px;
     top: 0;
     bottom: 0;
     left: 0;
@@ -361,7 +360,6 @@ div.menu-div {
     background-color: rgba(246, 246, 246, 0.63);
     box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.5);
 }
-
 
 div.menu-item-container {
     position: relative;
@@ -382,11 +380,11 @@ div.menu-item {
     margin: 5px;
     padding: 7px;
     width: 140px;
-	height: 60px;
+    height: 60px;
     border: solid 1px #D8D8D8;
     background: #F6F6F6;
     float: left;
-	cursor: pointer;
+    cursor: pointer;
 }
 
 div.menu-item-title, div.menu-item-price, div.menu-item-actions {
@@ -395,14 +393,14 @@ div.menu-item-title, div.menu-item-price, div.menu-item-actions {
 
 div.menu-item-title {
     width: 100%;
-	font-size: large;
+    font-size: large;
 }
 
 div.menu-item-price {
     min-width: 55px;
     text-align: right;
-	font-size: large;
-	color: darkred;
+    font-size: large;
+    color: darkred;
 }
 
 div.menu-item-note {
@@ -549,7 +547,7 @@ div.cook-empty {
     font-size: xx-large;
 }
 
-div.cook-item-container{
+div.cook-item-container {
     line-height: 1;
     min-height: 80px;
     border-bottom: solid 1px #D8D8D8;
@@ -649,7 +647,7 @@ div.stat-cook-name {
     padding-left: 20px;
 }
 
-div.stat-cook-prepared-orders .stat-cook-prepared-products .stat-cook-avg-prep-times .stat-cook-max-prep-times .stat-cook-min-prep-times{
+div.stat-cook-prepared-orders .stat-cook-prepared-products .stat-cook-avg-prep-times .stat-cook-max-prep-times .stat-cook-min-prep-times {
     min-width: 10%;
     width: 200px;
     max-width: 16%;
@@ -658,7 +656,7 @@ div.stat-cook-prepared-orders .stat-cook-prepared-products .stat-cook-avg-prep-t
     text-align: center;
 }
 
-div.stat-cook-table-cell{
+div.stat-cook-table-cell {
     min-width: 10%;
     width: 16%;
     max-width: 25%;
@@ -666,7 +664,6 @@ div.stat-cook-table-cell{
     float: left;
     text-align: center;
 }
-
 
 div.stat-cook-table-header {
     width: 100%;
@@ -676,18 +673,18 @@ div.stat-cook-table-header {
     border-bottom: solid 1px #D8D8D8;
 }
 
-div.stat-view-container.stat-view{
+div.stat-view-container.stat-view {
     width: 100%;
     float: left;
 }
 
-div.stat-actions-container{
+div.stat-actions-container {
     width: 400px;
     height: 60px;
     float: right;
 }
 
-div.stat-controls{
+div.stat-controls {
     width: 100%;
     height: 30px;
     float: left;
@@ -699,7 +696,7 @@ div.stat-controls{
     cursor: pointer;
 }
 
-div.evaluation-note-block{
+div.evaluation-note-block {
     width: 100%;
     height: 30%;
     padding: 1%;
@@ -804,35 +801,37 @@ div.stat-opinion-mark {
 }
 
 .live-search-list {
--webkit-box-sizing: border-box;
--moz-box-sizing: border-box;
-box-sizing: border-box;
-padding: 1em;
-background-color: #2c3e50;
--webkit-border-radius: 5px;
--moz-border-radius: 5px;
-border-radius: 5px;
-font-family: 'Lato', sans-serif;
-color: #fff;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 1em;
+    background-color: #2c3e50;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    font-family: 'Lato', sans-serif;
+    color: #fff;
 }
 
 .live-search-box {
-width: 100%;
-display: block;
--webkit-box-sizing: border-box;
--moz-box-sizing: border-box;
-box-sizing: border-box;
-border: 1px solid #3498db;
--webkit-border-radius: 5px;
--moz-border-radius: 5px;
-border-radius: 5px;
+    width: 100%;
+    line-height: 2;
+    font-size: 16px;
+    display: block;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    border: 1px solid #3498db;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
 }
 
 .live-search-list li {
-color: #FFFFFF;
-list-style: none;
-padding: 0;
-margin: 5px 0;
+    color: #FFFFFF;
+    list-style: none;
+    padding: 0;
+    margin: 5px 0;
 }
 
 .live-search-list-item {
@@ -844,10 +843,126 @@ margin: 5px 0;
 }
 
 div.filter-container {
-    border-top: rgba(0,0,0,0.5) solid 1px;
+    border-top: rgba(0, 0, 0, 0.5) solid 1px;
     box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.33);
 }
 
 .clickable {
     cursor: pointer;
+}
+
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1100; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0, 0, 0); /* Fallback color */
+    background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* The Close Button */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-title {
+    font-size: 20px;
+    font: bold;
+}
+
+.modal-label {
+    font-size: 16px;
+}
+
+.modal-quantity-input {
+    font-size: 16px;
+    line-height: 2;
+}
+
+.btn {
+    border: 2px solid black;
+    border-radius: 5px;
+    background-color: white;
+    color: black;
+    padding: 14px 28px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Green */
+.success {
+    border-color: #4CAF50;
+    color: green;
+}
+
+.success:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Blue */
+.info {
+    border-color: #2196F3;
+    color: dodgerblue
+}
+
+.info:hover {
+    background: #2196F3;
+    color: white;
+}
+
+/* Orange */
+.warning {
+    border-color: #ff9800;
+    color: orange;
+}
+
+.warning:hover {
+    background: #ff9800;
+    color: white;
+}
+
+/* Red */
+.danger {
+    border-color: #f44336;
+    color: red
+}
+
+.danger:hover {
+    background: #f44336;
+    color: white;
+}
+
+/* Gray */
+.default {
+    border-color: #e7e7e7;
+    color: black;
+}
+
+.default:hover {
+    background: #e7e7e7;
 }

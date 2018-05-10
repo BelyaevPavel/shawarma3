@@ -1761,9 +1761,9 @@ def make_order(request):
     shashlyk_presence = False
     supplement_presence = False
     for item in content:
-        for i in range(0, int(item['quantity'])):
+        if item['quantity'] - int(item['quantity']) != 0:
             try:
-                new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'])
+                new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'], quantity=item['quantity'])
             except:
                 order.delete()
                 data = {
@@ -1776,11 +1776,33 @@ def make_order(request):
             menu_item = Menu.objects.get(id=item['id'])
             if menu_item.can_be_prepared_by.title == 'Cook':
                 content_presence = True
-            if menu_item.category.eng_title == 'shashlyk':
+            if menu_item.can_be_prepared_by.title == 'Shashlychnik':
                 shashlyk_presence = True
             if menu_item.can_be_prepared_by.title == 'Operator':
                 supplement_presence = True
-            total += menu_item.price
+            total += menu_item.price * item['quantity']
+
+        else:
+            for i in range(0, int(item['quantity'])):
+                try:
+                    new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'])
+                except:
+                    order.delete()
+                    data = {
+                        'success': False,
+                        'message': 'Something wrong happened while creating new order!'
+                    }
+                    client.captureException()
+                    return JsonResponse(data)
+                new_order_content.save()
+                menu_item = Menu.objects.get(id=item['id'])
+                if menu_item.can_be_prepared_by.title == 'Cook':
+                    content_presence = True
+                if menu_item.can_be_prepared_by.title == 'Shashlychnik':
+                    shashlyk_presence = True
+                if menu_item.can_be_prepared_by.title == 'Operator':
+                    supplement_presence = True
+                total += menu_item.price
 
         content_to_send.append(
             {

@@ -5,6 +5,24 @@ $(document).ready(function () {
     $('#menu').addClass('header-active');
     $('.menu-item').hide();
     $('.subm').prop('disabled', false);
+
+    // Get the modal
+    var modal = document.getElementById('modal-edit');
+
+    // Get the <span> element that closes the modal
+    var span = document.getElementById("close-modal");
+
+    // When the user clicks on <span> (x), close the modal
+    span.onclick = function() {
+        CloseModal();
+    };
+
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            CloseModal();
+        }
+    }
 });
 
 var currOrder = [];
@@ -122,8 +140,9 @@ function SelectSuggestion(id, note) {
     //     }
     // }
     $('#note-' + id).val(note);
+    $('#item-note').val(note);
     if (id != null) {
-        currOrder[id]['note'] = $('#note-' + id).val();
+        currOrder[id]['note'] = $('#item-note').val();
     }
     DrawOrderTable();
 }
@@ -152,6 +171,48 @@ function Add(id, title, price) {
     DrawOrderTable();
 }
 
+function PlusOneItem(index) {
+    var quantity = $('#item-quantity');
+    currOrder[index]['quantity'] += 1;
+    quantity.val(currOrder[index]['quantity']);
+    CalculateTotal();
+    DrawOrderTable();
+}
+
+function MinusOneItem(index) {
+    var quantity = $('#item-quantity');
+    var modal = document.getElementById('modal-edit');
+    if(currOrder[index]['quantity'] - 1 > 0)
+    {
+        currOrder[index]['quantity'] -= 1;
+        quantity.val(currOrder[index]['quantity']);
+    }
+    else {
+        currOrder[index]['quantity'] = 0;
+        currOrder.splice(index, 1);
+        CloseModal();
+    }
+    CalculateTotal();
+    DrawOrderTable();
+}
+
+function UpdateQuantity(index) {
+    var quantity = $('#item-quantity');
+    var modal = document.getElementById('modal-edit');
+    var aux_quantity = parseFloat((quantity.val()).replace(/,/g, '.'));
+    if(aux_quantity > 0){
+        currOrder[index]['quantity'] = aux_quantity;
+        quantity.val(currOrder[index]['quantity']);
+    }
+    else {
+        currOrder[index]['quantity'] = 0;
+        currOrder.splice(index, 1);
+        CloseModal();
+    }
+    CalculateTotal();
+    DrawOrderTable();
+}
+
 function FindItem(id, note) {
     var index = null;
     for (var i = 0; i < currOrder.length; i++) {
@@ -163,20 +224,78 @@ function FindItem(id, note) {
     return index;
 }
 
+// onclick="EditNote(' + currOrder[i]['id'] + ',\'' + currOrder[i]['note'] + '\')"
+// <div id="dropdown-list-container"></div>
 function DrawOrderTable() {
     $('table.currentOrderTable tbody tr').remove();
     for (var i = 0; i < currOrder.length; i++) {
         $('table.currentOrderTable').append(
-            '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="EditNote(' + currOrder[i]['id'] + ',\'' + currOrder[i]['note'] + '\')">' +
+            // '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModal(' + i + ')">' +
+            // '<div>' + currOrder[i]['title'] + '</div><div class="noteText">' + currOrder[i]['note'] + '</div>' +
+            // '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] +
+            // '<input type="text" value="1" class="quantityInput" id="count-to-remove-' + i + '">' +
+            // '<button class="btnRemove" onclick="Remove(' + i + ')">Убрать</button>' +
+            // '<input type="text" value="' + currOrder[i]['note'] + '" class="live-search-box" id="note-' + i + '" onkeyup="ss(' + i + ','+currOrder[i]['id']+')">' +
+            // '' +
+            // '</td></tr>'
+            '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModal(' + i + ')">' +
             '<div>' + currOrder[i]['title'] + '</div><div class="noteText">' + currOrder[i]['note'] + '</div>' +
-            '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] +
-            '<input type="text" value="1" class="quantityInput" id="count-to-remove-' + i + '">' +
-            '<button class="btnRemove" onclick="Remove(' + i + ')">Убрать</button>' +
-            '<input type="text" value="' + currOrder[i]['note'] + '" class="live-search-box" id="note-' + i + '" onkeyup="ss(' + i + ','+currOrder[i]['id']+')">' +
-            '<div id="dropdown-list-container"></div>' +
-            '</td></tr>'
+            '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] +'</td></tr>'
         );
     }
+}
+
+function ShowModal(index) {
+    var title = $('#item-title');
+    var quantity = $('#item-quantity');
+    var note = $('#item-note');
+    var plus = $('#plus-button');
+    var minus = $('#minus-button');
+
+    title.text(currOrder[index]['title']);
+    quantity.val(currOrder[index]['quantity']);
+    quantity.blur(
+        function () {
+            UpdateQuantity(index);
+        }
+    );
+    note.val(currOrder[index]['note']);
+    note.keyup(
+        function () {
+            ss(index, currOrder[index]['id']);
+        }
+    );
+    plus.click(
+        function () {
+            PlusOneItem(index);
+        }
+    );
+    minus.click(
+        function () {
+            MinusOneItem(index);
+        }
+    );
+
+    // Get the modal
+    var modal = document.getElementById('modal-edit');
+
+    modal.style.display = "block";
+}
+
+function CloseModal() {
+    var title = $('#item-title');
+    var quantity = $('#item-quantity');
+    var note = $('#item-note');
+    var plus = $('#plus-button');
+    var minus = $('#minus-button');
+    var modal = document.getElementById('modal-edit');
+
+    quantity.off("blur");
+    note.off("keyup");
+    plus.off("click");
+    minus.off("click");
+
+    modal.style.display = "none";
 }
 
 function CalculateTotal() {
@@ -185,7 +304,7 @@ function CalculateTotal() {
         total += currOrder[i]['price'] * currOrder[i]['quantity'];
     }
     $('p.totalDisplay').each(function () {
-        $(this).text(total);
+        $(this).text(Number(total.toFixed(2)));
     });
 }
 
@@ -221,9 +340,12 @@ function SearchSuggestion(id) {
 }
 
 function ss(index, id) {
-    var input = $('#note-' + index);
+//     var input = $('#note-' + index);
+//     var input_pos = input.position();
+//     var searchTerm = $('#note-' + index).val();
+    var input = $('#item-note');
     var input_pos = input.position();
-    var searchTerm = $('#note-' + index).val();
+    var searchTerm = $('#item-note').val();
     currOrder[index]['note'] = searchTerm;
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
