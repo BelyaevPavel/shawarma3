@@ -511,7 +511,12 @@ span.grill-title {
 }
 
 input.quantityInput {
-    width: 40px;
+    width: 80px;
+    font-size: 20px;
+}
+
+input.quantityInput:focus {
+    box-shadow: 0px 0px 12px 0px rgba(2, 124, 245, 0.85);
 }
 
 input.item-note {
