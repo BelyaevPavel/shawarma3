@@ -265,6 +265,11 @@ function ShowModal(index) {
             ss(index, currOrder[index]['id']);
         }
     );
+    note.blur(
+        function () {
+            SelectSuggestion(index, note.val());
+        }
+    );
     plus.click(
         function () {
             PlusOneItem(index);
@@ -293,6 +298,7 @@ function CloseModal() {
 
     quantity.off("blur");
     note.off("keyup");
+    note.off("blur");
     plus.off("click");
     minus.off("click");
 
