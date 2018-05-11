@@ -1873,26 +1873,35 @@ def close_order(request):
 @login_required()
 @permission_required('shaw_queue.change_order')
 def close_all(request):
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=True, is_ready=True)
-    except EmptyResultSet:
-        data = {
-            'success': False,
-            'message': 'Заказов не найдено!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    for order in ready_orders:
-        order.close_time = datetime.datetime.now()
-        order.is_ready = True
-        order.save()
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+    
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=True, is_ready=True, servery__service_point=result['service_point'])
+        except EmptyResultSet:
+            data = {
+                'success': False,
+                'message': 'Заказов не найдено!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        for order in ready_orders:
+            order.close_time = datetime.datetime.now()
+            order.is_ready = True
+            order.save()
+    else:
+        return JsonResponse(result)
+
     data = {
         'success': True
     }
