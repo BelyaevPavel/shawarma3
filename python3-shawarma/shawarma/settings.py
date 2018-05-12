@@ -15,7 +15,7 @@ import raven
 import psycopg2.extensions
 from .my_settings import login, password, db_name, allowed_hosts, debug_flag, listner_url, listner_port, printer_url, \
     raven_dsn, secret_key, server_1c_ip, server_1c_port, getlist_url, server_1c_user, server_1c_pass, order_url, \
-    force_to_listner, debug_servery
+    force_to_listner, debug_servery, return_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -214,6 +214,8 @@ SERVER_1C_PORT = server_1c_port
 GETLIST_URL = getlist_url
 
 ORDER_URL = order_url
+
+RETURN_URL = return_url
 
 PRINTER_URL = printer_url
 

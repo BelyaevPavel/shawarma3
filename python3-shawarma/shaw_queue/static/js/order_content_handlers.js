@@ -69,7 +69,8 @@ function PayOrderCash(id) {
                 'id': id,
                 'values': JSON.stringify(quantity_inputs_values),
                 'ids': JSON.stringify(quantity_inputs_ids),
-                'paid_with_cash': JSON.stringify(true)
+                'paid_with_cash': JSON.stringify(true),
+                'servery_id': $('[name=servery_choose]:checked').val()
             },
             dataType: 'json',
             success: function (data) {
@@ -117,7 +118,8 @@ function PayOrderCard(id) {
                 'id': id,
                 'values': JSON.stringify(quantity_inputs_values),
                 'ids': JSON.stringify(quantity_inputs_ids),
-                'paid_with_cash': JSON.stringify(false)
+                'paid_with_cash': JSON.stringify(false),
+                'servery_id': $('[name=servery_choose]:checked').val()
             },
             dataType: 'json',
             success: function (data) {

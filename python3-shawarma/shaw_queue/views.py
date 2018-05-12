@@ -16,7 +16,7 @@ from django.db.models import Max, Min, Count, Avg, F, Sum
 from django.utils import timezone
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
-    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY
+    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL
 from raven.contrib.django.raven_compat.models import client
 from random import sample
 from itertools import chain
@@ -1924,20 +1924,24 @@ def cancel_order(request):
             client.captureException()
             return JsonResponse(data)
 
-        try:
-            order.canceled_by = Staff.objects.get(user=request.user)
-        except:
+        result = send_order_return_to_1c(order)
+        if result['success']:
+            try:
+                order.canceled_by = Staff.objects.get(user=request.user)
+            except:
+                data = {
+                    'success': False,
+                    'message': 'Что-то пошло не так при поиске персонала!'
+                }
+                client.captureException()
+                return JsonResponse(data)
+            order.is_canceled = True
+            order.save()
             data = {
-                'success': False,
-                'message': 'Что-то пошло не так при поиске персонала!'
+                'success': True
             }
-            client.captureException()
-            return JsonResponse(data)
-        order.is_canceled = True
-        order.save()
-        data = {
-            'success': True
-        }
+        else:
+            return JsonResponse(result)
     else:
         data = {
             'success': False
@@ -2348,6 +2352,25 @@ def pay_order(request):
     ids = json.loads(request.POST.get('ids', None))
     values = json.loads(request.POST.get('values', None))
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
+    servery_id = request.POST['servery_id']
+
+    try:
+        servery = Servery.objects.get(id=servery_id)
+    except MultipleObjectsReturned:
+        data = {
+            'success': False,
+            'message': 'Multiple serveries returned!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except:
+        data = {
+            'success': False,
+            'message': 'Something wrong happened while getting servery!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+
     total = 0
     if order_id:
         for index, item_id in enumerate(ids):
@@ -2379,6 +2402,7 @@ def pay_order(request):
         order.discount += rounding_discount
         order.is_paid = True
         order.paid_with_cash = paid_with_cash
+        order.servery = servery
 
         total = 0
         content_presence = False
@@ -3084,6 +3108,64 @@ def send_order_to_1c(order, is_return):
                     'success': False,
                     'message': '{} in 1C response!'.format(result.status_code)
                 }
+
+
+def send_order_return_to_1c(order):
+    order_dict = {
+        'Order': order.guid_1c
+    }
+    try:
+        result = requests.post('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + RETURN_URL,
+                               auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
+                               json=order_dict)
+    except ConnectionError:
+        data = {
+            'success': False,
+            'message': 'Возникла проблема соединения с 1C при отправке информации о возврате заказа!'
+        }
+        client.captureException()
+        return data
+    except:
+        data = {
+            'success': False,
+            'message': 'Возникло необработанное исключение при отправке информации о возврате заказа в 1C!'
+        }
+        client.captureException()
+        return data
+
+    if result.status_code == 200:
+        order.sent_to_1c = True
+        try:
+            order.guid_1c = result.json()['GUID']
+        except KeyError:
+            data = {
+                'success': False,
+                'message': 'Нет GUID в ответе 1С!'
+            }
+            client.captureException()
+            return data
+
+        order.save()
+
+        return {"success": True}
+    else:
+        if result.status_code == 400:
+            return {
+                'success': False,
+                'message': '400 in 1C response!'
+            }
+        else:
+            if result.status_code == 399:
+                return {
+                    'success': False,
+                    'message': '399 in 1C response!'
+                }
+            else:
+                return {
+                    'success': False,
+                    'message': '{} in 1C response!'.format(result.status_code)
+                }
+
 
 
 def send_order_to_listner(order):

@@ -101,7 +101,12 @@ function CancelOrder(order_id) {
                 data: {"id": order_id},
                 dataType: 'json',
                 success: function (data) {
-                    alert('Заказ отменён!');
+                    if (data['success']) {
+                        alert('Заказ отменён!');
+                    }
+                    else {
+                        alert(data['message']);
+                    }
                 },
                 complete: function () {
                     location.reload();
