@@ -71,6 +71,7 @@ class Menu(models.Model):
 
 
 class Servery(models.Model):
+    display_title = models.CharField(max_length=500, default="")
     title = models.CharField(max_length=500, default="")
     ip_address = models.CharField(max_length=500, default="")
     guid_1c = models.CharField(max_length=100, default="")
@@ -84,7 +85,7 @@ class Servery(models.Model):
 
 
 class Order(models.Model):
-    daily_number = models.IntegerField(verbose_name="Daily Number", unique_for_date=True)
+    daily_number = models.IntegerField(verbose_name="Daily Number")
     open_time = models.DateTimeField(verbose_name="Open Time")
     close_time = models.DateTimeField(verbose_name="Close Time", null=True)
     with_shawarma = models.BooleanField(verbose_name="With Shawarma", default=False)
@@ -111,8 +112,12 @@ class Order(models.Model):
     discount = models.FloatField(default=0, validators=[MinValueValidator(0, "Total can't be negative!")])
     sent_to_1c = models.BooleanField(verbose_name="Sent To 1C", default=False)
     paid_in_1c = models.BooleanField(verbose_name="Paid In 1C", default=False)
+    status_1c = models.IntegerField(verbose_name="1C Status", default=200)
 
     def __str__(self):
+        return "{} №{}".format(self.servery, self.daily_number)
+
+    def __unicode__(self):
         return "{} №{}".format(self.servery, self.daily_number)
 
     class Meta:
@@ -165,4 +170,16 @@ class PauseTracker(models.Model):
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
     start_timestamp = models.DateTimeField(verbose_name="Start Timestamp", null=True)
     end_timestamp = models.DateTimeField(verbose_name="End Timestamp", null=True)
+
+
+class Printer(models.Model):
+    title = models.CharField(max_length=20, default="")
+    ip_address = models.CharField(max_length=20, default="")
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
+
+    def __str__(self):
+        return "№{} {}".format(self.title, self.service_point)
+
+    def __unicode__(self):
+        return "№{} {}".format(self.title, self.service_point)
 

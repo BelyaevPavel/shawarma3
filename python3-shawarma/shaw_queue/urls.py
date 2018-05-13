@@ -3,7 +3,8 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.welcomer, name='welcomer'),    
-    url(r'^reload_menu', views.get_1c_menu, name='reload_menu'),    
+    url(r'^reload_menu', views.get_1c_menu, name='reload_menu'),
+    url(r'^order_status', views.recive_1c_order_status, name='order_status'),       
     url(r'^menu', views.menu, name='menu'),
     url(r'^cook_pause', views.cook_pause, name="cook_pause"),
     url(r'^order/1c_payment_result/$', views.order_1c_payment, name="order_1c_payment"),

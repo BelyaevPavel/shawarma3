@@ -11,6 +11,7 @@ from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404
 from django.contrib.auth.decorators import login_required, permission_required
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F, Sum
 from django.utils import timezone
@@ -2353,23 +2354,24 @@ def pay_order(request):
     values = json.loads(request.POST.get('values', None))
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
     servery_id = request.POST['servery_id']
-
-    try:
-        servery = Servery.objects.get(id=servery_id)
-    except MultipleObjectsReturned:
-        data = {
-            'success': False,
-            'message': 'Multiple serveries returned!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    except:
-        data = {
-            'success': False,
-            'message': 'Something wrong happened while getting servery!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    
+    if servery_id != 'auto':
+        try:
+            servery = Servery.objects.get(id=servery_id)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Multiple serveries returned!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Something wrong happened while getting servery!'
+            }
+            client.captureException()
+            return JsonResponse(data)
 
     total = 0
     if order_id:
@@ -2402,7 +2404,8 @@ def pay_order(request):
         order.discount += rounding_discount
         order.is_paid = True
         order.paid_with_cash = paid_with_cash
-        order.servery = servery
+        if servery_id != 'auto':
+            order.servery = servery
 
         total = 0
         content_presence = False
@@ -3158,13 +3161,61 @@ def send_order_return_to_1c(order):
             if result.status_code == 399:
                 return {
                     'success': False,
-                    'message': '399 in 1C response!'
+                    'message': '399: Сумма в чека не совпала!'
                 }
             else:
-                return {
-                    'success': False,
-                    'message': '{} in 1C response!'.format(result.status_code)
-                }
+                if result.status_code == 398:
+                    return {
+                        'success': False,
+                        'message': '398: Не удалось записать чек!'
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': '{} in 1C response!'.format(result.status_code)
+                    }
+
+
+@csrf_exempt
+def recive_1c_order_status(request):
+    print (request.POST)
+    print (request)
+    order_guid = request.POST.get('GUID', None)
+    status = request.POST.get('Order_status', None)
+    if order_guid is not None and status is not None:
+        try:
+            order = Order.objects.get(guid_1c=order_guid)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров точек возвращено!'
+            }
+            client.captureException()
+            return data
+        except:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров точек возвращено!'
+            }
+            client.captureException()
+            return data
+
+        # All Good
+        if status == 200:
+            order.paid_in_1c = True
+            order.status_1c = 200
+            order.save()
+        else:
+            #Payment Failed
+            if status == 397:
+                order.status_1c = 397
+                order.save()
+            else:
+                #Print Failed
+                if status == 396:
+                    order.status_1c = 396
+                    order.save()
+    return HttpResponse()
 
 
 
