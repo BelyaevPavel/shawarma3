@@ -1924,9 +1924,26 @@ def cancel_order(request):
             }
             client.captureException()
             return JsonResponse(data)
-
-        result = send_order_return_to_1c(order)
-        if result['success']:
+        if order.is_paid:
+            result = send_order_return_to_1c(order)
+            if result['success']:
+                try:
+                    order.canceled_by = Staff.objects.get(user=request.user)
+                except:
+                    data = {
+                        'success': False,
+                        'message': 'Что-то пошло не так при поиске персонала!'
+                    }
+                    client.captureException()
+                    return JsonResponse(data)
+                order.is_canceled = True
+                order.save()
+                data = {
+                    'success': True
+                }
+            else:
+                return JsonResponse(result)
+        else:
             try:
                 order.canceled_by = Staff.objects.get(user=request.user)
             except:
@@ -1941,8 +1958,6 @@ def cancel_order(request):
             data = {
                 'success': True
             }
-        else:
-            return JsonResponse(result)
     else:
         data = {
             'success': False
@@ -3178,10 +3193,9 @@ def send_order_return_to_1c(order):
 
 @csrf_exempt
 def recive_1c_order_status(request):
-    print (request.POST)
-    print (request)
-    order_guid = request.POST.get('GUID', None)
-    status = request.POST.get('Order_status', None)
+    result = json.loads(request.body.decode('utf-8'))
+    order_guid = result['GUID']
+    status = result['Order_status']
     if order_guid is not None and status is not None:
         try:
             order = Order.objects.get(guid_1c=order_guid)
