@@ -3153,16 +3153,6 @@ def send_order_return_to_1c(order):
 
     if result.status_code == 200:
         order.sent_to_1c = True
-        try:
-            order.guid_1c = result.json()['GUID']
-        except KeyError:
-            data = {
-                'success': False,
-                'message': 'Нет GUID в ответе 1С!'
-            }
-            client.captureException()
-            return data
-
         order.save()
 
         return {"success": True}
