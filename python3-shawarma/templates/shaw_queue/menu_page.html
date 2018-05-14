@@ -2,15 +2,17 @@
 <title>Меню</title>
 {% block aditional_static %}
     {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'queue/loader.css' %}">
     <script type="text/javascript" src="{% static 'js/menu_handlers.js' %}"></script>
 {% endblock %}
 {% block content %}
+    <input hidden id="urls" data-status-refresh-url="{% url 'status_refresh' %}">
     <div class="modal" id="modal-edit">
         <div class="modal-content">
             <span class="close" id="close-modal">&times;</span>
             <p id="item-title" class="modal-title">Title</p>
             <p>
-                <label for="item-quantity" class="modal-label">Количество</label>
+                <label for="item-quantity" class="modal-label" onclick="this.setSelectionRange(0, this.value.length)">Количество</label>
                 <input type="text" value="" class="modal-quantity-input" id="item-quantity">
                 <button class="btn info" id="plus-button">+</button>
                 <button class="btn info" id="minus-button">-</button>
@@ -19,6 +21,29 @@
                 <label for="item-note" class="modal-label">Комментарий</label>
                 <input type="text" value="" class="live-search-box" id="item-note">
                 <div id="dropdown-list-container"></div>
+            </p>
+        </div>
+    </div>
+    <div class="modal" id="modal-status">
+        <div class="modal-content">
+{#            <span class="close" id="close-modal-status">&times;</span>#}
+            <div class="loader-container" id="loader-container">
+                <div class="loader" id="loading-indicator"></div>
+            </div>
+            <p class="status-display" id="status-display">
+                Статус...
+            </p>
+            <p class="modal-cash-input-container">
+                <label for="order-change" class="modal-label" id="order-change-label" hidden>Наличные</label>
+                <input type="text" value="" class="modal-quantity-input" id="order-change" onclick="this.setSelectionRange(0, this.value.length)" onkeyup="CalculateChange()" hidden>
+            </p>
+            <p class="status-display" id="change-display" hidden>
+                Сдача...
+            </p>
+            <p class="modal-buttons-container">
+                <button class="btn success" id="status-OK-button" onclick="OKHandeler()">OK</button>
+                <button class="btn danger" id="status-cancel-button" onclick="CancelHandler()">Отмена</button>
+                <button class="btn warning" id="status-retry-button" onclick="RetryHandler()">Повторить</button>
             </p>
         </div>
     </div>

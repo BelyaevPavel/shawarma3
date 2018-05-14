@@ -16,6 +16,7 @@ urlpatterns = [
     url(r'^ajax/search_comment', views.search_comment, name="search_comment"),
     url(r'^ajax/unvoice', views.unvoice_order, name="unvoice_order"),
     url(r'^ajax/select_order', views.select_order, name="select_order"),
+    url(r'^ajax/status_refresh', views.status_refresher, name="status_refresh"),
     url(r'^ajax/make_order', views.make_order, name="make_order"),
     url(r'^ajax/buyer_queue', views.buyer_queue_ajax, name="buyer_queue_ajax"),
     url(r'^ajax/close_order', views.close_order, name="close_order"),
