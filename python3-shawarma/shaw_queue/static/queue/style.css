@@ -908,6 +908,27 @@ div.filter-container {
     line-height: 2;
 }
 
+.status-display {
+    overflow: auto;
+    text-align: center;
+    text-align: -moz-center;
+    font-size: 16px;
+}
+
+.modal-buttons-container {
+    text-align: center;
+    text-align: -moz-center;
+}
+
+.modal-cash-input-container {
+    text-align: center;
+    text-align: -moz-center;
+}
+
+.order-cash {
+    font-size: 16px;
+}
+
 .btn {
     border: 2px solid black;
     border-radius: 5px;
@@ -924,9 +945,15 @@ div.filter-container {
     color: green;
 }
 
-.success:hover {
+.success:hover:enabled {
     background-color: #4CAF50;
     color: white;
+}
+
+.success:disabled {
+    border-color: #9c9c9c;
+    color: #9c9c9c;
+    cursor: not-allowed;
 }
 
 /* Blue */
@@ -935,9 +962,15 @@ div.filter-container {
     color: dodgerblue
 }
 
-.info:hover {
+.info:hover:enabled {
     background: #2196F3;
     color: white;
+}
+
+.info:disabled {
+    border-color: #9c9c9c;
+    color: #9c9c9c;
+    cursor: not-allowed;
 }
 
 /* Orange */
@@ -946,9 +979,15 @@ div.filter-container {
     color: orange;
 }
 
-.warning:hover {
+.warning:hover:enabled {
     background: #ff9800;
     color: white;
+}
+
+.warning:disabled {
+    border-color: #9c9c9c;
+    color: #9c9c9c;
+    cursor: not-allowed;
 }
 
 /* Red */
@@ -957,9 +996,15 @@ div.filter-container {
     color: red
 }
 
-.danger:hover {
+.danger:hover:enabled {
     background: #f44336;
     color: white;
+}
+
+.danger:disabled {
+    border-color: #9c9c9c;
+    color: #9c9c9c;
+    cursor: not-allowed;
 }
 
 /* Gray */

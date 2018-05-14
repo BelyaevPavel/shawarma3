@@ -1252,7 +1252,8 @@ def shashlychnik_interface(request):
         result = define_service_point(device_ip)
         if result['success']:
             open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True, is_ready=False,
+                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
+                                               is_ready=False,
                                                servery__service_point=result['service_point']).order_by(
                 'open_time')
             context = {
@@ -1661,7 +1662,7 @@ def make_order(request):
 
     try:
         order = Order(open_time=datetime.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
-                      paid_with_cash=paid_with_cash)
+                      paid_with_cash=paid_with_cash, status_1c=0)
     except:
         data = {
             'success': False,
@@ -1718,7 +1719,8 @@ def make_order(request):
                     cooks_order_content = OrderContent.objects.filter(order__prepared_by=cooks[cook_index],
                                                                       order__open_time__contains=datetime.date.today(),
                                                                       order__is_canceled=False,
-                                                                      order__close_time__isnull=True, order__is_ready=False,
+                                                                      order__close_time__isnull=True,
+                                                                      order__is_ready=False,
                                                                       menu_item__can_be_prepared_by__title__iexact='Cook')
                 except:
                     data = {
@@ -1764,7 +1766,8 @@ def make_order(request):
     for item in content:
         if item['quantity'] - int(item['quantity']) != 0:
             try:
-                new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'], quantity=item['quantity'])
+                new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'],
+                                                 quantity=item['quantity'])
             except:
                 order.delete()
                 data = {
@@ -1877,11 +1880,12 @@ def close_all(request):
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
-    
+
     result = define_service_point(device_ip)
     if result['success']:
         try:
-            ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=True, is_ready=True, servery__service_point=result['service_point'])
+            ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=True,
+                                                is_ready=True, servery__service_point=result['service_point'])
         except EmptyResultSet:
             data = {
                 'success': False,
@@ -2369,7 +2373,7 @@ def pay_order(request):
     values = json.loads(request.POST.get('values', None))
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
     servery_id = request.POST['servery_id']
-    
+
     if servery_id != 'auto':
         try:
             servery = Servery.objects.get(id=servery_id)
@@ -2402,7 +2406,6 @@ def pay_order(request):
             item.quantity = round(float(values[index]), 3)
             total += item.menu_item.price * item.quantity
             item.save()
-
 
         try:
             order = Order.objects.get(id=order_id)
@@ -2448,7 +2451,7 @@ def pay_order(request):
             if menu_item.can_be_prepared_by.title == 'Operator':
                 supplement_presence = True
             total += menu_item.price * item.quantity
-        order.total = round(total,2)
+        order.total = round(total, 2)
         # order.supplement_completed = not supplement_presence
         # order.content_completed = not content_presence
         order.save()
@@ -3082,14 +3085,14 @@ def send_order_to_1c(order, is_return):
     except ConnectionError:
         data = {
             'success': False,
-            'message': 'Возникла проблема соединения с 1C при отправке информации о заказе!'
+            'message': 'Возникла проблема соединения с 1C при отправке информации о заказе! Заказ удалён! Вы можете повторить попытку!'
         }
         client.captureException()
         return data
     except:
         data = {
             'success': False,
-            'message': 'Возникло необработанное исключение при отправке информации о заказе в 1C!'
+            'message': 'Возникло необработанное исключение при отправке информации о заказе в 1C! Заказ удалён! Вы можете повторить попытку!'
         }
         client.captureException()
         return data
@@ -3110,22 +3113,36 @@ def send_order_to_1c(order, is_return):
 
         return {"success": True}
     else:
-        if result.status_code == 400:
+        order.status_1c = result.status_code
+        if result.status_code == 500:
             return {
                 'success': False,
-                'message': '400 in 1C response!'
+                'message': '500: Ошибка в обработке 1С! Заказ удалён! Вы можете повторить попытку!'
             }
         else:
-            if result.status_code == 399:
+            if result.status_code == 400:
                 return {
                     'success': False,
-                    'message': '399 in 1C response!'
+                    'message': '400: Ошибка в запросе, отправленном в 1С! Заказ удалён! Вы можете повторить попытку!'
                 }
             else:
-                return {
-                    'success': False,
-                    'message': '{} in 1C response!'.format(result.status_code)
-                }
+                if result.status_code == 399:
+                    return {
+                        'success': False,
+                        'message': '399: Сумма чека не совпадает! Заказ удалён! Вы можете повторить попытку!'
+                    }
+                else:
+                    if result.status_code == 398:
+                        return {
+                            'success': False,
+                            'message': '398: Не удалось записать чек! Заказ удалён! Вы можете повторить попытку!'
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'message': '{} в ответе 1С! Заказ удалён! Вы можете повторить попытку!'.format(
+                                result.status_code)
+                        }
 
 
 def send_order_return_to_1c(order):
@@ -3157,28 +3174,34 @@ def send_order_return_to_1c(order):
 
         return {"success": True}
     else:
-        if result.status_code == 400:
+        if result.status_code == 500:
             return {
                 'success': False,
-                'message': '400 in 1C response!'
+                'message': '500: Ошибка в обработке 1С!'
             }
         else:
-            if result.status_code == 399:
+            if result.status_code == 400:
                 return {
                     'success': False,
-                    'message': '399: Сумма в чека не совпала!'
+                    'message': '400: Ошибка в запросе, отправленном в 1С!'
                 }
             else:
-                if result.status_code == 398:
+                if result.status_code == 399:
                     return {
                         'success': False,
-                        'message': '398: Не удалось записать чек!'
+                        'message': '399: Сумма в чека не совпала!'
                     }
                 else:
-                    return {
-                        'success': False,
-                        'message': '{} in 1C response!'.format(result.status_code)
-                    }
+                    if result.status_code == 398:
+                        return {
+                            'success': False,
+                            'message': '398: Не удалось записать чек!'
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'message': '{} в ответе 1С!'.format(result.status_code)
+                        }
 
 
 @csrf_exempt
@@ -3195,14 +3218,14 @@ def recive_1c_order_status(request):
                 'message': 'Множество экземпляров точек возвращено!'
             }
             client.captureException()
-            return data
+            return HttpResponse()
         except:
             data = {
                 'success': False,
                 'message': 'Множество экземпляров точек возвращено!'
             }
             client.captureException()
-            return data
+            return HttpResponse()
 
         # All Good
         if status == 200:
@@ -3210,17 +3233,96 @@ def recive_1c_order_status(request):
             order.status_1c = 200
             order.save()
         else:
-            #Payment Failed
+            # Payment Failed
             if status == 397:
                 order.status_1c = 397
                 order.save()
             else:
-                #Print Failed
+                # Print Failed
                 if status == 396:
                     order.status_1c = 396
                     order.save()
     return HttpResponse()
 
+
+def status_refresher(request):
+    order_guid = request.POST.get('guid', None)
+    if order_guid is not None:
+        try:
+            order = Order.objects.get(guid_1c=order_guid)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров заказов возвращено!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Необработанное исключение при поиске заказа!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        if order.status_1c == 0:
+            data = {
+                'success': True,
+                'message': 'Ожидается ответ от 1С!',
+                'daily_number': order.daily_number,
+                'status': order.status_1c,
+                'guid': order.guid_1c
+            }
+            return JsonResponse(data)
+        else:
+            if order.status_1c == 200:
+                data = {
+                    'success': True,
+                    'message': 'Оплата прошла успешно!',
+                    'daily_number': order.daily_number,
+                    'status': order.status_1c,
+                    'guid': order.guid_1c
+                }
+                return JsonResponse(data)
+            else:
+                if order.status_1c == 397:
+                    data = {
+                        'success': True,
+                        'message': 'Произошла ошибка при оплате! Заказ удалён! Вы можете повторить попытку!',
+                        'daily_number': order.daily_number,
+                        'status': order.status_1c,
+                        'guid': order.guid_1c
+                    }
+                    order.delete()
+                    return JsonResponse(data)
+                else:
+                    if order.status_1c == 396:
+                        data = {
+                            'success': True,
+                            'message': 'Произошла ошибка при печати чека! Заказ удалён! Вы можете повторить попытку!',
+                            'daily_number': order.daily_number,
+                            'status': order.status_1c,
+                            'guid': order.guid_1c
+                        }
+                        order.delete()
+                        return JsonResponse(data)
+                    else:
+                        data = {
+                            'success': True,
+                            'message': '1С вернула статус {}! Заказ удалён! Вы можете повторить попытку!'.format(
+                                order.status_1c),
+                            'daily_number': order.daily_number,
+                            'status': order.status_1c,
+                            'guid': order.guid_1c
+                        }
+                        order.delete()
+                        return JsonResponse(data)
+    else:
+        data = {
+            'success': False,
+            'message': 'В запросе отсутствует идентификатор заказа!'
+        }
+        return JsonResponse(data)
 
 
 def send_order_to_listner(order):

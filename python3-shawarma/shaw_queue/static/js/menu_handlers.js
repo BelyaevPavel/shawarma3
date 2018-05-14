@@ -8,85 +8,232 @@ $(document).ready(function () {
 
     // Get the modal
     var modal = document.getElementById('modal-edit');
+    var modalStatus = document.getElementById('modal-status');
 
     // Get the <span> element that closes the modal
     var span = document.getElementById("close-modal");
+    var spanStatus = document.getElementById("close-modal-status");
 
     // When the user clicks on <span> (x), close the modal
-    span.onclick = function() {
-        CloseModal();
+    span.onclick = function () {
+        CloseModalEdit();
     };
+    // spanStatus.onclick = function () {
+    //     CloseModalStatus();
+    // };
 
     // When the user clicks anywhere outside of the modal, close it
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (event.target == modal) {
-            CloseModal();
+            CloseModalEdit();
         }
+        // else {
+        //     if (event.target == modalStatus) {
+        //         CloseModalStatus();
+        //     }
+        // }
     }
 });
 
 var currOrder = [];
+var current_retries = 0;
+var max_retries = 20;
 var total = 0;
-var res = ""
+var res = "";
 var csrftoken = $("[name=csrfmiddlewaretoken]").val();
 
 $(function () {
-    $('.subm').on('click', function (event) {
-        if (currOrder.length > 0) {
-            var confirmation = confirm("Подтвердить заказ?");
-            var form = $('.subm');
-
-            if (confirmation == true) {
-                $('.subm').prop('disabled', true);
-                $.ajaxSetup({
-                    beforeSend: function (xhr, settings) {
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken)
-                    }
-                });
-                $.ajax({
-                        type: 'POST',
-                        url: form.attr('data-send-url'),
-                        data: {
-                            "order_content": JSON.stringify(currOrder),
-                            "payment": $('[name=payment_choose]:checked').val(),
-                            "cook_choose": $('[name=cook_choose]:checked').val()
-                        },
-                        dataType: 'json',
-                        success: function (data) {
-                            if (data['success']) {
-                                if ($('[name=payment_choose]:checked').val() == "paid_with_cash") {
-                                    var cash = prompt('Заказ №' + data.daily_number + ' добавлен!, Введите полученную сумму:', "");
-                                    alert("Сдача: " + (parseInt(cash) - total))
-                                }
-                                else {
-                                    alert('Заказ №' + data.daily_number + ' добавлен!');
-                                }
-                                currOrder = [];
-                                DrawOrderTable();
-                                CalculateTotal();
-                                $('#cook_auto').prop('checked', true);
-
-                            }
-                            else {
-                                alert(data['message']);
-                            }
-                            location.reload();
-                        }
-                    }
-                ).fail(function () {
-                    alert('Необработанное исключение!');
-                });
-            }
-            else {
-                event.preventDefault();
-            }
-        }
-        else {
-            alert("Пустой заказ!");
-        }
-    });
+    $('.subm').on('click', SendOrder);
 });
 
+function SendOrder() {
+    if (currOrder.length > 0) {
+        current_retries = 0;
+        var OK = $('#status-OK-button');
+        var cancel = $('#status-cancel-button');
+        var retry = $('#status-retry-button');
+        var change_label = $('#order-change-label');
+        var change = $('#order-change');
+        var change_display = $('#change-display');
+        var status = $('#status-display');
+        var payment_choose = $('[name=payment_choose]:checked');
+        var loading_indiactor = $('#loading-indicator');
+        var confirmation = confirm("Подтвердить заказ?");
+        var form = $('.subm');
+
+        if (confirmation == true) {
+            ShowModalStatus();
+            loading_indiactor.show();
+            status.text('Отправка заказа...');
+            if (payment_choose.val() == "paid_with_cash") {
+                change.show();
+                change_label.show();
+                change_display.show();
+            }
+            $('.subm').prop('disabled', true);
+            $.ajaxSetup({
+                beforeSend: function (xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken)
+                }
+            });
+            $.ajax({
+                    type: 'POST',
+                    url: form.attr('data-send-url'),
+                    data: {
+                        "order_content": JSON.stringify(currOrder),
+                        "payment": $('[name=payment_choose]:checked').val(),
+                        "cook_choose": $('[name=cook_choose]:checked').val()
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data['success']) {
+                            if(payment_choose.val() != "not_paid"){
+                                if (payment_choose.val() == "paid_with_cash") {
+                                    status.text('Заказ №' + data.daily_number + ' добавлен! Введите полученную сумму:');
+                                    //var cash = prompt('Заказ №' + data.daily_number + ' добавлен!, Введите полученную сумму:', "");
+                                    //alert("Сдача: " + (parseInt(cash) - total))
+                                }
+                                else {
+                                    status.text('Заказ №' + data.daily_number + ' добавлен! Активация платёжного терминала...');
+                                    //alert('Заказ №' + data.daily_number + ' добавлен!');
+                                }
+                                setTimeout(function () {
+                                    StatusRefresher(data['guid']);
+                                }, 1000);
+                            }
+                            else {
+                                status.text('Заказ №' + data.daily_number + ' добавлен!');
+                                OK.prop('disabled', false);
+                                cancel.prop('disabled', true);
+                                retry.prop('disabled', true);
+                                loading_indiactor.hide();
+                            }
+
+                        }
+                        else {
+                            status.text(data['message']);
+                            OK.prop('disabled', true);
+                            cancel.prop('disabled', false);
+                            retry.prop('disabled', false);
+                            loading_indiactor.hide();
+                        }
+                    }
+                }
+            ).fail(function () {
+                loading_indiactor.hide();
+                status.text('Необработанное исключение!');
+            });
+        }
+    }
+    else {
+        alert("Пустой заказ!");
+    }
+}
+
+function StatusRefresher(guid) {
+    var status = $('#status-display');
+    var OK = $('#status-OK-button');
+    var cancel = $('#status-cancel-button');
+    var retry = $('#status-retry-button');
+    var payment_choose = $('[name=payment_choose]:checked');
+    var loading_indiactor = $('#loading-indicator');
+    if (current_retries < max_retries) {
+        current_retries++;
+        status.text('Попытка '+current_retries+' из '+max_retries);
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+            }
+        });
+        $.ajax({
+                type: 'POST',
+                url: $('#urls').attr('data-status-refresh-url'),
+                data: {
+                    "order_guid": guid
+                },
+                dataType: 'json',
+                success: function (data) {
+                    if (data['success']) {
+                        switch (data['status']) {
+                            case 0:
+                                setTimeout(function () {
+                                    StatusRefresher(data['guid']);
+                                }, 1000);
+                                break;
+                            case 397:
+                                OK.prop('disabled', true);
+                                cancel.prop('disabled', false);
+                                retry.prop('disabled', false);
+                                break;
+                            case 396:
+                                OK.prop('disabled', true);
+                                cancel.prop('disabled', false);
+                                retry.prop('disabled', false);
+                                break;
+                            case 200:
+                                if (payment_choose == "paid_with_cash")
+                                    status.text('Заказ №' + data.daily_number + ' проведён в 1С! Введите полученную сумму, отдайте клиенту сдачу и нажмите ОК');
+                                else
+                                    status.text('Заказ №' + data.daily_number + ' проведён в 1С! Операция безналичного расчёта завершена успешно! Нажмите ОК');
+                                OK.prop('disabled', false);
+                                cancel.prop('disabled', true);
+                                retry.prop('disabled', true);
+                                break;
+                            default:
+                                OK.prop('disabled', true);
+                                cancel.prop('disabled', false);
+                                retry.prop('disabled', false);
+                                break;
+                        }
+                        if (data['status'] != 0)
+                            loading_indiactor.hide();
+                        if (data['status'] != 200)
+                            status.text('Заказ №' + data.daily_number + '. ' + data['message']);
+                    }
+                    else {
+                        OK.prop('disabled', true);
+                        cancel.prop('disabled', false);
+                        retry.prop('disabled', false);
+                        status.text(data['message']);
+                        loading_indiactor.hide();
+                    }
+                }
+            }
+        ).fail(function () {
+            loading_indiactor.hide();
+            status.text('Необработанное исключение!');
+        });
+    }
+    else {
+        OK.prop('disabled', false);
+        cancel.prop('disabled', true);
+        retry.prop('disabled', true);
+        status.text('Превышено количество попыток!');
+    }
+}
+
+function OKHandeler() {
+    currOrder = [];
+    DrawOrderTable();
+    CalculateTotal();
+    $('#cook_auto').prop('checked', true);
+    CloseModalStatus();
+    location.reload();
+}
+
+function CancelHandler() {
+    currOrder = [];
+    DrawOrderTable();
+    CalculateTotal();
+    $('#cook_auto').prop('checked', true);
+    CloseModalStatus();
+    location.reload();
+}
+
+function RetryHandler() {
+    CloseModalStatus();
+    SendOrder();
+}
 
 function Remove(index) {
     var quantity = $('#count-to-remove-' + index).val();
@@ -182,15 +329,14 @@ function PlusOneItem(index) {
 function MinusOneItem(index) {
     var quantity = $('#item-quantity');
     var modal = document.getElementById('modal-edit');
-    if(currOrder[index]['quantity'] - 1 > 0)
-    {
+    if (currOrder[index]['quantity'] - 1 > 0) {
         currOrder[index]['quantity'] -= 1;
         quantity.val(currOrder[index]['quantity']);
     }
     else {
         currOrder[index]['quantity'] = 0;
         currOrder.splice(index, 1);
-        CloseModal();
+        CloseModalEdit();
     }
     CalculateTotal();
     DrawOrderTable();
@@ -200,14 +346,14 @@ function UpdateQuantity(index) {
     var quantity = $('#item-quantity');
     var modal = document.getElementById('modal-edit');
     var aux_quantity = parseFloat((quantity.val()).replace(/,/g, '.'));
-    if(aux_quantity > 0){
+    if (aux_quantity > 0) {
         currOrder[index]['quantity'] = aux_quantity;
         quantity.val(currOrder[index]['quantity']);
     }
     else {
         currOrder[index]['quantity'] = 0;
         currOrder.splice(index, 1);
-        CloseModal();
+        CloseModalEdit();
     }
     CalculateTotal();
     DrawOrderTable();
@@ -230,7 +376,7 @@ function DrawOrderTable() {
     $('table.currentOrderTable tbody tr').remove();
     for (var i = 0; i < currOrder.length; i++) {
         $('table.currentOrderTable').append(
-            // '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModal(' + i + ')">' +
+            // '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModalEdit(' + i + ')">' +
             // '<div>' + currOrder[i]['title'] + '</div><div class="noteText">' + currOrder[i]['note'] + '</div>' +
             // '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] +
             // '<input type="text" value="1" class="quantityInput" id="count-to-remove-' + i + '">' +
@@ -238,14 +384,14 @@ function DrawOrderTable() {
             // '<input type="text" value="' + currOrder[i]['note'] + '" class="live-search-box" id="note-' + i + '" onkeyup="ss(' + i + ','+currOrder[i]['id']+')">' +
             // '' +
             // '</td></tr>'
-            '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModal(' + i + ')">' +
+            '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModalEdit(' + i + ')">' +
             '<div>' + currOrder[i]['title'] + '</div><div class="noteText">' + currOrder[i]['note'] + '</div>' +
-            '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] +'</td></tr>'
+            '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] + '</td></tr>'
         );
     }
 }
 
-function ShowModal(index) {
+function ShowModalEdit(index) {
     var title = $('#item-title');
     var quantity = $('#item-quantity');
     var note = $('#item-note');
@@ -288,7 +434,7 @@ function ShowModal(index) {
     note.focus();
 }
 
-function CloseModal() {
+function CloseModalEdit() {
     var title = $('#item-title');
     var quantity = $('#item-quantity');
     var note = $('#item-note');
@@ -305,6 +451,31 @@ function CloseModal() {
     modal.style.display = "none";
 }
 
+function ShowModalStatus() {
+    var change_label = $('#order-change-label');
+    var change = $('#order-change');
+
+    // Get the modal
+    var modal = document.getElementById('modal-status');
+
+    modal.style.display = "block";
+}
+
+function CloseModalStatus() {
+    var change_label = $('#order-change-label');
+    var change = $('#order-change');
+    var change_display = $('#change-display');
+    var modal = document.getElementById('modal-status');
+
+    change.val(0);
+    change.hide();
+    change_label.hide();
+    change_display.text("Сдача...");
+    change_display.hide();
+
+    modal.style.display = "none";
+}
+
 function CalculateTotal() {
     total = 0;
     for (var i = 0; i < currOrder.length; i++) {
@@ -313,6 +484,13 @@ function CalculateTotal() {
     $('p.totalDisplay').each(function () {
         $(this).text(Number(total.toFixed(2)));
     });
+}
+
+function CalculateChange() {
+    var cash_input = $('#order-change');
+    var change_display = $('#change-display');
+    var change = parseFloat((cash_input.val()).replace(/,/g, '.')) - total;
+    change_display.text('Сдача ' + change +' р.');
 }
 
 function ChangeCategory(category) {
@@ -379,7 +557,7 @@ function ss(index, id) {
                 });
                 dropdown_list.append('<div id="close-cross">x</div>');
                 $('#close-cross').css({
-                    left: dropdown_list.width()+10,
+                    left: dropdown_list.width() + 10,
                     top: 5,
                     position: 'absolute',
                     cursor: 'pointer'
@@ -405,7 +583,7 @@ function ss(index, id) {
     });
 }
 
-function isScrolledIntoView(elem){
+function isScrolledIntoView(elem) {
     var $elem = $(elem);
     var $window = $(window);
 
