@@ -6,7 +6,7 @@
     <script type="text/javascript" src="{% static 'js/menu_handlers.js' %}"></script>
 {% endblock %}
 {% block content %}
-    <input hidden id="urls" data-status-refresh-url="{% url 'status_refresh' %}">
+    <input hidden id="urls" data-status-refresh-url="{% url 'status_refresh' %}" data-search-comment="{% url 'search_comment' %}">
     <div class="modal" id="modal-edit">
         <div class="modal-content">
             <span class="close" id="close-modal">&times;</span>
@@ -50,7 +50,6 @@
     <div class="menu-div">
         {% include 'shaw_queue/menu.html' with menu_items=menu_items %}
     </div>
-    <input hidden id="urls" data-search-comment="{% url 'search_comment' %}">
     <div class="order-div">
         <table class="currentOrderTable">
             <thead>Содержание заказа

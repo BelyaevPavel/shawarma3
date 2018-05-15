@@ -37,7 +37,7 @@ $(document).ready(function () {
 
 var currOrder = [];
 var current_retries = 0;
-var max_retries = 20;
+var max_retries = 60;
 var total = 0;
 var res = "";
 var csrftoken = $("[name=csrfmiddlewaretoken]").val();
@@ -63,6 +63,9 @@ function SendOrder() {
 
         if (confirmation == true) {
             ShowModalStatus();
+            OK.prop('disabled', true);
+            cancel.prop('disabled', true);
+            retry.prop('disabled', true);
             loading_indiactor.show();
             status.text('Отправка заказа...');
             if (payment_choose.val() == "paid_with_cash") {

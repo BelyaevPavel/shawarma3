@@ -4,7 +4,7 @@
 from django.http.response import HttpResponseRedirect
 
 from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker, \
-    ServicePoint
+    ServicePoint, Printer
 from django.template import loader
 from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist
 from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
@@ -1430,21 +1430,40 @@ def order_content(request, order_id):
 
 
 def print_order(request, order_id):
-    order_info = get_object_or_404(Order, id=order_id)
-    order_info.printed = True
-    order_info.save()
-    order_content = OrderContent.objects.filter(order_id=order_id).values('menu_item__title', 'menu_item__price',
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+
+    if result['success']:
+        order_info = get_object_or_404(Order, id=order_id)
+        order_info.printed = True
+        order_info.save()
+        order_content = OrderContent.objects.filter(order_id=order_id).values('menu_item__title', 'menu_item__price',
                                                                           'note').annotate(
         count_titles=Count('menu_item__title')).annotate(count_notes=Count('note'))
-    template = loader.get_template('shaw_queue/print_order_wh.html')
-    context = {
-        'order_info': order_info,
-        'order_content': order_content
-    }
+        template = loader.get_template('shaw_queue/print_order_wh.html')
+        context = {
+            'order_info': order_info,
+            'order_content': order_content
+        }
 
-    cmd = 'echo "{}"'.format(template.render(context, request)) + " | lp -h " + PRINTER_URL
-    scmd = cmd.encode('utf-8')
-    os.system(scmd)
+        printers = Printer.objects.filter(service_point=result['service_point'])
+        chosen_printer = None
+        for printer in printers:
+            if printer.ip_address == device_ip:
+                chosen_printer = printer
+
+        if chosen_printer is None and len(printers) > 0:
+            chosen_printer = printers[0]
+
+        cmd = 'echo "{}"'.format(template.render(context, request)) + " | lp -h " + chosen_printer.ip_address
+        scmd = cmd.encode('utf-8')
+        os.system(scmd)
+    else:
+        return JsonResponse(result)
+
 
     return HttpResponse(template.render(context, request))
 
@@ -1840,6 +1859,7 @@ def make_order(request):
             data["content"] = json.dumps(content_to_send)
             data["message"] = ''
             data["daily_number"] = order.daily_number
+            data["guid"] = order.guid_1c
     else:
         data["success"] = True
         data["total"] = order.total
@@ -3246,7 +3266,7 @@ def recive_1c_order_status(request):
 
 
 def status_refresher(request):
-    order_guid = request.POST.get('guid', None)
+    order_guid = request.POST.get('order_guid', None)
     if order_guid is not None:
         try:
             order = Order.objects.get(guid_1c=order_guid)
