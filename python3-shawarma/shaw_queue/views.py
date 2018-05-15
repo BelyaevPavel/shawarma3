@@ -13,7 +13,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http40
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout, login, views as auth_views
-from django.db.models import Max, Min, Count, Avg, F, Sum
+from django.db.models import Max, Min, Count, Avg, F, Sum, Q
 from django.utils import timezone
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
@@ -402,6 +402,9 @@ def current_queue(request):
 
     result = define_service_point(device_ip)
     if result['success']:
+        current_day_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                  is_canceled=False, is_ready=False,
+                                                  servery__service_point=result['service_point']).order_by('open_time')
         try:
             if paid_filter:
                 if not_paid_filter:
@@ -476,6 +479,9 @@ def current_queue(request):
                             'open_time')
                 else:
                     open_orders = Order.objects.none()
+
+            open_orders = filter_orders(current_day_orders, shawarma_filter, shashlyk_filter, paid_filter,
+                                        not_paid_filter, [])
 
         except:
             data = {
@@ -623,6 +629,9 @@ def current_queue_ajax(request):
 
     result = define_service_point(device_ip)
     if result['success']:
+        current_day_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                  is_canceled=False, is_ready=False,
+                                                  servery__service_point=result['service_point']).order_by('open_time')
         try:
             if paid_filter:
                 if not_paid_filter:
@@ -697,6 +706,9 @@ def current_queue_ajax(request):
                             'open_time')
                 else:
                     open_orders = Order.objects.none()
+
+            open_orders = filter_orders(current_day_orders, shawarma_filter, shashlyk_filter, paid_filter,
+                                        not_paid_filter, [])
         except:
             data = {
                 'success': False,
@@ -777,6 +789,44 @@ def current_queue_ajax(request):
         'html': template.render(context, request)
     }
     return JsonResponse(data)
+
+
+def filter_orders(orders, shawarma_filter, shashlyk_filter, paid_filter, not_paid_filter, serveries):
+    if paid_filter:
+        if not_paid_filter:
+            if shawarma_filter:
+                if shashlyk_filter:
+                    filtered_orders = orders
+                else:
+                    filtered_orders = orders.filter(Q(with_shashlyk=False),
+                                                    Q(with_shawarma=True) | Q(with_shawarma=False))
+            else:
+                filtered_orders = orders.filter(Q(with_shawarma=False),
+                                                Q(with_shashlyk=False) | Q(with_shashlyk=shashlyk_filter))
+        else:
+            if shawarma_filter:
+                if shashlyk_filter:
+                    filtered_orders = orders.filter(is_paid=True)
+                else:
+                    filtered_orders = orders.filter(Q(is_paid=True), Q(with_shashlyk=False),
+                                                    Q(with_shawarma=True) | Q(with_shawarma=False))
+            else:
+                filtered_orders = orders.filter(Q(is_paid=True), Q(with_shawarma=False),
+                                                Q(with_shashlyk=False) | Q(with_shashlyk=shashlyk_filter))
+    else:
+        if not_paid_filter:
+            if shawarma_filter:
+                if shashlyk_filter:
+                    filtered_orders = orders.filter(is_paid=False)
+                else:
+                    filtered_orders = orders.filter(Q(is_paid=False), Q(with_shashlyk=False),
+                                                    Q(with_shawarma=True) | Q(with_shawarma=False))
+            else:
+                filtered_orders = orders.filter(Q(is_paid=False), Q(with_shawarma=False),
+                                                Q(with_shashlyk=False) | Q(with_shashlyk=shashlyk_filter))
+        else:
+            filtered_orders = Order.objects.none()
+    return filtered_orders
 
 
 @login_required()
@@ -1441,8 +1491,8 @@ def print_order(request, order_id):
         order_info.printed = True
         order_info.save()
         order_content = OrderContent.objects.filter(order_id=order_id).values('menu_item__title', 'menu_item__price',
-                                                                          'note').annotate(
-        count_titles=Count('menu_item__title')).annotate(count_notes=Count('note'))
+                                                                              'note').annotate(
+            count_titles=Count('menu_item__title')).annotate(count_notes=Count('note'))
         template = loader.get_template('shaw_queue/print_order_wh.html')
         context = {
             'order_info': order_info,
@@ -1463,7 +1513,6 @@ def print_order(request, order_id):
         os.system(scmd)
     else:
         return JsonResponse(result)
-
 
     return HttpResponse(template.render(context, request))
 
