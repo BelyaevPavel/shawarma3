@@ -52,6 +52,7 @@ function SendOrder() {
         var OK = $('#status-OK-button');
         var cancel = $('#status-cancel-button');
         var retry = $('#status-retry-button');
+        var retry_cash = $('#status-retry-cash-button');
         var change_label = $('#order-change-label');
         var change = $('#order-change');
         var change_display = $('#change-display');
@@ -139,6 +140,7 @@ function StatusRefresher(guid) {
     var OK = $('#status-OK-button');
     var cancel = $('#status-cancel-button');
     var retry = $('#status-retry-button');
+    var retry_cash = $('#status-retry-cash-button');
     var payment_choose = $('[name=payment_choose]:checked');
     var loading_indiactor = $('#loading-indicator');
     if (current_retries < max_retries) {
@@ -168,6 +170,7 @@ function StatusRefresher(guid) {
                                 OK.prop('disabled', true);
                                 cancel.prop('disabled', false);
                                 retry.prop('disabled', false);
+                                retry_cash.show();
                                 break;
                             case 396:
                                 OK.prop('disabled', true);
@@ -235,6 +238,12 @@ function CancelHandler() {
 }
 
 function RetryHandler() {
+    CloseModalStatus();
+    SendOrder();
+}
+
+function RetryCashHandler() {
+    $('#paid_with_cash').prop('checked', true);
     CloseModalStatus();
     SendOrder();
 }
@@ -456,11 +465,13 @@ function CloseModalEdit() {
 }
 
 function ShowModalStatus() {
+    var retry_cash = $('#status-retry-cash-button');
     var change_label = $('#order-change-label');
     var change = $('#order-change');
 
     // Get the modal
     var modal = document.getElementById('modal-status');
+    retry_cash.hide();
 
     modal.style.display = "block";
 }
@@ -469,6 +480,7 @@ function CloseModalStatus() {
     var change_label = $('#order-change-label');
     var change = $('#order-change');
     var change_display = $('#change-display');
+    var retry_cash = $('#status-retry-cash-button');
     var modal = document.getElementById('modal-status');
 
     change.val(0);
@@ -476,6 +488,7 @@ function CloseModalStatus() {
     change_label.hide();
     change_display.text("Сдача...");
     change_display.hide();
+    retry_cash.hide();
 
     modal.style.display = "none";
 }
