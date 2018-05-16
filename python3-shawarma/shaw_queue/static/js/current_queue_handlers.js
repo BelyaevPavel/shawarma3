@@ -134,4 +134,5 @@ function RememberFilter(id){
         document.cookie = id+"=True";
     else
         document.cookie = id+"=False";
+    refresher();
 }
