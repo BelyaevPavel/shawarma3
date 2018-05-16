@@ -524,9 +524,18 @@ input.item-note {
 }
 
 .noteText {
-    font-size: small;
+    font-size: 16px;
     font-style: italic;
     color: blue;
+    float: right;
+}
+
+.table-item-title {
+    font-size: 16px;
+}
+
+.quantity-multiplyer {
+    font-weight: 900;
     float: right;
 }
 

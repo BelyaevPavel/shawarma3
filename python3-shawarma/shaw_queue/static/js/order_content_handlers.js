@@ -3,8 +3,8 @@
  */
 function ReadyOrder(id) {
     var url = $('#urls').attr('data-ready-url');
-    var confirmation = confirm("Заказ готов?");
-    if (confirmation) {
+    //var confirmation = confirm("Заказ готов?");
+    //if (confirmation) {
         console.log(id + ' ' + url);
         $.ajaxSetup({
             beforeSend: function (xhr, settings) {
@@ -26,7 +26,7 @@ function ReadyOrder(id) {
                 //}
             }
         });
-    }
+    //}
 }
 
 function PayOrderCash(id) {

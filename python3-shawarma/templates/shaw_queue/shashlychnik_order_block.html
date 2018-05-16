@@ -25,9 +25,10 @@
         <div class="order-operator-part">
             {% for oper_content in open_order.shashlychnik_part %}
                 <div class="order-item">
-                    <p class="order-item-title">
-                        {{ oper_content.menu_item__title }} x{{ oper_content.count_titles }}
-                    </p>
+
+                        {{ oper_content.menu_item__title }} 
+
+                    <span class="quantity-multiplyer">x{{ oper_content.count_titles }}</span>
                     <p class="order-item-note">
                         {{ oper_content.note }}
                     </p>

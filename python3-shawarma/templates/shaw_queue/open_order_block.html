@@ -54,7 +54,7 @@
             <a href="{% url 'order_content' order_id=open_order.order.id %}">
                 {% for oper_content in open_order.operator_part %}
                     <div class="order-item">
-                        {{ oper_content.menu_item__title }} x{{ oper_content.count_titles }}
+                        {{ oper_content.menu_item__title }} <span class="quantity-multiplyer">x{{ oper_content.count_titles }}</span>
                     </div>
                 {% empty %}
                     <p>Нет доп. товаров.</p>
