@@ -70,6 +70,7 @@ function SendOrder() {
             status.text('Отправка заказа...');
             if (payment_choose.val() == "paid_with_cash") {
                 change.show();
+                change.select();
                 change_label.show();
                 change_display.show();
             }
