@@ -529,7 +529,9 @@ def current_queue(request):
                          'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
                              menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(count=Count('id')),
                          'operator_part': OrderContent.objects.filter(order=open_order).filter(
-                             menu_item__can_be_prepared_by__title__iexact='operator')
+                             menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
+                                                                                             'note').annotate(
+                             count_titles=Count('menu_item__title'))
                          } for open_order in open_orders],
         'ready_orders': [{'order': open_order,
                           'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
@@ -761,7 +763,7 @@ def current_queue_ajax(request):
                                  menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(
                                  count=Count('id')),
                              'operator_part': OrderContent.objects.filter(order=open_order).filter(
-                                 menu_item__can_be_prepared_by__title__iexact='operator')
+                                 menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
                              } for open_order in open_orders],
             'ready_orders': [{'order': open_order,
                               'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
@@ -1326,7 +1328,7 @@ def shashlychnik_interface(request):
             context = {
                 'open_orders': [{'order': open_order,
                                  'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
-                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
+                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik').values('menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
                                  } for open_order in open_orders],
                 'open_length': len(open_orders)
             }
@@ -1400,7 +1402,7 @@ def s_i_a(request):
             context = {
                 'open_orders': [{'order': open_order,
                                  'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
-                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
+                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik').values('menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
                                  } for open_order in open_orders],
                 'open_length': len(open_orders)
             }
