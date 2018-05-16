@@ -405,6 +405,12 @@ def current_queue(request):
         current_day_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
                                                   is_canceled=False, is_ready=False,
                                                   servery__service_point=result['service_point']).order_by('open_time')
+        serveries = Servery.objects.filter(service_point=result['service_point'])
+        serveries_dict = {}
+        for servery in serveries:
+            serveries_dict['{}'.format(servery.id)] = True
+            if request.COOKIES.get('servery_{}'.format(servery.id), 'True') == 'False':
+                serveries_dict['{}'.format(servery.id)] = False
         try:
             if paid_filter:
                 if not_paid_filter:
@@ -481,7 +487,7 @@ def current_queue(request):
                     open_orders = Order.objects.none()
 
             open_orders = filter_orders(current_day_orders, shawarma_filter, shashlyk_filter, paid_filter,
-                                        not_paid_filter, [])
+                                        not_paid_filter, serveries_dict)
 
         except:
             data = {
@@ -632,6 +638,12 @@ def current_queue_ajax(request):
         current_day_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
                                                   is_canceled=False, is_ready=False,
                                                   servery__service_point=result['service_point']).order_by('open_time')
+        serveries = Servery.objects.filter(service_point=result['service_point'])
+        serveries_dict = {}
+        for servery in serveries:
+            serveries_dict['{}'.format(servery.id)] = True
+            if request.COOKIES.get('servery_{}'.format(servery.id), 'True') == 'False':
+                serveries_dict['{}'.format(servery.id)] = False
         try:
             if paid_filter:
                 if not_paid_filter:
@@ -708,7 +720,7 @@ def current_queue_ajax(request):
                     open_orders = Order.objects.none()
 
             open_orders = filter_orders(current_day_orders, shawarma_filter, shashlyk_filter, paid_filter,
-                                        not_paid_filter, [])
+                                        not_paid_filter, serveries_dict)
         except:
             data = {
                 'success': False,
@@ -826,6 +838,11 @@ def filter_orders(orders, shawarma_filter, shashlyk_filter, paid_filter, not_pai
                                                 Q(with_shashlyk=False) | Q(with_shashlyk=shashlyk_filter))
         else:
             filtered_orders = Order.objects.none()
+
+    # serveries should be a dictionary where keys are ids, and values are bool
+    for servery_key in serveries.keys():
+        if not serveries[servery_key]:
+            filtered_orders = filtered_orders.exclude(servery_id=int(servery_key))
     return filtered_orders
 
 
