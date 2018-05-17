@@ -401,7 +401,7 @@ function DrawOrderTable() {
             // '</td></tr>'
             '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModalEdit(' + i + ')">' +
             '<div class="table-item-title">' + currOrder[i]['title'] + '</div><div class="noteText">' + currOrder[i]['note'] + '</div>' +
-            '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] + '</td></tr>'
+            '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] + '<button class="small-btn danger" onclick="MinusOneItem('+i+')">-1</button></td></tr>'
         );
     }
 }
