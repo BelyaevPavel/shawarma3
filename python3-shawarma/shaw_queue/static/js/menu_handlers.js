@@ -111,6 +111,7 @@ function SendOrder() {
                                 OK.prop('disabled', false);
                                 cancel.prop('disabled', true);
                                 retry.prop('disabled', true);
+                                OK.focus();
                                 loading_indiactor.hide();
                             }
 
@@ -185,6 +186,7 @@ function StatusRefresher(guid) {
                                 OK.prop('disabled', false);
                                 cancel.prop('disabled', true);
                                 retry.prop('disabled', true);
+                                OK.focus();
                                 break;
                             default:
                                 OK.prop('disabled', true);
@@ -418,10 +420,23 @@ function ShowModalEdit(index) {
             UpdateQuantity(index);
         }
     );
+    quantity.keyup(
+        function (event) {
+            if(event.keyCode === 13){
+                UpdateQuantity(index);
+                CloseModalEdit();
+            }
+        }
+    );
     note.val(currOrder[index]['note']);
     note.keyup(
-        function () {
-            ss(index, currOrder[index]['id']);
+        function (event) {
+            if(event.keyCode === 13){
+                CloseModalEdit();
+            }
+            else {
+                ss(index, currOrder[index]['id']);
+            }
         }
     );
     note.blur(
@@ -456,6 +471,7 @@ function CloseModalEdit() {
     var modal = document.getElementById('modal-edit');
 
     quantity.off("blur");
+    quantity.off("keyup");
     note.off("keyup");
     note.off("blur");
     plus.off("click");
