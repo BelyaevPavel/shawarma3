@@ -501,6 +501,9 @@ def current_queue(request):
                                                 is_canceled=False, content_completed=True, shashlyk_completed=True,
                                                 supplement_completed=True, is_ready=True,
                                                 servery__service_point=result['service_point']).order_by('open_time')
+
+            ready_orders = filter_orders(ready_orders, shawarma_filter, shashlyk_filter, paid_filter,
+                                         not_paid_filter, serveries_dict)
         except:
             data = {
                 'success': False,
@@ -546,8 +549,8 @@ def current_queue(request):
                               menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(count=Count('id')),
                           'operator_part': OrderContent.objects.filter(order=open_order).filter(
                               menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
-                                                                                             'note').annotate(
-                             count_titles=Count('menu_item__title'))
+                                                                                              'note').annotate(
+                              count_titles=Count('menu_item__title'))
 
                           } for open_order in ready_orders],
         'open_length': len(open_orders),
@@ -739,6 +742,9 @@ def current_queue_ajax(request):
                                                 is_canceled=False, content_completed=True, shashlyk_completed=True,
                                                 supplement_completed=True, is_ready=True,
                                                 servery__service_point=result['service_point']).order_by('open_time')
+
+            ready_orders = filter_orders(ready_orders, shawarma_filter, shashlyk_filter, paid_filter,
+                                         not_paid_filter, serveries_dict)
         except:
             data = {
                 'success': False,
@@ -766,7 +772,9 @@ def current_queue_ajax(request):
                                  menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(
                                  count=Count('id')),
                              'operator_part': OrderContent.objects.filter(order=open_order).filter(
-                                 menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
+                                 menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
+                                                                                                 'note').annotate(
+                                 count_titles=Count('menu_item__title'))
                              } for open_order in open_orders],
             'ready_orders': [{'order': open_order,
                               'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
@@ -782,8 +790,8 @@ def current_queue_ajax(request):
                                   count=Count('id')),
                               'operator_part': OrderContent.objects.filter(order=open_order).filter(
                                   menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
-                                                                                             'note').annotate(
-                             count_titles=Count('menu_item__title'))
+                                                                                                  'note').annotate(
+                                  count_titles=Count('menu_item__title'))
 
                               } for open_order in ready_orders],
             'open_length': len(open_orders),
@@ -1334,7 +1342,8 @@ def shashlychnik_interface(request):
             context = {
                 'open_orders': [{'order': open_order,
                                  'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
-                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik').values('menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
+                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik').values(
+                                     'menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
                                  } for open_order in open_orders],
                 'open_length': len(open_orders)
             }
@@ -1408,7 +1417,8 @@ def s_i_a(request):
             context = {
                 'open_orders': [{'order': open_order,
                                  'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
-                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik').values('menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
+                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik').values(
+                                     'menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
                                  } for open_order in open_orders],
                 'open_length': len(open_orders)
             }
@@ -1975,11 +1985,38 @@ def close_all(request):
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
 
+    shawarma_filter = True
+    if request.COOKIES.get('with_shawarma', 'True') == 'False':
+        shawarma_filter = False
+
+    shashlyk_filter = True
+    if request.COOKIES.get('with_shashlyk', 'True') == 'False':
+        shashlyk_filter = False
+
+    paid_filter = True
+    if request.COOKIES.get('paid', 'True') == 'False':
+        paid_filter = False
+
+    not_paid_filter = True
+    if request.COOKIES.get('not_paid', 'True') == 'False':
+        not_paid_filter = False
+
     result = define_service_point(device_ip)
     if result['success']:
         try:
             ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=True,
                                                 is_ready=True, servery__service_point=result['service_point'])
+
+            serveries = Servery.objects.filter(service_point=result['service_point'])
+            serveries_dict = {}
+            for servery in serveries:
+                serveries_dict['{}'.format(servery.id)] = True
+                if request.COOKIES.get('servery_{}'.format(servery.id), 'True') == 'False':
+                    serveries_dict['{}'.format(servery.id)] = False
+
+            ready_orders = filter_orders(ready_orders, shawarma_filter, shashlyk_filter, paid_filter, not_paid_filter,
+                                         serveries_dict)
+
         except EmptyResultSet:
             data = {
                 'success': False,
