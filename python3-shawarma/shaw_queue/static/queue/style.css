@@ -111,11 +111,17 @@ p.welcome {
 }
 
 div.open-orders-container, div.ready-orders-container {
-    width: 49%;
+    width: 13%;
     height: 100%;
     float: left;
     border-right: solid 2px #D8D8D8;
     border-left: solid 2px #D8D8D8;
+}
+
+div.carousel-container {
+    float: left;
+    height: 100%;
+    width: 73%;
 }
 
 div.open-order-display, div.ready-order-display {
@@ -1034,4 +1040,24 @@ div.filter-container {
 
 .default:hover {
     background: #e7e7e7;
+}
+
+#carousels {
+	position: relative;
+}
+
+.carousel {
+    position: absolute;
+	opacity: 0;
+        padding-left: 4px;
+	transition: opacity 3s; /* Время появления картинки */
+}
+
+.carousel-image {
+    width: 1416px;
+    height:1062px;
+}
+
+.demonstration {
+	opacity: 1;
 }

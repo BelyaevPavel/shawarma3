@@ -15,7 +15,7 @@ import raven
 import psycopg2.extensions
 from .my_settings import login, password, db_name, allowed_hosts, debug_flag, listner_url, listner_port, printer_url, \
     raven_dsn, secret_key, server_1c_ip, server_1c_port, getlist_url, server_1c_user, server_1c_pass, order_url, \
-    force_to_listner, debug_servery, return_url
+    force_to_listner, debug_servery, return_url, carousel_img_dir, carousel_img_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -222,6 +222,10 @@ PRINTER_URL = printer_url
 SERVER_1C_USER = server_1c_user
 
 SERVER_1C_PASS = server_1c_pass
+
+CAROUSEL_IMG_DIR = carousel_img_dir
+
+CAROUSEL_IMG_URL = carousel_img_url
 
 FORCE_TO_LISTNER = force_to_listner
 

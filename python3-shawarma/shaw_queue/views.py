@@ -17,7 +17,7 @@ from django.db.models import Max, Min, Count, Avg, F, Sum, Q
 from django.utils import timezone
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
-    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL
+    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL
 from raven.contrib.django.raven_compat.models import client
 from random import sample
 from itertools import chain
@@ -308,16 +308,26 @@ def buyer_queue(request):
             }
             client.captureException()
             return JsonResponse(data)
+        try:
+            carousel_images = [CAROUSEL_IMG_URL + name for name in os.listdir(CAROUSEL_IMG_DIR)]
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при загрузке изображений для карусели!'
+            }
+            client.captureException()
+            return JsonResponse(data)
     else:
         return JsonResponse(result)
     context = {
         'open_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in open_orders],
         'ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in
                          ready_orders],
-        'display_open_orders': [{'servery': order.servery, 'daily_number': order.daily_number % 100} for order in
+        'display_open_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
                                 open_orders],
-        'display_ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number % 100} for order in
-                                 ready_orders]
+        'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
+                                 ready_orders],
+        'carousel_images': carousel_images
     }
     template = loader.get_template('shaw_queue/buyer_queue.html')
     return HttpResponse(template.render(context, request))
@@ -361,9 +371,9 @@ def buyer_queue_ajax(request):
         'open_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in open_orders],
         'ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in
                          ready_orders],
-        'display_open_orders': [{'servery': order.servery, 'daily_number': order.daily_number % 100} for order in
+        'display_open_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
                                 open_orders],
-        'display_ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number % 100} for order in
+        'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
                                  ready_orders]
     }
     template = loader.get_template('shaw_queue/buyer_queue_ajax.html')
