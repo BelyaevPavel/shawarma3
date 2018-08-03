@@ -497,6 +497,73 @@ div.order-item-title, div.order-item-note, div.order-item-maker, div.order-item-
     text-align: center;
 }
 
+.content-container {
+    width: 600px;
+    height: 378px;
+    float: left;
+}
+
+.order-modal-content {
+    margin: 5% auto !important;
+    z-index: 1099 !important;
+    height: 400px;
+    width: -moz-fit-content !important;
+    border-radius: 25px;
+}
+
+#content-part {
+    float: left;
+    display: grid !important;
+}
+
+.pagination {
+    height: 42px;
+    line-height: -moz-block-height;
+    text-align: center;
+    text-align: -moz-center;
+}
+
+.order-properties {
+    width: 300px;
+    float: left;
+}
+
+.order-item-title-modal {
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    margin: 0px;
+}
+
+.order-item-note-modal {
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    margin: 0px;
+}
+
+.item-title-container {
+    width: 450px;
+    height: 100%;
+    float: left;
+    cursor: pointer;
+}
+
+.item-quantity-container {
+    float: left;
+    width: 80px;
+}
+
+.item-controls-container {
+    float: left;
+    width: 70px;
+    height: 100%;
+    text-align: -moz-center;
+    text-align: center;
+}
+
 span.item-span {
     display: inline-block;
     vertical-align: middle;
@@ -874,7 +941,7 @@ div.filter-container {
     top: 0;
     width: 100%; /* Full width */
     height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
+    overflow: hidden; /* auto - Enable scroll if needed */
     background-color: rgb(0, 0, 0); /* Fallback color */
     background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
 }

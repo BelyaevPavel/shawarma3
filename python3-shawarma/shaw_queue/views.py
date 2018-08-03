@@ -7,6 +7,7 @@ from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderConten
     ServicePoint, Printer
 from django.template import loader
 from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist
+from django.core.paginator import Paginator
 from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404
@@ -521,33 +522,39 @@ def current_queue(request):
     context = {
         'open_orders': [{'order': open_order,
                          'printed': open_order.printed,
-                         'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                         'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                              is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='cook').filter(
                              finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                         'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
+                         'cook_part_count': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                         'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                         'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                      is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
                              finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                         'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
+                         'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(count=Count('id')),
-                         'operator_part': OrderContent.objects.filter(order=open_order).filter(
+                         'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
                                                                                              'note').annotate(
                              count_titles=Count('menu_item__title'))
                          } for open_order in open_orders],
         'ready_orders': [{'order': open_order,
-                          'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                          'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                               is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='cook').filter(
                               finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                          'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
+                          'cook_part_count': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                          'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                          'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                       is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
                               finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                          'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
+                          'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                 is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(count=Count('id')),
-                          'operator_part': OrderContent.objects.filter(order=open_order).filter(
+                          'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
                                                                                               'note').annotate(
                               count_titles=Count('menu_item__title'))
@@ -760,35 +767,42 @@ def current_queue_ajax(request):
         context = {
             'open_orders': [{'order': open_order,
                              'printed': open_order.printed,
-                             'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                             'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                  is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='cook').filter(
                                  finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                             'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
+                             'cook_part_count': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                             'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                             'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                          is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
                                  finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                             'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
+                             'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                    is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(
                                  count=Count('id')),
-                             'operator_part': OrderContent.objects.filter(order=open_order).filter(
+                             'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
                                                                                                  'note').annotate(
                                  count_titles=Count('menu_item__title'))
                              } for open_order in open_orders],
             'ready_orders': [{'order': open_order,
-                              'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                              'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                   is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='cook').filter(
                                   finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                              'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
+                              'cook_part_count': OrderContent.objects.filter(order=open_order,
+                                                                             is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                              'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                              'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                           is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
                                   finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                              'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
+                              'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                     is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(
                                   count=Count('id')),
-                              'operator_part': OrderContent.objects.filter(order=open_order).filter(
+                              'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
                                                                                                   'note').annotate(
                                   count_titles=Count('menu_item__title'))
@@ -1512,6 +1526,170 @@ def order_content(request, order_id):
         JsonResponse(result)
 
     return HttpResponse(template.render(context, request))
+
+
+def order_content_page(request, paginator, page_number, order_info):
+    context = {
+        'order_info': order_info,
+        'order_content': paginator.page(page_number).object_list,
+        'page_range': paginator.page_range,
+        'page': paginator.page(page_number)
+    }
+
+    page = paginator.page(page_number)
+
+    current_order = {}
+
+    for order_item in paginator.page(page_number).object_list:
+        current_order["{}".format(order_item.id)] = {
+            'id': order_item.menu_item.id,
+            'title': order_item.menu_item.title,
+            'price': order_item.menu_item.price,
+            'quantity': order_item.quantity,
+            'note': order_item.note,
+            'editable_quantity': False if order_item.menu_item.can_be_prepared_by == 'Cook' else True
+        }
+
+    template = loader.get_template('shaw_queue/order_content_page.html')
+    data = {
+        'success': True,
+        'html': template.render(context, request),
+        'order': json.dumps(current_order)
+    }
+    return data
+
+
+def get_content_page(request):
+    order_id = request.POST.get('order_id', None)
+    page_number = request.POST.get('page_number', None)
+    order_info = get_object_or_404(Order, id=order_id)
+
+    current_order_content = OrderContent.objects.filter(order=order_id, is_canceled=False).order_by('id')
+    paginator = Paginator(current_order_content, 9)
+
+    return JsonResponse(order_content_page(request, paginator, page_number, order_info))
+
+
+def order_specifics(request):
+    order_id = request.POST.get('order_id', None)
+    page_number = request.POST.get('page_number', None)
+    user = request.user
+    staff = Staff.objects.get(user=user)
+    order_info = get_object_or_404(Order, id=order_id)
+    order_content = OrderContent.objects.filter(order_id=order_id).order_by('id')
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+    flag = True
+    for item in order_content:
+        if item.finish_timestamp is None:
+            flag = False
+    if flag:
+        order_info.content_completed = True
+        order_info.supplement_completed = True
+    order_info.save()
+    current_order_content = OrderContent.objects.filter(order=order_id, is_canceled=False)
+    p = Paginator(current_order_content, 9)
+
+    # if page_number is not None:
+    #     content_page = get_content_page(p, page_number)
+    # else:
+    #     content_page = get_content_page(p, 1)
+
+    template = loader.get_template('shaw_queue/order_content_modal.html')
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            context = {
+                'order_info': order_info,
+                'maker': order_info.prepared_by,
+                'staff_category': StaffCategory.objects.get(staff__user=request.user),
+                'order_content': p.page(1).object_list,
+                'page_range': p.page_range,
+                'page': p.page(1),
+                'ready': order_info.content_completed and order_info.supplement_completed and order_info.shashlyk_completed,
+                'serveries': Servery.objects.filter(service_point=result['service_point'])
+            }
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров персонала возвращено!'
+            }
+            logger.error('{} Множество экземпляров персонала возвращено!'.format(request.user))
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так!'
+            }
+            logger.error('{} Что-то пошло не так при поиске персонала!'.format(request.user))
+            return JsonResponse(data)
+    else:
+        JsonResponse(result)
+
+    current_order = {}
+
+    for order_item in current_order_content:
+        current_order["{}".format(order_item.id)] = {
+            'id': order_item.menu_item.id,
+            'title': order_item.menu_item.title,
+            'price': order_item.menu_item.price,
+            'quantity': order_item.quantity,
+            'note': order_item.note,
+            'editable_quantity': False if order_item.menu_item.can_be_prepared_by == 'Cook' else True
+        }
+
+    data = {
+        'success': True,
+        'html': template.render(context, request),
+        'order': json.dumps(current_order)
+    }
+
+    return JsonResponse(data)
+
+
+def update_commodity(request):
+    commodity_id = request.POST.get('id', None)
+    note = request.POST.get('note', None)
+    quantity = request.POST.get('quantity', None)
+    if commodity_id is not None:
+        try:
+            commodity = OrderContent.objects.get(id=commodity_id)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров персонала возвращено!'
+            }
+            logger.error('{} Множество экземпляров персонала возвращено!'.format(request.user))
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так!'
+            }
+            logger.error('{} Что-то пошло не так при поиске персонала!'.format(request.user))
+            return JsonResponse(data)
+
+        if note is not None:
+            commodity.note = note
+        if quantity is not None:
+            commodity.quantity = quantity
+        commodity.save()
+
+        data = {
+            'success': True
+        }
+    else:
+        data = {
+            'success': False,
+            'message': 'Отсутствует идентификатор товара!'
+        }
+        logger.error('{} Отсутствует идентификатор товара!'.format(request.user))
+
+    return JsonResponse(data)
 
 
 def print_order(request, order_id):
@@ -2560,7 +2738,7 @@ def pay_order(request):
         content_presence = False
         supplement_presence = False
         try:
-            content = OrderContent.objects.filter(order=order)
+            content = OrderContent.objects.filter(order=order, is_canceled=False)
         except:
             data = {
                 'success': False,
@@ -2628,6 +2806,14 @@ def cancel_item(request):
         data = {
             'success': True
         }
+        order = item.order
+        curr_order_content = OrderContent.objects.filter(order=order, is_canceled=False)
+        total = 0
+        for order_item in curr_order_content:
+            total += order_item.menu_item.price * order_item.quantity
+
+        order.total = total
+        order.save()
     else:
         data = {
             'success': False
