@@ -4,10 +4,22 @@
 var ready_order_numbers = [];
 var is_voicing = false;
 var csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+var carousels = document.querySelectorAll('div.carousel');
+var currentCarousel = 0;
+var carouselInterval = setInterval(nextCarousel,10000); /* Интервал между картинками */
+
 $(document).ready(function () {
         refresher();
+        carousels = document.querySelectorAll('div.carousel');
     }
 );
+
+function nextCarousel(){
+	carousels[currentCarousel].className = 'carousel';
+	currentCarousel = (currentCarousel+1)%carousels.length;
+	carousels[currentCarousel].className = 'carousel demonstration';
+}
 
 function refresher() {
     //console.log('Refreshed');
