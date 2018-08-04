@@ -1,0 +1,118 @@
+{% load static %}
+<input hidden id="urls" data-cancel-item-url="{% url 'cancel_item' %}" data-ready-url="{% url 'ready_order' %}"
+       data-cancel-order-url="{% url 'cancel_order' %}" data-finish-item-url="{%  url 'finish_supplement' %}"
+       data-finish-all-content-url="{% url 'finish_all_content' %}" data-pay-url="{% url 'pay_order' %}"
+           data-grill-all-content-url="{% url 'grill_all_content' %}">
+<div class="order-modal-content modal-content  ">
+    <span class="close" id="close-modal" onclick="CloseOrderSpecifics()">&times;</span>
+    <div id="content-part">
+        <div class="content-container" id="content-container">
+            {% for order_item in order_content %}
+                <div class="order-item-container" id="item-container-{{ order_item.id }}" item-id="{{ order_item.id }}">
+                    <div class="item-title-container" onclick="ShowModalEdit({{ order_item.id }})">
+                        <p class="order-item-title-modal {% if order_item.finish_timestamp %}ready
+                        {% endif %} {% if order_item.is_in_grill %}inGrill
+                        {% endif %}">
+                            {{ order_item.menu_item }}
+                        </p>
+                        <p class="order-item-note-modal {% if order_item.finish_timestamp %}ready
+                        {% endif %} {% if order_item.is_in_grill %}inGrill
+                        {% endif %}">
+                            {{ order_item.note }}
+                        </p>
+                    </div>
+                    <div class="item-quantity-container">
+                        <input class="quantityInput" id="" type="text" value="{{ order_item.quantity }}" cost="{{ order_item.menu_item.price }}"
+                               item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %}>
+                    </div>
+                    <div class="item-controls-container">
+                        {% if order_item.menu_item.can_be_prepared_by.title == 'Operator' or order_item.menu_item.can_be_prepared_by.title == staff_category.title %}
+                            <button class="small-btn success" onclick="FinishCooking({{ order_item.id }})">
+                                &#10003;
+                            </button>
+                        {% endif %}
+                        <button class="small-btn danger" onclick="CancelItem({{ order_item.id }},{{ order_info.id }})">
+                            &times;
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                Нет товаров.
+            {% endfor %}
+
+        </div>
+        <div class="pagination">
+            {% if page.has_previous %}
+                <button class="small-btn info" onclick="SetContentPage({{ order_info.id }}, 1)">&laquo; Первая</button>
+                <button class="small-btn info" onclick="SetContentPage({{ order_info.id }}, {{ page.previous_page_number }})">Предыдущая</button>
+            {% endif %}
+
+            <span class="current">
+                Страница {{ page.number }} из {{ page.paginator.num_pages }}.
+            </span>
+
+            {% if page.has_next %}
+                <button class="small-btn info" onclick="SetContentPage({{ order_info.id }}, {{ page.next_page_number }})">Следующая</button>
+                <button class="small-btn info" onclick="SetContentPage({{ order_info.id }}, {{ page.paginator.num_pages }})">Последняя &raquo;</button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="order-properties" id="order-properties">
+        <p>
+            №: {{ order_info.daily_number }}
+        </p>
+        {% if maker %}
+            <p>
+            Повар: {{ maker }}
+            </p>
+        {% endif %}
+        <p>
+            Открыт: {{ order_info.open_time }}
+        </p>
+        {% if order_info.close_time %}
+            <p>
+            Закрыт: {{ order_info.close_time }}
+            </p>
+        {% endif %}
+        <p id="total-display">
+            Сумма: {{ order_info.total }}
+        </p>
+        <div class="shadowed" id="servery-container">
+            {% for servery in serveries %}
+                <p>
+                    <input type="radio" id="servery_{{ servery.id }}" {% if servery.id == order_info.servery.id %}
+                        checked
+                    {% endif %} name="servery_choose" value="{{ servery.id }}">
+                    <label for="servery_{{ servery.id }}">{{ servery.title }}</label>
+                </p>
+            {% empty %}
+                Места выдачи внесены.
+            {% endfor %}
+        </div>
+        <div class="shadowed" id="order-controls-container">
+            {% if not order_info.is_ready %}
+                <button class="btn success" onclick="ReadyOrder({{ order_info.id }})" {% if not ready %}disabled{% endif %}>
+                    Заказ готов
+                </button>
+                {% if staff_category.title == 'Cashier' %}
+                    {% if not order_info.is_paid %}
+                        <button class="btn info" onclick="PayOrderCash({{ order_info.id }})">Оплатить Наличными</button>
+                        <button class="btn info" onclick="PayOrderCard({{ order_info.id }})">Оплатить Картой</button>
+                    {% endif %}
+                {% endif %}
+                {% if not order_info.shashlyk_completed %}
+                    {% if staff_category.title == 'Operator' and order_info.with_shashlyk and not order_info.is_grilling_shash %}
+                        <button class="btn info" onclick="GrillAllContent({{ order_info.id }})">
+                            Жарить шашлык
+                        </button>
+                    {% endif %}
+                    {% if staff_category.title == 'Operator' and order_info.with_shashlyk and order_info.is_grilling_shash %}
+                        <button class="btn info" onclick="FinishAllContent({{ order_info.id }})">
+                            Закончить шашлык
+                        </button>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>

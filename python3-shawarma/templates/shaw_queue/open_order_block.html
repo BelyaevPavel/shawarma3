@@ -1,5 +1,5 @@
 {% load static %}
-<div class="order-block-container">
+<div class="order-block-container" onclick="OrderSpecifics({{ open_order.order.id }})">
     <div class="order-block {% if not open_order.printed and open_order.cook_part_ready_count.count > 0 %}
     order-started
     {% else %}

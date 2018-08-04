@@ -1,6 +1,30 @@
 {% load static %}
 <input id="urls" hidden data-close-order-url="{% url 'close_order' %}" data-cancel-order-url="{% url 'cancel_order' %}"
-voice-all-url="{% url 'voice_all' %}" close-all-url="{% url 'close_all' %}">
+voice-all-url="{% url 'voice_all' %}" close-all-url="{% url 'close_all' %}" order-specifics-url="{% url 'order_specifics' %}">
+<input hidden id="order-specifics-urls" data-cancel-item-url="{% url 'cancel_item' %}" data-ready-url="{% url 'ready_order' %}"
+       data-cancel-order-url="{% url 'cancel_order' %}" data-finish-item-url="{%  url 'finish_supplement' %}"
+       data-finish-all-content-url="{% url 'finish_all_content' %}" data-pay-url="{% url 'pay_order' %}"
+           data-grill-all-content-url="{% url 'grill_all_content' %}" data-search-comment="{% url 'search_comment' %}"
+        data-get-content-page="{% url 'get_content_page' %}" data-update-commodity="{% url 'update_commodity' %}">
+<div class="modal" id="modal-order-specifics">
+</div>
+<div class="modal" id="modal-edit">
+    <div class="modal-content">
+        <span class="close" id="close-modal-edit" onclick="CloseModalEdit()">&times;</span>
+        <p id="item-title" class="modal-title">Title</p>
+        <p>
+            <label for="item-quantity" class="modal-label">Количество</label>
+            <input type="text" value="" class="modal-quantity-input" id="item-quantity" onclick="this.setSelectionRange(0, this.value.length)">
+            <button class="btn info" id="plus-button">+</button>
+            <button class="btn info" id="minus-button">-</button>
+        </p>
+        <p>
+            <label for="item-note" class="modal-label">Комментарий</label>
+            <input type="text" value="" class="live-search-box" id="item-note">
+            <div id="dropdown-list-container"></div>
+        </p>
+    </div>
+</div>
 <div class="filter-container">
     {% for servery in serveries %}
         <input type="checkbox" id="servery_{{ servery.servery.id }}" {% if servery.filtered == 'True' %}
