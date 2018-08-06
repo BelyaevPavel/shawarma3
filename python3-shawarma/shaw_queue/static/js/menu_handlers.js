@@ -37,7 +37,7 @@ $(document).ready(function () {
 
 var currOrder = [];
 var current_retries = 0;
-var max_retries = 60;
+var max_retries = 135;
 var total = 0;
 var res = "";
 var csrftoken = $("[name=csrfmiddlewaretoken]").val();
