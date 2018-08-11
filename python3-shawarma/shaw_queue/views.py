@@ -31,6 +31,8 @@ import os
 import subprocess
 
 logger = logging.getLogger(__name__)
+flag_marker = False
+waiting_numbers = {}
 
 
 @login_required()
@@ -1699,6 +1701,48 @@ def update_commodity(request):
         }
         logger.error('{} Отсутствует идентификатор товара!'.format(request.user))
 
+    return JsonResponse(data)
+
+
+def aux_control_page(request):
+    template = loader.get_template('shaw_queue/aux_controls.html')
+    context = {}
+    return HttpResponse(template.render(context, request))
+
+
+def flag_changer(request):
+    global waiting_numbers
+    number = request.POST.get('number', None)
+    if number is not None:
+        if number in waiting_numbers.keys():
+            waiting_numbers[number] = True
+        data = {
+            'success': True
+        }
+    else:
+        data = {
+            'success': False
+        }
+
+    return JsonResponse(data)
+
+
+def long_poll_handler(request):
+    global waiting_numbers
+    number = request.POST.get('number', None)
+    if number is not None:
+        waiting_numbers[number] = False
+        while True:
+            if waiting_numbers[number]:
+                waiting_numbers[number] = False
+                break
+        data = {
+            'message': 'The number is {}'.format(number)
+        }
+    else:
+        data = {
+            'message': 'There is no number in request'
+        }
     return JsonResponse(data)
 
 
