@@ -10,6 +10,7 @@ class MenuCategory(models.Model):
     title = models.CharField(max_length=20)
     eng_title = models.CharField(max_length=20)
     weight = models.IntegerField(verbose_name="Weight", default=0)
+    hidden = models.BooleanField(default="False")
 
     def __str__(self):
         return "{}".format(self.title)
@@ -28,11 +29,23 @@ class StaffCategory(models.Model):
         return "{}".format(self.title)
 
 
+class ServicePoint(models.Model):
+    title = models.CharField(max_length=100, default="")
+    subnetwork = models.CharField(max_length=10, default="")
+
+    def __str__(self):
+        return "{}".format(self.title)
+
+    def __unicode__(self):
+        return "{}".format(self.title)
+
+
 class Staff(models.Model):
     staff_category = models.ForeignKey(StaffCategory)
     available = models.BooleanField(default="False")
     super_guy = models.BooleanField(default="False")
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
 
     def __str__(self):
         return "{} {} {}".format(self.staff_category, self.user.first_name, self.user.last_name)
@@ -51,15 +64,18 @@ class Menu(models.Model):
     category = models.ForeignKey(MenuCategory)
 
     def __str__(self):
-        return "{}".format(self.title + self.guid_1c)
+        return "{}".format(self.title)
 
     def __unicode__(self):
-        return "{}".format(self.title + self.guid_1c)
+        return "{}".format(self.title)
 
 
 class Servery(models.Model):
+    display_title = models.CharField(max_length=500, default="")
     title = models.CharField(max_length=500, default="")
     ip_address = models.CharField(max_length=500, default="")
+    guid_1c = models.CharField(max_length=100, default="")
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
 
     def __str__(self):
         return "{}".format(self.title)
@@ -69,9 +85,11 @@ class Servery(models.Model):
 
 
 class Order(models.Model):
-    daily_number = models.IntegerField(verbose_name="Daily Number", unique_for_date=True)
+    daily_number = models.IntegerField(verbose_name="Daily Number")
     open_time = models.DateTimeField(verbose_name="Open Time")
     close_time = models.DateTimeField(verbose_name="Close Time", null=True)
+    with_shawarma = models.BooleanField(verbose_name="With Shawarma", default=False)
+    with_shashlyk = models.BooleanField(verbose_name="With Shashlyk", default=False)
     content_completed = models.BooleanField(verbose_name="Content Completed", default=False)
     shashlyk_completed = models.BooleanField(verbose_name="Shashlyk Completed", default=False)
     supplement_completed = models.BooleanField(verbose_name="Supplement Completed", default=False)
@@ -90,6 +108,17 @@ class Order(models.Model):
     # True - if paid with cash, False - if paid with card.
     paid_with_cash = models.BooleanField(default=True, verbose_name="Paid With Cash")
     servery = models.ForeignKey(Servery, verbose_name="Servery")
+    guid_1c = models.CharField(max_length=100, default="")
+    discount = models.FloatField(default=0, validators=[MinValueValidator(0, "Total can't be negative!")])
+    sent_to_1c = models.BooleanField(verbose_name="Sent To 1C", default=False)
+    paid_in_1c = models.BooleanField(verbose_name="Paid In 1C", default=False)
+    status_1c = models.IntegerField(verbose_name="1C Status", default=200)
+
+    def __str__(self):
+        return "{} №{}".format(self.servery, self.daily_number)
+
+    def __unicode__(self):
+        return "{} №{}".format(self.servery, self.daily_number)
 
     class Meta:
         permissions = (
@@ -141,4 +170,16 @@ class PauseTracker(models.Model):
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
     start_timestamp = models.DateTimeField(verbose_name="Start Timestamp", null=True)
     end_timestamp = models.DateTimeField(verbose_name="End Timestamp", null=True)
+
+
+class Printer(models.Model):
+    title = models.CharField(max_length=20, default="")
+    ip_address = models.CharField(max_length=20, default="")
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
+
+    def __str__(self):
+        return "№{} {}".format(self.title, self.service_point)
+
+    def __unicode__(self):
+        return "№{} {}".format(self.title, self.service_point)
 

@@ -1,0 +1,9 @@
+{% csrf_token %}
+{% load static %}
+<script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/base_handlers.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/aux_controls_handlers.js' %}"></script>
+<button onclick="StartLongPoll(1)">Start Long Poll 1</button>
+<button onclick="StartLongPoll(2)">Start Long Poll 2</button>
+<button onclick="RespondLongPoll(1)">Response 1</button>
+<button onclick="RespondLongPoll(2)">Response 2</button>

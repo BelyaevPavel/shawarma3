@@ -81,7 +81,7 @@ function RightSideRefresher() {
         success: function (data) {
             //console.log("success");
             //console.log(data['html']);
-            $('#other-orders-shaw_queue').html(data['html_other']);
+            $('#other-orders-queue').html(data['html_other']);
         },
         complete: function () {
             setTimeout(RightSideRefresher, 5000);

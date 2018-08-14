@@ -3,8 +3,8 @@
  */
 function ReadyOrder(id) {
     var url = $('#urls').attr('data-ready-url');
-    var confirmation = confirm("Заказ готов?");
-    if (confirmation) {
+    //var confirmation = confirm("Заказ готов?");
+    //if (confirmation) {
         console.log(id + ' ' + url);
         $.ajaxSetup({
             beforeSend: function (xhr, settings) {
@@ -20,13 +20,13 @@ function ReadyOrder(id) {
             },
             dataType: 'json',
             success: function (data) {
-                location.href = $('#current-shaw_queue').parent().attr('href');
+                location.href = $('#current-queue').parent().attr('href');
                 //if (data['success']) {
                 //    alert('Success!');
                 //}
             }
         });
-    }
+    //}
 }
 
 function PayOrderCash(id) {
@@ -50,7 +50,11 @@ function PayOrderCash(id) {
     for(var i = 0; i<quantity_inputs_values.length; i++){
         total_cost +=prices[i]*quantity_inputs_values[i];
     }
-    var confirmation = confirm("К оплате: " + total_cost);
+    var confirmation = false;
+    if (total_cost > 5000)
+        confirmation = confirm("Сумма заказа превышает 5000 р. Вы уверены в корректности ввода?");
+    else   
+        confirmation = confirm("Оплатить заказ?");
     if (confirmation) {
         console.log(id + ' ' + url);
         $.ajaxSetup({
@@ -65,11 +69,20 @@ function PayOrderCash(id) {
                 'id': id,
                 'values': JSON.stringify(quantity_inputs_values),
                 'ids': JSON.stringify(quantity_inputs_ids),
-                'paid_with_cash': JSON.stringify(true)
+                'paid_with_cash': JSON.stringify(true),
+                'servery_id': $('[name=servery_choose]:checked').val()
             },
             dataType: 'json',
             success: function (data) {
-                location.href = $('#current-shaw_queue').parent().attr('href');
+                if (data['success'])
+                {
+                    alert("К оплате: " + data['total']);
+                    location.href = $('#current-queue').parent().attr('href');
+                }
+                else
+                {
+                    alert(data['message']);
+                }
                 //if (data['success']) {
                 //    alert('Success!');
                 //}
@@ -105,11 +118,12 @@ function PayOrderCard(id) {
                 'id': id,
                 'values': JSON.stringify(quantity_inputs_values),
                 'ids': JSON.stringify(quantity_inputs_ids),
-                'paid_with_cash': JSON.stringify(false)
+                'paid_with_cash': JSON.stringify(false),
+                'servery_id': $('[name=servery_choose]:checked').val()
             },
             dataType: 'json',
             success: function (data) {
-                location.href = $('#current-shaw_queue').parent().attr('href');
+                location.href = $('#current-queue').parent().attr('href');
                 //if (data['success']) {
                 //    alert('Success!');
                 //}
@@ -174,4 +188,58 @@ function FinishCooking(id) {
             location.reload();
         }
     });
+}
+
+
+function GrillAllContent(id) {
+    var url = $('#urls').attr('data-grill-all-content-url');
+    var confirmation = true;
+    if (confirmation) {
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+            }
+        });
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: {
+                'order_id': id
+            },
+            dataType: 'json',
+            success: function (data) {
+                //alert('Положите в заказ №' + data['order_number']);
+            },
+            complete: function () {
+                location.reload();
+            }
+        });
+    }
+}
+
+
+function FinishAllContent(id) {
+    var url = $('#urls').attr('data-finish-all-content-url');
+    var confirmation = true;
+    if (confirmation) {
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+            }
+        });
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: {
+                'id': id
+            },
+            dataType: 'json',
+            success: function (data) {
+                //alert('Положите в заказ №' + data['order_number']);
+            },
+            complete: function () {
+                location.reload();
+            }
+        });
+    }
 }

@@ -1,5 +1,5 @@
 {% load static %}
-<div class="order-block-container">
+<div class="order-block-container" onclick="OrderSpecifics({{ open_order.order.id }})">
     <div class="order-block {% if not open_order.printed and open_order.cook_part_ready_count.count > 0 %}
     order-started
     {% else %}
@@ -54,7 +54,7 @@
             <a href="{% url 'order_content' order_id=open_order.order.id %}">
                 {% for oper_content in open_order.operator_part %}
                     <div class="order-item">
-                        {{ oper_content.menu_item.title }}
+                        {{ oper_content.menu_item__title }} <span class="quantity-multiplyer">x{{ oper_content.count_titles }}</span>
                     </div>
                 {% empty %}
                     <p>Нет доп. товаров.</p>

@@ -1,0 +1,7 @@
+{% for open_order in open_orders %}
+    {% include 'shaw_queue/shashlychnik_order_block.html' with open_order=open_order %}
+{% empty %}
+    <div>
+        Нет заказов.
+    </div>
+{% endfor %}

@@ -2,11 +2,60 @@
 {% block aditional_static %}
     {% load static %}
     <script type="text/javascript" src="{% static 'js/current_queue_handlers.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/modal_edit_handlers.js' %}"></script>
 {% endblock %}
 {% block content %}
-    <input id="urls" hidden data-close-order-url="{% url 'close_order' %}"
-           data-cancel-order-url="{% url 'cancel_order' %}" voice-all-url="{% url 'voice_all' %}"
+    <input id="urls" hidden data-close-order-url="{% url 'close_order' %}" order-specifics-url="{% url 'order_specifics' %}"
+           data-cancel-order-url="{% url 'cancel_order' %}" voice-all-url="{% url 'voice_all' %}" close-all-url="{% url 'close_all' %}"
            >
+    <input hidden id="order-specifics-urls" data-cancel-item-url="{% url 'cancel_item' %}" data-ready-url="{% url 'ready_order' %}"
+           data-cancel-order-url="{% url 'cancel_order' %}" data-finish-item-url="{%  url 'finish_supplement' %}"
+           data-finish-all-content-url="{% url 'finish_all_content' %}" data-pay-url="{% url 'pay_order' %}"
+               data-grill-all-content-url="{% url 'grill_all_content' %}" data-search-comment="{% url 'search_comment' %}"
+            data-get-content-page="{% url 'get_content_page' %}" data-update-commodity="{% url 'update_commodity' %}">
+    <div class="modal" id="modal-order-specifics">
+    </div>
+    <div class="modal" id="modal-edit">
+        <div class="modal-content">
+            <span class="close" id="close-modal-edit" onclick="CloseModalEdit()">&times;</span>
+            <p id="item-title" class="modal-title">Title</p>
+            <p>
+                <label for="item-quantity" class="modal-label">Количество</label>
+                <input type="text" value="" class="modal-quantity-input" id="item-quantity" onclick="this.setSelectionRange(0, this.value.length)">
+                <button class="btn info" id="plus-button">+</button>
+                <button class="btn info" id="minus-button">-</button>
+            </p>
+            <p>
+                <label for="item-note" class="modal-label">Комментарий</label>
+                <input type="text" value="" class="live-search-box" id="item-note">
+                <div id="dropdown-list-container"></div>
+            </p>
+        </div>
+    </div>
+    <div class="filter-container">
+        {% for servery in serveries %}
+            <input type="checkbox" id="servery_{{ servery.servery.id }}" {% if servery.filtered == 'True' %}
+            checked
+            {% endif %} value="servery_{{ servery.servery.id }}" name="{{ servery.title }}" onchange="RememberFilter('servery_{{ servery.servery.id }}')">
+            <label for="servery_{{ servery.servery.id }}">{{ servery.servery.title }}</label>
+        {% endfor %}
+        <input type="checkbox" id="with_shashlyk" {% if with_shashlyk_filtered == 'True' %}
+        checked
+        {% endif %} value="With Shashlyk" name="With Shashlyk" onchange="RememberFilter('with_shashlyk')">
+        <label for="with_shashlyk">С Шашлыком</label>
+        <input type="checkbox" id="with_shawarma" {% if with_shawarma_filtered == 'True' %}
+        checked
+        {% endif %} value="With Shawarma" name="With Shawarma" onchange="RememberFilter('with_shawarma')">
+        <label for="with_shawarma">С Шаурмой</label>
+        <input type="checkbox" id="paid" {% if paid_filtered == 'True' %}
+        checked
+        {% endif %} value="Оплаченые" name="Оплаченые" onchange="RememberFilter('paid')">
+        <label for="paid">Оплаченые</label>
+        <input type="checkbox" id="not_paid" {% if not_paid_filtered == 'True' %}
+        checked
+        {% endif %} value="Не Оплаченые" name="Не Оплаченые" onchange="RememberFilter('not_paid')">
+        <label for="not_paid">Не Оплаченые</label>
+    </div>
     <div class="open-orders">
         {% for open_order in open_orders %}
             {% include 'shaw_queue/open_order_block.html' with open_order=open_order %}
@@ -20,6 +69,9 @@
         <div>
             <button onclick="VoiceAll()">
                 Озвучить всё
+            </button>
+            <button onclick="CloseAll()">
+                Закрыть всё
             </button>
         </div>
         {% for open_order in ready_orders %}

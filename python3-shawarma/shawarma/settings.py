@@ -13,11 +13,13 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 import os
 import raven
 import psycopg2.extensions
-from .my_settings import login, password, db_name, allowed_hosts, debug_flag, listner_url, listner_port, printer_url, raven_dsn, secret_key, server_1c_ip, server_1c_port, getlist_url, server_1c_user, server_1c_pass, smtp_server, smtp_port, smtp_login, smtp_password, smtp_from_addr, smtp_to_addr
+from .my_settings import login, password, db_name, allowed_hosts, debug_flag, listner_url, listner_port, printer_url, \
+    raven_dsn, secret_key, server_1c_ip, server_1c_port, getlist_url, server_1c_user, server_1c_pass, order_url, \
+    force_to_listner, debug_servery, return_url, carousel_img_dir, carousel_img_url, \
+    smtp_server, smtp_port, smtp_login, smtp_password, smtp_from_addr, smtp_to_addr
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -28,8 +30,9 @@ SECRET_KEY = secret_key
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = debug_flag
 
-ALLOWED_HOSTS = allowed_hosts
+DEBUG_SERVERY = debug_servery
 
+ALLOWED_HOSTS = allowed_hosts
 
 # Application definition
 
@@ -98,12 +101,6 @@ LOGGING = {
             'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
             'tags': {'custom-tag': 'x'},
         },
-        'file_general': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': 'log/debug.log',
-            'formatter': 'verbose'
-        },
         'file_request': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
@@ -130,11 +127,6 @@ LOGGING = {
         },
     },
     'loggers': {
-        'django': {
-            'handlers': ['file_general'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
         'django.request': {
             'handlers': ['file_request'],
             'level': 'DEBUG',
@@ -154,15 +146,9 @@ LOGGING = {
             'handlers': ['file_db'],
             'level': 'DEBUG',
             'propagate': True,
-        },
-        'sentry.errors': {
-            'level': 'DEBUG',
-            'handlers': ['file_general'],
-            'propagate': False,
         }
     },
 }
-
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
@@ -182,7 +168,6 @@ DATABASES = {
     }
 }
 
-
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
 
@@ -201,7 +186,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
@@ -214,7 +198,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
@@ -231,6 +214,10 @@ SERVER_1C_PORT = server_1c_port
 
 GETLIST_URL = getlist_url
 
+ORDER_URL = order_url
+
+RETURN_URL = return_url
+
 PRINTER_URL = printer_url
 
 SERVER_1C_USER = server_1c_user
@@ -245,10 +232,15 @@ SMTP_PASSWORD = smtp_password
 SMTP_FROM_ADDR = smtp_from_addr
 SMTP_TO_ADDR = smtp_to_addr
 
+CAROUSEL_IMG_DIR = carousel_img_dir
+
+CAROUSEL_IMG_URL = carousel_img_url
+
+FORCE_TO_LISTNER = force_to_listner
+
 LOGIN_REDIRECT_URL = '/shaw_queue/'
 
 STATIC_ROOT = '/home/admintrud/shawarma3/static_content/static/'
-
 
 RAVEN_CONFIG = {
     'dsn': raven_dsn,

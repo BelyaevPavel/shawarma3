@@ -2,13 +2,55 @@
 <title>Меню</title>
 {% block aditional_static %}
     {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'queue/loader.css' %}">
     <script type="text/javascript" src="{% static 'js/menu_handlers.js' %}"></script>
 {% endblock %}
 {% block content %}
+    <input hidden id="urls" data-status-refresh-url="{% url 'status_refresh' %}" data-search-comment="{% url 'search_comment' %}">
+    <div class="modal" id="modal-edit">
+        <div class="modal-content">
+            <span class="close" id="close-modal">&times;</span>
+            <p id="item-title" class="modal-title">Title</p>
+            <p>
+                <label for="item-quantity" class="modal-label">Количество</label>
+                <input type="text" value="" class="modal-quantity-input" id="item-quantity" onclick="this.setSelectionRange(0, this.value.length)">
+                <button class="btn info" id="plus-button">+</button>
+                <button class="btn info" id="minus-button">-</button>
+            </p>
+            <p>
+                <label for="item-note" class="modal-label">Комментарий</label>
+                <input type="text" value="" class="live-search-box" id="item-note">
+                <div id="dropdown-list-container"></div>
+            </p>
+        </div>
+    </div>
+    <div class="modal" id="modal-status">
+        <div class="modal-content">
+{#            <span class="close" id="close-modal-status">&times;</span>#}
+            <div class="loader-container" id="loader-container">
+                <div class="loader" id="loading-indicator"></div>
+            </div>
+            <p class="status-display" id="status-display">
+                Статус...
+            </p>
+            <p class="modal-cash-input-container">
+                <label for="order-change" class="modal-label" id="order-change-label" hidden>Наличные</label>
+                <input type="text" value="" class="modal-quantity-input" id="order-change" onclick="this.setSelectionRange(0, this.value.length)" onkeyup="CalculateChange()" hidden>
+            </p>
+            <p class="status-display" id="change-display" hidden>
+                Сдача...
+            </p>
+            <p class="modal-buttons-container">
+                <button class="btn success" id="status-OK-button" onclick="OKHandeler()">OK</button>
+                <button class="btn danger" id="status-cancel-button" onclick="CancelHandler()">Отмена</button>
+                <button class="btn warning" id="status-retry-button" onclick="RetryHandler()">Повторить</button>
+                <button class="btn warning" id="status-retry-cash-button" onclick="RetryCashHandler()">Оплатить наличными</button>
+            </p>
+        </div>
+    </div>
     <div class="menu-div">
         {% include 'shaw_queue/menu.html' with menu_items=menu_items %}
     </div>
-    <input hidden id="urls" data-search-comment="{% url 'search_comment' %}">
     <div class="order-div">
         <table class="currentOrderTable">
             <thead>Содержание заказа
@@ -48,24 +90,32 @@
                 <button type="button" class="subm" data-send-url="{% url 'make_order' %}">
                     Принять
                 </button>
-                <p>
-                    <input type="checkbox" id="is_paid" checked value="Оплачен" name="Оплачено">
-                    <label for="is_paid">Оплачено</label>
-                </p>
-                <p>
-                    <input type="checkbox" id="paid_with_cash" checked value="Оплачен наличными" name="Оплачено наличными">
-                    <label for="paid_with_cash">Наличные</label>
-                </p>
-                <p>
-                    <input type="radio" id="cook_auto" name="cook_choose" value="auto" checked>
-                    <label for="cook_auto">Автоназначение</label>
-                </p>
+                <div class="shadowed">
+                    <p>
+                        <input type="radio" id="not_paid" checked value="not_paid" name="payment_choose">
+                        <label for="not_paid">Не Оплачен</label>
+                    </p>
+                    <p>
+                        <input type="radio" id="paid_with_cash" value="paid_with_cash" name="payment_choose">
+                        <label for="paid_with_cash">Наличные</label>
+                    </p>
+                    <p>
+                        <input type="radio" id="paid_without_cash" value="paid_without_cash" name="payment_choose">
+                        <label for="paid_without_cash">Безналичный</label>
+                    </p>
+                </div>
+                <div class="shadowed">
+                    <p>
+                        <input type="radio" id="cook_auto" checked name="cook_choose" value="auto">
+                        <label for="cook_auto">Автоназначение</label>
+                    </p>
                 {% for available_cooker in available_cookers %}
                     <p>
                         <input type="radio" id="cook_{{ available_cooker.id }}" name="cook_choose" value="{{ available_cooker.id }}">
                         <label for="cook_{{ available_cooker.id }}">{{ available_cooker.user.first_name }} {{ available_cooker.user.last_name }}</label>
                     </p>
                 {% endfor %}
+                </div>
 
 
             </tr>

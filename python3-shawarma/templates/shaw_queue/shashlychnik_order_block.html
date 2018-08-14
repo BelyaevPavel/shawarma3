@@ -1,0 +1,41 @@
+{% load static %}
+<div class="order-block-container clickable" onclick="FinishAllContent({{ open_order.order.id }})">
+    <div class="order-block shadowed">
+        <div class="order-block-header">
+            <div class="order-number    {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
+                                                ready
+                                        {% else %}
+                                            {% if open_order.order.is_grilling or open_order.order.is_grilling_shash %}
+                                                inGrill
+                                            {% endif %}
+                                        {% endif %}">
+                № {{ open_order.order.daily_number }}
+            </div>
+            <div class="order-cook-part {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
+                                                ready
+                                        {% else %}
+                                            {% if open_order.order.is_grilling or open_order.order.is_grilling_shash %}
+                                                inGrill
+                                            {% endif %}
+                                        {% endif %}">
+                {{ open_order.order.prepared_by.user.first_name }} ({{ open_order.cook_part_ready_count.count }}/{{ open_order.cook_part_count.count }})
+            </div>
+        </div>
+
+        <div class="order-operator-part">
+            {% for oper_content in open_order.shashlychnik_part %}
+                <div class="order-item">
+
+                        {{ oper_content.menu_item__title }} 
+
+                    <span class="quantity-multiplyer">x{{ oper_content.count_titles }}</span>
+                    <p class="order-item-note">
+                        {{ oper_content.note }}
+                    </p>
+                </div>
+            {% empty %}
+                <p>Нет доп. товаров.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>

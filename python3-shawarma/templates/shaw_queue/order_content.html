@@ -6,7 +6,8 @@
 {% block content %}
     <input hidden id="urls" data-cancel-item-url="{% url 'cancel_item' %}" data-ready-url="{% url 'ready_order' %}"
            data-cancel-order-url="{% url 'cancel_order' %}" data-finish-item-url="{%  url 'finish_supplement' %}"
-           data-pay-url="{% url 'pay_order' %}">
+           data-finish-all-content-url="{% url 'finish_all_content' %}" data-pay-url="{% url 'pay_order' %}"
+           data-grill-all-content-url="{% url 'grill_all_content' %}">
     <table class="currentOrderTable">
         <thead>
         {% if order_info %}
@@ -32,18 +33,22 @@
         {% for order_item in order_content %}
             <div class="order-item-container">
                 <div class="order-item-title {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
                     {{ order_item.menu_item }}
                 </div>
                 <div class="order-item-note {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
                     "{{ order_item.note }}"
                 </div>
                 <div class="order-item-maker {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
                     {{ order_item.staff_maker }}
                 </div>
                 <div class="order-item-maker {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
                     <input class="quantityInput" type="text" value="{{ order_item.quantity }}" cost="{{ order_item.menu_item.price }}"
                            item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %}>
@@ -79,6 +84,18 @@
     {% if staff_category.title == 'Cashier' %}
         <button onclick="PayOrderCash({{ order_info.id }})" {% if order_info.is_paid %}disabled{% endif %}>Оплатить Наличными</button>
         <button onclick="PayOrderCard({{ order_info.id }})" {% if order_info.is_paid %}disabled{% endif %}>Оплатить Картой</button>
+    {% endif %}
+    {% if not order_info.shashlyk_completed %}
+        {% if staff_category.title == 'Operator' and order_info.with_shashlyk and not order_info.is_grilling_shash %}
+            <button onclick="GrillAllContent({{ order_info.id }})">
+                Жарить шашлык
+            </button>
+        {% endif %}
+        {% if staff_category.title == 'Operator' and order_info.with_shashlyk and order_info.is_grilling_shash %}
+            <button onclick="FinishAllContent({{ order_info.id }})">
+                Закончить шашлык
+            </button>
+        {% endif %}
     {% endif %}
     <button onclick="PrintOrder({{ order_info.id }})">Печать</button>
 {% endblock %}

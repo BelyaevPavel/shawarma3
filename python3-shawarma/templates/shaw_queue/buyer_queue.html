@@ -5,13 +5,10 @@
 <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/buyer_queue_handlers.js' %}"></script>
 <input hidden id="urls" data-refresh-url="{% url 'buyer_queue_ajax' %}" data-unvoice-url="{% url 'unvoice_order' %}">
-<div class="company-emblem">
-    <img id="shawarma-header" src="{% static 'img/shawarma_tv.png' %}" >
-</div>
 <div id="page-content">
     <div class="open-orders-container">
         <div class="open-order-display">
-            Заказы в работе
+            Жарим
         </div>
     {% for open_order in display_open_orders %}
         <div class="open-order-display">
@@ -22,7 +19,7 @@
     </div>
     <div class="ready-orders-container">
     <div class="open-order-display">
-        Заказы на выдачу
+        Готовы
     </div>
     {% for ready_order in display_ready_orders %}
         <div class="ready-order-display">
@@ -33,6 +30,14 @@
         </div>
     {% empty %}
     {% endfor %}
+    </div>
+</div>
+
+<div class="carousel-container">
+    <div id="carousels">
+        {% for image in carousel_images %}
+            <div class="carousel"><img class="carousel-image" src="{{ image }}"></div>
+        {% endfor %}
     </div>
 </div>
 

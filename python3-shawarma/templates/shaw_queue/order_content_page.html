@@ -1,0 +1,51 @@
+<div class="content-container" id="content-container">
+    {% for order_item in order_content %}
+        <div class="order-item-container" id="item-container-{{ order_item.id }}" item-id="{{ order_item.id }}">
+            <div class="item-title-container" onclick="ShowModalEdit({{ order_item.id }})">
+                <p class="order-item-title-modal {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
+                {% endif %}">
+                    {{ order_item.menu_item }}
+                </p>
+                <p class="order-item-note-modal {% if order_item.finish_timestamp %}ready
+                {% endif %} {% if order_item.is_in_grill %}inGrill
+                {% endif %}">
+                    {{ order_item.note }}
+                </p>
+            </div>
+            <div class="item-quantity-container">
+                <input class="quantityInput" id="" type="text" value="{{ order_item.quantity }}" cost="{{ order_item.menu_item.price }}"
+                       item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %}>
+            </div>
+            <div class="item-controls-container">
+                {% if order_item.menu_item.can_be_prepared_by.title == 'Operator' or order_item.menu_item.can_be_prepared_by.title == staff_category.title %}
+                    <button class="small-btn success" onclick="FinishCooking({{ order_item.id }})">
+                        &#10003;
+                    </button>
+                {% endif %}
+                <button class="small-btn danger" onclick="CancelItem({{ order_item.id }},{{ order_info.id }})">
+                    &times;
+                </button>
+            </div>
+        </div>
+    {% empty %}
+        Нет товаров.
+    {% endfor %}
+</div>
+<div class="pagination">
+    <span class="step-links">
+        {% if page.has_previous %}
+            <button class="small-btn info" onclick="SetContentPage({{ order_info.id }}, 1)">&laquo; Первая</button>
+            <button class="small-btn info" onclick="SetContentPage({{ order_info.id }}, {{ page.previous_page_number }})">Предыдущая</button>
+        {% endif %}
+
+        <span class="current">
+            Страница {{ page.number }} из {{ page.paginator.num_pages }}.
+        </span>
+
+        {% if page.has_next %}
+            <button class="small-btn info" onclick="SetContentPage({{ order_info.id }}, {{ page.next_page_number }})">Следующая</button>
+            <button class="small-btn info" onclick="SetContentPage({{ order_info.id }}, {{ page.paginator.num_pages }})">Последняя &raquo;</button>
+        {% endif %}
+    </span>
+</div>

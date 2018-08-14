@@ -3,19 +3,27 @@
 
 from django.http.response import HttpResponseRedirect
 
-from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker
+from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker, \
+    ServicePoint, Printer
 from django.template import loader
 from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist
+from django.core.paginator import Paginator
 from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404
 from django.contrib.auth.decorators import login_required, permission_required
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout, login, views as auth_views
-from django.db.models import Max, Min, Count, Avg, F
+from django.db.models import Max, Min, Count, Avg, F, Sum, Q
+from django.utils import timezone
 from django.core.mail import send_mail
 from hashlib import md5
-from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR
+from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
+    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, \
+    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR
 from raven.contrib.django.raven_compat.models import client
+from random import sample
+from itertools import chain
 import requests
 import datetime
 import logging
@@ -25,6 +33,8 @@ import os
 import subprocess
 
 logger = logging.getLogger(__name__)
+flag_marker = False
+waiting_numbers = {}
 
 
 @login_required()
@@ -39,6 +49,9 @@ def redirection(request):
 
 
 def cook_pause(request):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
     user = request.user
 
     try:
@@ -62,6 +75,7 @@ def cook_pause(request):
         pause = PauseTracker(staff=staff, start_timestamp=datetime.datetime.now())
         pause.save()
         staff.available = False
+        staff.service_point = None
         staff.save()
 
         mail_subject = str(staff) + ' ушел на перерыв'
@@ -83,7 +97,12 @@ def cook_pause(request):
             last_pause.save()
 
         staff.available = True
-        staff.save()
+        result = define_service_point(device_ip)
+        if result['success']:
+            staff.service_point = result['service_point']
+            staff.save()
+        else:
+            return JsonResponse(result)
 
         mail_subject = str(staff) + ' начал работать'
         mail_text = 'Время события: ' + str(datetime.datetime.now())[:-7]
@@ -138,6 +157,9 @@ def welcomer(request):
 
 @login_required()
 def menu(request):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
     try:
         menu_items = Menu.objects.order_by('title')
     except:
@@ -148,21 +170,27 @@ def menu(request):
         client.captureException()
         return JsonResponse(data)
     template = loader.get_template('shaw_queue/menu_page.html')
-    try:
-        context = {
-            'user': request.user,
-            'available_cookers': Staff.objects.filter(available=True, staff_category__title__iexact='Cook'),
-            'staff_category': StaffCategory.objects.get(staff__user=request.user),
-            'menu_items': menu_items,
-            'menu_categories': MenuCategory.objects.order_by('weight')
-        }
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске последней паузы!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            context = {
+                'user': request.user,
+                'available_cookers': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                                          service_point=result['service_point']),
+                'staff_category': StaffCategory.objects.get(staff__user=request.user),
+                'menu_items': menu_items,
+                'menu_categories': MenuCategory.objects.order_by('weight')
+            }
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске генерации меню!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
+
     return HttpResponse(template.render(context, request))
 
 
@@ -174,7 +202,8 @@ def search_comment(request):
     }
     if len(comment_part) > 0:
         try:
-            comments = OrderContent.objects.filter(note__icontains=comment_part).distinct('note')[:5]
+            comments = OrderContent.objects.filter(note__icontains=comment_part).values('note').annotate(
+                count=Count('note')).order_by('-count')[:5]
         except:
             data = {
                 'success': False,
@@ -264,69 +293,101 @@ def evaluate(request):
 
 
 def buyer_queue(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           is_canceled=False, is_ready=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске открытых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            content_completed=True, supplement_completed=True, is_ready=True,
-                                            is_canceled=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске готовых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               is_canceled=False, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске открытых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                content_completed=True, supplement_completed=True, is_ready=True,
+                                                is_canceled=False,
+                                                servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске готовых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        try:
+            carousel_images = [CAROUSEL_IMG_URL + name for name in os.listdir(CAROUSEL_IMG_DIR)]
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при загрузке изображений для карусели!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
     context = {
         'open_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in open_orders],
         'ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in
                          ready_orders],
-        'display_open_orders': [{'servery': order.servery, 'daily_number': order.daily_number % 100} for order in
+        'display_open_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
                                 open_orders],
-        'display_ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number % 100} for order in
-                                 ready_orders]
+        'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
+                                 ready_orders],
+        'carousel_images': carousel_images
     }
     template = loader.get_template('shaw_queue/buyer_queue.html')
     return HttpResponse(template.render(context, request))
 
 
 def buyer_queue_ajax(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           is_canceled=False, is_ready=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске открытых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            content_completed=True, supplement_completed=True, is_ready=True,
-                                            is_canceled=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске готовых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+
+    if result['success']:
+        try:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               is_canceled=False, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске открытых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                content_completed=True, supplement_completed=True, is_ready=True,
+                                                is_canceled=False,
+                                                servery__service_point=result['service_point']).order_by('open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске готовых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
+
     context = {
         'open_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in open_orders],
         'ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in
                          ready_orders],
-        'display_open_orders': [{'servery': order.servery, 'daily_number': order.daily_number % 100} for order in
+        'display_open_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
                                 open_orders],
-        'display_ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number % 100} for order in
+        'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
                                  ready_orders]
     }
     template = loader.get_template('shaw_queue/buyer_queue_ajax.html')
@@ -343,27 +404,140 @@ def buyer_queue_ajax(request):
 
 @login_required()
 def current_queue(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           is_canceled=False, is_ready=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске открытых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            is_canceled=False, content_completed=True, shashlyk_completed=True,
-                                            supplement_completed=True, is_ready=True).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске готовых заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    shawarma_filter = True
+    if request.COOKIES.get('with_shawarma', 'True') == 'False':
+        shawarma_filter = False
+
+    shashlyk_filter = True
+    if request.COOKIES.get('with_shashlyk', 'True') == 'False':
+        shashlyk_filter = False
+
+    paid_filter = True
+    if request.COOKIES.get('paid', 'True') == 'False':
+        paid_filter = False
+
+    not_paid_filter = True
+    if request.COOKIES.get('not_paid', 'True') == 'False':
+        not_paid_filter = False
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        current_day_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                  is_canceled=False, is_ready=False,
+                                                  servery__service_point=result['service_point']).order_by('open_time')
+        serveries = Servery.objects.filter(service_point=result['service_point'])
+        serveries_dict = {}
+        for servery in serveries:
+            serveries_dict['{}'.format(servery.id)] = True
+            if request.COOKIES.get('servery_{}'.format(servery.id), 'True') == 'False':
+                serveries_dict['{}'.format(servery.id)] = False
+        try:
+            if paid_filter:
+                if not_paid_filter:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+                else:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=True,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=True,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter, is_paid=True,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+            else:
+                if not_paid_filter:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=False,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=False,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter, is_paid=False,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+                else:
+                    open_orders = Order.objects.none()
+
+            open_orders = filter_orders(current_day_orders, shawarma_filter, shashlyk_filter, paid_filter,
+                                        not_paid_filter, serveries_dict)
+
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске открытых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                is_canceled=False, content_completed=True, shashlyk_completed=True,
+                                                supplement_completed=True, is_ready=True,
+                                                servery__service_point=result['service_point']).order_by('open_time')
+
+            ready_orders = filter_orders(ready_orders, shawarma_filter, shashlyk_filter, paid_filter,
+                                         not_paid_filter, serveries_dict)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске готовых заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
+
     # print open_orders
     # print ready_orders
 
@@ -371,36 +545,53 @@ def current_queue(request):
     context = {
         'open_orders': [{'order': open_order,
                          'printed': open_order.printed,
-                         'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                         'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                              is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='cook').filter(
                              finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                         'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
+                         'cook_part_count': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                         'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                         'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                      is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
                              finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                         'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
+                         'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                is_canceled=False).filter(
                              menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(count=Count('id')),
-                         'operator_part': OrderContent.objects.filter(order=open_order).filter(
-                             menu_item__can_be_prepared_by__title__iexact='operator')
+                         'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
+                             menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
+                                                                                             'note').annotate(
+                             count_titles=Count('menu_item__title'))
                          } for open_order in open_orders],
         'ready_orders': [{'order': open_order,
-                          'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                          'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                               is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='cook').filter(
                               finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                          'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
+                          'cook_part_count': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                          'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                          'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                       is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
                               finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                          'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
+                          'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                 is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(count=Count('id')),
-                          'operator_part': OrderContent.objects.filter(order=open_order).filter(
-                              menu_item__can_be_prepared_by__title__iexact='operator')
+                          'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
+                              menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
+                                                                                              'note').annotate(
+                              count_titles=Count('menu_item__title'))
+
                           } for open_order in ready_orders],
         'open_length': len(open_orders),
         'ready_length': len(ready_orders),
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'serveries': [{'servery': servery, 'filtered': request.COOKIES.pop('servery_' + str(servery.id), 'True')} for
+                      servery in Servery.objects.filter(service_point=result['service_point'])],
+        'paid_filtered': request.COOKIES.pop('paid', 'True'),
+        'not_paid_filtered': request.COOKIES.pop('not_paid', 'True'),
+        'with_shawarma_filtered': request.COOKIES.pop('with_shawarma', 'True'),
+        'with_shashlyk_filtered': request.COOKIES.pop('with_shashlyk', 'True'),
     }
     # print context
     return HttpResponse(template.render(context, request))
@@ -408,16 +599,26 @@ def current_queue(request):
 
 @login_required()
 def order_history(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
-                                           is_canceled=False, is_ready=True).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске последней паузы!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
+                                               is_canceled=False, is_ready=True,
+                                               servery__service_point=result['service_point']).order_by('-open_time')
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске последней паузы!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
+
     # print open_orders
     # print ready_orders
 
@@ -450,67 +651,198 @@ def order_history(request):
 
 @login_required()
 def current_queue_ajax(request):
-    try:
-        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                           is_canceled=False, is_ready=False).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске последней паузы!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
 
-    try:
-        ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            is_canceled=False, content_completed=True, shashlyk_completed=True,
-                                            supplement_completed=True, is_ready=True).order_by('open_time')
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске последней паузы!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    shawarma_filter = True
+    if request.COOKIES.get('with_shawarma', 'True') == 'False':
+        shawarma_filter = False
+
+    shashlyk_filter = True
+    if request.COOKIES.get('with_shashlyk', 'True') == 'False':
+        shashlyk_filter = False
+
+    paid_filter = True
+    if request.COOKIES.get('paid', 'True') == 'False':
+        paid_filter = False
+
+    not_paid_filter = True
+    if request.COOKIES.get('not_paid', 'True') == 'False':
+        not_paid_filter = False
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        current_day_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                  is_canceled=False, is_ready=False,
+                                                  servery__service_point=result['service_point']).order_by('open_time')
+        serveries = Servery.objects.filter(service_point=result['service_point'])
+        serveries_dict = {}
+        for servery in serveries:
+            serveries_dict['{}'.format(servery.id)] = True
+            if request.COOKIES.get('servery_{}'.format(servery.id), 'True') == 'False':
+                serveries_dict['{}'.format(servery.id)] = False
+        try:
+            if paid_filter:
+                if not_paid_filter:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+                else:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=True,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=True,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter, is_paid=True,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+            else:
+                if not_paid_filter:
+                    if shawarma_filter:
+                        if shashlyk_filter:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=False,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                        else:
+                            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                               close_time__isnull=True, is_paid=False,
+                                                               with_shawarma=shawarma_filter,
+                                                               with_shashlyk=shashlyk_filter,
+                                                               is_canceled=False, is_ready=False,
+                                                               servery__service_point=result[
+                                                                   'service_point']).order_by('open_time')
+                    else:
+                        open_orders = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=True, with_shawarma=shawarma_filter,
+                                                           with_shashlyk=shashlyk_filter, is_paid=False,
+                                                           is_canceled=False, is_ready=False,
+                                                           servery__service_point=result['service_point']).order_by(
+                            'open_time')
+                else:
+                    open_orders = Order.objects.none()
+
+            open_orders = filter_orders(current_day_orders, shawarma_filter, shashlyk_filter, paid_filter,
+                                        not_paid_filter, serveries_dict)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске последней паузы!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                is_canceled=False, content_completed=True, shashlyk_completed=True,
+                                                supplement_completed=True, is_ready=True,
+                                                servery__service_point=result['service_point']).order_by('open_time')
+
+            ready_orders = filter_orders(ready_orders, shawarma_filter, shashlyk_filter, paid_filter,
+                                         not_paid_filter, serveries_dict)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске последней паузы!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
 
     template = loader.get_template('shaw_queue/current_queue_grid_ajax.html')
     try:
         context = {
             'open_orders': [{'order': open_order,
                              'printed': open_order.printed,
-                             'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                             'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                  is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='cook').filter(
                                  finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                             'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
+                             'cook_part_count': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                             'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                             'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                          is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
                                  finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                             'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
+                             'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                    is_canceled=False).filter(
                                  menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(
                                  count=Count('id')),
-                             'operator_part': OrderContent.objects.filter(order=open_order).filter(
-                                 menu_item__can_be_prepared_by__title__iexact='operator')
+                             'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
+                                 menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
+                                                                                                 'note').annotate(
+                                 count_titles=Count('menu_item__title'))
                              } for open_order in open_orders],
             'ready_orders': [{'order': open_order,
-                              'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                              'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                   is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='cook').filter(
                                   finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                              'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
+                              'cook_part_count': OrderContent.objects.filter(order=open_order,
+                                                                             is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                              'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
+                              'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                           is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
                                   finish_timestamp__isnull=False).aggregate(count=Count('id')),
-                              'shashlychnik_part_count': OrderContent.objects.filter(order=open_order).filter(
+                              'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                     is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(
                                   count=Count('id')),
-                              'operator_part': OrderContent.objects.filter(order=open_order).filter(
-                                  menu_item__can_be_prepared_by__title__iexact='operator')
+                              'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
+                                  menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
+                                                                                                  'note').annotate(
+                                  count_titles=Count('menu_item__title'))
+
                               } for open_order in ready_orders],
             'open_length': len(open_orders),
             'ready_length': len(ready_orders),
             'staff_category': StaffCategory.objects.get(staff__user=request.user),
+            'serveries': [{'servery': servery, 'filtered': request.COOKIES.get('servery_' + str(servery.id), 'True')}
+                          for servery in Servery.objects.filter(service_point=result['service_point'])],
+            'paid_filtered': request.COOKIES.pop('paid', 'True'),
+            'not_paid_filtered': request.COOKIES.pop('not_paid', 'True'),
+            'with_shawarma_filtered': request.COOKIES.pop('with_shawarma', 'True'),
+            'with_shashlyk_filtered': request.COOKIES.pop('with_shashlyk', 'True'),
         }
+        for servery in Servery.objects.filter(service_point=result['service_point']):
+            request.COOKIES.pop('servery_' + str(servery.id), None)
     except:
         data = {
             'success': False,
@@ -522,6 +854,49 @@ def current_queue_ajax(request):
         'html': template.render(context, request)
     }
     return JsonResponse(data)
+
+
+def filter_orders(orders, shawarma_filter, shashlyk_filter, paid_filter, not_paid_filter, serveries):
+    if paid_filter:
+        if not_paid_filter:
+            if shawarma_filter:
+                if shashlyk_filter:
+                    filtered_orders = orders
+                else:
+                    filtered_orders = orders.filter(Q(with_shashlyk=False),
+                                                    Q(with_shawarma=True) | Q(with_shawarma=False))
+            else:
+                filtered_orders = orders.filter(Q(with_shawarma=False),
+                                                Q(with_shashlyk=False) | Q(with_shashlyk=shashlyk_filter))
+        else:
+            if shawarma_filter:
+                if shashlyk_filter:
+                    filtered_orders = orders.filter(is_paid=True)
+                else:
+                    filtered_orders = orders.filter(Q(is_paid=True), Q(with_shashlyk=False),
+                                                    Q(with_shawarma=True) | Q(with_shawarma=False))
+            else:
+                filtered_orders = orders.filter(Q(is_paid=True), Q(with_shawarma=False),
+                                                Q(with_shashlyk=False) | Q(with_shashlyk=shashlyk_filter))
+    else:
+        if not_paid_filter:
+            if shawarma_filter:
+                if shashlyk_filter:
+                    filtered_orders = orders.filter(is_paid=False)
+                else:
+                    filtered_orders = orders.filter(Q(is_paid=False), Q(with_shashlyk=False),
+                                                    Q(with_shawarma=True) | Q(with_shawarma=False))
+            else:
+                filtered_orders = orders.filter(Q(is_paid=False), Q(with_shawarma=False),
+                                                Q(with_shashlyk=False) | Q(with_shashlyk=shashlyk_filter))
+        else:
+            filtered_orders = Order.objects.none()
+
+    # serveries should be a dictionary where keys are ids, and values are bool
+    for servery_key in serveries.keys():
+        if not serveries[servery_key]:
+            filtered_orders = filtered_orders.exclude(servery_id=int(servery_key))
+    return filtered_orders
 
 
 @login_required()
@@ -935,7 +1310,6 @@ def c_i_a(request):
     return queue_processor(request)
 
 
-@login_required()
 def shashlychnik_interface(request):
     def new_processor_with_queue(request):
         user = request.user
@@ -990,10 +1364,36 @@ def shashlychnik_interface(request):
         aux_html = template.render(context, request)
         return HttpResponse(template.render(context, request))
 
-    return new_processor_with_queue(request)
+    def unmanaged_queue(request):
+        device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if DEBUG_SERVERY:
+            device_ip = '127.0.0.1'
+
+        result = define_service_point(device_ip)
+        if result['success']:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
+                                               is_ready=False,
+                                               servery__service_point=result['service_point']).order_by(
+                'open_time')
+            context = {
+                'open_orders': [{'order': open_order,
+                                 'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
+                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik').values(
+                                     'menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
+                                 } for open_order in open_orders],
+                'open_length': len(open_orders)
+            }
+
+            template = loader.get_template('shaw_queue/shashlychnik_queue.html')
+        else:
+            return Http404("Неудалось определить точку обслуживания.")
+
+        return HttpResponse(template.render(context, request))
+
+    return unmanaged_queue(request)
 
 
-@login_required()
 def s_i_a(request):
     def queue_processor(request):
         user = request.user
@@ -1040,7 +1440,38 @@ def s_i_a(request):
 
         return JsonResponse(data=data)
 
-    return queue_processor(request)
+    def unmanaged_queue(request):
+        device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if DEBUG_SERVERY:
+            device_ip = '127.0.0.1'
+
+        result = define_service_point(device_ip)
+        if result['success']:
+            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
+                                               is_ready=False, servery__service_point=result['service_point']).order_by(
+                'open_time')
+            context = {
+                'open_orders': [{'order': open_order,
+                                 'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
+                                     menu_item__can_be_prepared_by__title__iexact='Shashlychnik').values(
+                                     'menu_item__title', 'note').annotate(count_titles=Count('menu_item__title'))
+                                 } for open_order in open_orders],
+                'open_length': len(open_orders)
+            }
+
+            template = loader.get_template('shaw_queue/shashlychnik_queue_ajax.html')
+            data = {
+                'html': template.render(context, request)
+            }
+        else:
+            data = {
+                'html': "<h1>Неудалось определить точку обслуживания.</h1>"
+            }
+
+        return JsonResponse(data=data)
+
+    return unmanaged_queue(request)
 
 
 @login_required()
@@ -1074,6 +1505,9 @@ def set_cooker(request, order_id, cooker_id):
 def order_content(request, order_id):
     order_info = get_object_or_404(Order, id=order_id)
     order_content = OrderContent.objects.filter(order_id=order_id)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
     flag = True
     for item in order_content:
         if item.finish_timestamp is None:
@@ -1084,33 +1518,279 @@ def order_content(request, order_id):
     order_info.save()
     current_order_content = OrderContent.objects.filter(order=order_id)
     template = loader.get_template('shaw_queue/order_content.html')
-    context = {
-        'order_info': order_info,
-        'maker': order_info.prepared_by,
-        'staff_category': StaffCategory.objects.get(staff__user=request.user),
-        'order_content': current_order_content,
-        'ready': order_info.content_completed and order_info.supplement_completed,
-        'serveries': Servery.objects.all()
-    }
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            context = {
+                'order_info': order_info,
+                'maker': order_info.prepared_by,
+                'staff_category': StaffCategory.objects.get(staff__user=request.user),
+                'order_content': current_order_content,
+                'ready': order_info.content_completed and order_info.supplement_completed and order_info.shashlyk_completed,
+                'serveries': Servery.objects.filter(service_point=result['service_point'])
+            }
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров персонала возвращено!'
+            }
+            logger.error('{} Множество экземпляров персонала возвращено!'.format(request.user))
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так!'
+            }
+            logger.error('{} Что-то пошло не так при поиске персонала!'.format(request.user))
+            return JsonResponse(data)
+    else:
+        JsonResponse(result)
+
     return HttpResponse(template.render(context, request))
 
 
-def print_order(request, order_id):
-    order_info = get_object_or_404(Order, id=order_id)
-    order_info.printed = True
-    order_info.save()
-    order_content = OrderContent.objects.filter(order_id=order_id).values('menu_item__title', 'menu_item__price',
-                                                                          'note').annotate(
-        count_titles=Count('menu_item__title')).annotate(count_notes=Count('note'))
-    template = loader.get_template('shaw_queue/print_order_wh.html')
+def order_content_page(request, paginator, page_number, order_info):
     context = {
         'order_info': order_info,
-        'order_content': order_content
+        'order_content': paginator.page(page_number).object_list,
+        'page_range': paginator.page_range,
+        'page': paginator.page(page_number)
     }
 
-    cmd = 'echo "{}"'.format(template.render(context, request)) + " | lp -h " + PRINTER_URL
-    scmd = cmd.encode('utf-8')
-    os.system(scmd)
+    page = paginator.page(page_number)
+
+    current_order = {}
+
+    for order_item in paginator.page(page_number).object_list:
+        current_order["{}".format(order_item.id)] = {
+            'id': order_item.menu_item.id,
+            'title': order_item.menu_item.title,
+            'price': order_item.menu_item.price,
+            'quantity': order_item.quantity,
+            'note': order_item.note,
+            'editable_quantity': False if order_item.menu_item.can_be_prepared_by == 'Cook' else True
+        }
+
+    template = loader.get_template('shaw_queue/order_content_page.html')
+    data = {
+        'success': True,
+        'html': template.render(context, request),
+        'order': json.dumps(current_order)
+    }
+    return data
+
+
+def get_content_page(request):
+    order_id = request.POST.get('order_id', None)
+    page_number = request.POST.get('page_number', None)
+    order_info = get_object_or_404(Order, id=order_id)
+
+    current_order_content = OrderContent.objects.filter(order=order_id, is_canceled=False).order_by('id')
+    paginator = Paginator(current_order_content, 9)
+
+    return JsonResponse(order_content_page(request, paginator, page_number, order_info))
+
+
+def order_specifics(request):
+    order_id = request.POST.get('order_id', None)
+    page_number = request.POST.get('page_number', None)
+    user = request.user
+    staff = Staff.objects.get(user=user)
+    order_info = get_object_or_404(Order, id=order_id)
+    order_content = OrderContent.objects.filter(order_id=order_id).order_by('id')
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+    flag = True
+    for item in order_content:
+        if item.finish_timestamp is None:
+            flag = False
+    if flag:
+        order_info.content_completed = True
+        order_info.supplement_completed = True
+    order_info.save()
+    current_order_content = OrderContent.objects.filter(order=order_id, is_canceled=False)
+    p = Paginator(current_order_content, 9)
+
+    # if page_number is not None:
+    #     content_page = get_content_page(p, page_number)
+    # else:
+    #     content_page = get_content_page(p, 1)
+
+    template = loader.get_template('shaw_queue/order_content_modal.html')
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            context = {
+                'order_info': order_info,
+                'maker': order_info.prepared_by,
+                'staff_category': StaffCategory.objects.get(staff__user=request.user),
+                'order_content': p.page(1).object_list,
+                'page_range': p.page_range,
+                'page': p.page(1),
+                'ready': order_info.content_completed and order_info.supplement_completed and order_info.shashlyk_completed,
+                'serveries': Servery.objects.filter(service_point=result['service_point'])
+            }
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров персонала возвращено!'
+            }
+            logger.error('{} Множество экземпляров персонала возвращено!'.format(request.user))
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так!'
+            }
+            logger.error('{} Что-то пошло не так при поиске персонала!'.format(request.user))
+            return JsonResponse(data)
+    else:
+        JsonResponse(result)
+
+    current_order = {}
+
+    for order_item in current_order_content:
+        current_order["{}".format(order_item.id)] = {
+            'id': order_item.menu_item.id,
+            'title': order_item.menu_item.title,
+            'price': order_item.menu_item.price,
+            'quantity': order_item.quantity,
+            'note': order_item.note,
+            'editable_quantity': False if order_item.menu_item.can_be_prepared_by == 'Cook' else True
+        }
+
+    data = {
+        'success': True,
+        'html': template.render(context, request),
+        'order': json.dumps(current_order)
+    }
+
+    return JsonResponse(data)
+
+
+def update_commodity(request):
+    commodity_id = request.POST.get('id', None)
+    note = request.POST.get('note', None)
+    quantity = request.POST.get('quantity', None)
+    if commodity_id is not None:
+        try:
+            commodity = OrderContent.objects.get(id=commodity_id)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров персонала возвращено!'
+            }
+            logger.error('{} Множество экземпляров персонала возвращено!'.format(request.user))
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так!'
+            }
+            logger.error('{} Что-то пошло не так при поиске персонала!'.format(request.user))
+            return JsonResponse(data)
+
+        if note is not None:
+            commodity.note = note
+        if quantity is not None:
+            commodity.quantity = quantity
+        commodity.save()
+
+        data = {
+            'success': True
+        }
+    else:
+        data = {
+            'success': False,
+            'message': 'Отсутствует идентификатор товара!'
+        }
+        logger.error('{} Отсутствует идентификатор товара!'.format(request.user))
+
+    return JsonResponse(data)
+
+
+def aux_control_page(request):
+    template = loader.get_template('shaw_queue/aux_controls.html')
+    context = {}
+    return HttpResponse(template.render(context, request))
+
+
+def flag_changer(request):
+    global waiting_numbers
+    number = request.POST.get('number', None)
+    if number is not None:
+        if number in waiting_numbers.keys():
+            waiting_numbers[number] = True
+        data = {
+            'success': True
+        }
+    else:
+        data = {
+            'success': False
+        }
+
+    return JsonResponse(data)
+
+
+def long_poll_handler(request):
+    global waiting_numbers
+    number = request.POST.get('number', None)
+    if number is not None:
+        waiting_numbers[number] = False
+        while True:
+            if waiting_numbers[number]:
+                waiting_numbers[number] = False
+                break
+        data = {
+            'message': 'The number is {}'.format(number)
+        }
+    else:
+        data = {
+            'message': 'There is no number in request'
+        }
+    return JsonResponse(data)
+
+
+def print_order(request, order_id):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    result = define_service_point(device_ip)
+
+    if result['success']:
+        order_info = get_object_or_404(Order, id=order_id)
+        order_info.printed = True
+        order_info.save()
+        order_content = OrderContent.objects.filter(order_id=order_id).values('menu_item__title', 'menu_item__price',
+                                                                              'note').annotate(
+            count_titles=Count('menu_item__title')).annotate(count_notes=Count('note'))
+        template = loader.get_template('shaw_queue/print_order_wh.html')
+        context = {
+            'order_info': order_info,
+            'order_content': order_content
+        }
+
+        printers = Printer.objects.filter(service_point=result['service_point'])
+        chosen_printer = None
+        for printer in printers:
+            if printer.ip_address == device_ip:
+                chosen_printer = printer
+
+        if chosen_printer is None and len(printers) > 0:
+            chosen_printer = printers[0]
+
+        cmd = 'echo "{}"'.format(template.render(context, request)) + " | lp -h " + chosen_printer.ip_address
+        scmd = cmd.encode('utf-8')
+        os.system(scmd)
+    else:
+        return JsonResponse(result)
 
     return HttpResponse(template.render(context, request))
 
@@ -1128,25 +1808,33 @@ def voice_order(request, order_id):
 
 
 def unvoice_order(request):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
     daily_number = request.POST.get('daily_number', None)
     data = {
         'success': False
     }
     if daily_number:
-        try:
-            order = Order.objects.get(daily_number=daily_number, open_time__contains=datetime.date.today())
-        except:
+        result = define_service_point(device_ip)
+        if result['success']:
+            try:
+                order = Order.objects.get(daily_number=daily_number, open_time__contains=datetime.date.today(),
+                                          servery__service_point=result['service_point'])
+            except:
+                data = {
+                    'success': False,
+                    'message': 'Что-то пошло не так при поиске заказа!'
+                }
+                client.captureException()
+                return JsonResponse(data)
+            order.is_voiced = True
+            order.save()
             data = {
-                'success': False,
-                'message': 'Что-то пошло не так при поиске заказа!'
+                'success': True
             }
-            client.captureException()
-            return JsonResponse(data)
-        order.is_voiced = True
-        order.save()
-        data = {
-            'success': True
-        }
+        else:
+            return JsonResponse(result)
 
     return JsonResponse(data=data)
 
@@ -1220,16 +1908,23 @@ def shashlychnik_select_order(request):
 
 
 def voice_all(request):
-    try:
-        today_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                            is_ready=True)
-    except:
-        data = {
-            'success': False,
-            'message': 'Что-то пошло не так при поиске заказов!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            today_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                is_ready=True, servery__service_point=result['service_point'])
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
     for order in today_orders:
         order.is_voiced = False
         order.save()
@@ -1240,11 +1935,13 @@ def voice_all(request):
 @login_required()
 @permission_required('shaw_queue.add_order')
 def make_order(request):
+    file = open('log/cook_choose.log', 'a')
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
-    servery_ip = '127.0.0.1'
+    if DEBUG_SERVERY:
+        servery_ip = '127.0.0.1'
+    result = define_service_point(servery_ip)
     content = json.loads(request.POST['order_content'])
-    is_paid = json.loads(request.POST['is_paid'])
-    paid_with_cash = json.loads(request.POST['paid_with_cash'])
+    payment = request.POST['payment']
     cook_choose = request.POST['cook_choose']
 
     if len(content) == 0:
@@ -1272,23 +1969,27 @@ def make_order(request):
         return JsonResponse(data)
 
     order_next_number = 0
-    try:
-        order_last_daily_number = Order.objects.filter(open_time__contains=datetime.date.today()).aggregate(
-            Max('daily_number'))
-    except EmptyResultSet:
-        data = {
-            'success': False,
-            'message': 'Empty set of orders returned!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    except:
-        data = {
-            'success': False,
-            'message': 'Something wrong happened while getting set of orders!'
-        }
-        client.captureException()
-        return JsonResponse(data)
+    if result['success']:
+        try:
+            order_last_daily_number = Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           servery__service_point=result['service_point']).aggregate(
+                Max('daily_number'))
+        except EmptyResultSet:
+            data = {
+                'success': False,
+                'message': 'Empty set of orders returned!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Something wrong happened while getting set of orders!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+    else:
+        return JsonResponse(result)
 
     if order_last_daily_number:
         if order_last_daily_number['daily_number__max'] is not None:
@@ -1296,9 +1997,18 @@ def make_order(request):
         else:
             order_next_number = 1
 
+    is_paid = False
+    paid_with_cash = False
+    if payment != 'not_paid':
+        if payment == 'paid_with_cash':
+            paid_with_cash = True
+            is_paid = True
+        else:
+            is_paid = True
+
     try:
         order = Order(open_time=datetime.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
-                      paid_with_cash=paid_with_cash)
+                      paid_with_cash=paid_with_cash, status_1c=0)
     except:
         data = {
             'success': False,
@@ -1309,7 +2019,12 @@ def make_order(request):
 
     # cooks = Staff.objects.filter(user__last_login__contains=datetime.date.today(), staff_category__title__iexact='Cook')
     try:
-        cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook')
+        if result['success']:
+            cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                         service_point=result['service_point'])
+            cooks = sample(list(cooks), len(cooks))
+        else:
+            return JsonResponse(result)
     except:
         data = {
             'success': False,
@@ -1344,12 +2059,14 @@ def make_order(request):
         if cook_choose == 'auto':
             min_index = 0
             min_count = 100
+            file.write("Заказ №{}\n".format(order.daily_number))
             for cook_index in range(0, len(cooks)):
                 try:
                     cooks_order_content = OrderContent.objects.filter(order__prepared_by=cooks[cook_index],
                                                                       order__open_time__contains=datetime.date.today(),
                                                                       order__is_canceled=False,
                                                                       order__close_time__isnull=True,
+                                                                      order__is_ready=False,
                                                                       menu_item__can_be_prepared_by__title__iexact='Cook')
                 except:
                     data = {
@@ -1358,10 +2075,13 @@ def make_order(request):
                     }
                     return JsonResponse(data)
 
+                file.write("{}: {}\n".format(cooks[cook_index], len(cooks_order_content)))
+
                 if min_count > len(cooks_order_content):
                     min_count = len(cooks_order_content)
                     min_index = cook_index
 
+            file.write("Выбранный повар: {}\n".format(cooks[min_index]))
             order.prepared_by = cooks[min_index]
         else:
             try:
@@ -1390,9 +2110,10 @@ def make_order(request):
     shashlyk_presence = False
     supplement_presence = False
     for item in content:
-        for i in range(0, int(item['quantity'])):
+        if item['quantity'] - int(item['quantity']) != 0:
             try:
-                new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'])
+                new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'],
+                                                 quantity=item['quantity'])
             except:
                 order.delete()
                 data = {
@@ -1409,7 +2130,29 @@ def make_order(request):
                 shashlyk_presence = True
             if menu_item.can_be_prepared_by.title == 'Operator':
                 supplement_presence = True
-            total += menu_item.price
+            total += menu_item.price * item['quantity']
+
+        else:
+            for i in range(0, int(item['quantity'])):
+                try:
+                    new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'])
+                except:
+                    order.delete()
+                    data = {
+                        'success': False,
+                        'message': 'Something wrong happened while creating new order!'
+                    }
+                    client.captureException()
+                    return JsonResponse(data)
+                new_order_content.save()
+                menu_item = Menu.objects.get(id=item['id'])
+                if menu_item.can_be_prepared_by.title == 'Cook':
+                    content_presence = True
+                if menu_item.can_be_prepared_by.title == 'Shashlychnik':
+                    shashlyk_presence = True
+                if menu_item.can_be_prepared_by.title == 'Operator':
+                    supplement_presence = True
+                total += menu_item.price
 
         content_to_send.append(
             {
@@ -1419,37 +2162,38 @@ def make_order(request):
         )
 
     order.total = total
+    order.with_shawarma = content_presence
+    order.with_shashlyk = shashlyk_presence
     order.content_completed = not content_presence
     order.shashlyk_completed = not shashlyk_presence
     order.supplement_completed = not supplement_presence
     order.save()
+
     if order.is_paid:
         print("Sending request to " + order.servery.ip_address)
         print(order)
-        try:
-            requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
-        except ConnectionError:
-            order.delete()
-            data = {
-                'success': False,
-                'message': 'Connection error occured while sending to 1C!'
-            }
-            client.captureException()
-            return JsonResponse(data)
-        except:
-            order.delete()
-            data = {
-                'success': False,
-                'message': 'Something wrong happened while sending to 1C!'
-            }
-            client.captureException()
-            return JsonResponse(data)
+        if FORCE_TO_LISTNER:
+            data = send_order_to_listner(order)
+        else:
+            data = send_order_to_1c(order, False)
+            if not data["success"]:
+                print("Deleting order.")
+                order.delete()
 
         print("Request sent.")
-    data["success"] = True
-    data["total"] = order.total
-    data["content"] = json.dumps(content_to_send)
-    data["message"] = ''
+        if data["success"]:
+            data["total"] = order.total
+            data["content"] = json.dumps(content_to_send)
+            data["message"] = ''
+            data["daily_number"] = order.daily_number
+            data["guid"] = order.guid_1c
+    else:
+        data["success"] = True
+        data["total"] = order.total
+        data["content"] = json.dumps(content_to_send)
+        data["message"] = ''
+        data["daily_number"] = order.daily_number
+
     return JsonResponse(data)
 
 
@@ -1479,6 +2223,73 @@ def close_order(request):
 
 @login_required()
 @permission_required('shaw_queue.change_order')
+def close_all(request):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    shawarma_filter = True
+    if request.COOKIES.get('with_shawarma', 'True') == 'False':
+        shawarma_filter = False
+
+    shashlyk_filter = True
+    if request.COOKIES.get('with_shashlyk', 'True') == 'False':
+        shashlyk_filter = False
+
+    paid_filter = True
+    if request.COOKIES.get('paid', 'True') == 'False':
+        paid_filter = False
+
+    not_paid_filter = True
+    if request.COOKIES.get('not_paid', 'True') == 'False':
+        not_paid_filter = False
+
+    result = define_service_point(device_ip)
+    if result['success']:
+        try:
+            ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=True,
+                                                is_ready=True, servery__service_point=result['service_point'])
+
+            serveries = Servery.objects.filter(service_point=result['service_point'])
+            serveries_dict = {}
+            for servery in serveries:
+                serveries_dict['{}'.format(servery.id)] = True
+                if request.COOKIES.get('servery_{}'.format(servery.id), 'True') == 'False':
+                    serveries_dict['{}'.format(servery.id)] = False
+
+            ready_orders = filter_orders(ready_orders, shawarma_filter, shashlyk_filter, paid_filter, not_paid_filter,
+                                         serveries_dict)
+
+        except EmptyResultSet:
+            data = {
+                'success': False,
+                'message': 'Заказов не найдено!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске заказов!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        for order in ready_orders:
+            order.close_time = datetime.datetime.now()
+            order.is_ready = True
+            order.save()
+    else:
+        return JsonResponse(result)
+
+    data = {
+        'success': True
+    }
+
+    return JsonResponse(data)
+
+
+@login_required()
+@permission_required('shaw_queue.change_order')
 def cancel_order(request):
     order_id = request.POST.get('id', None)
     if order_id:
@@ -1491,21 +2302,40 @@ def cancel_order(request):
             }
             client.captureException()
             return JsonResponse(data)
-
-        try:
-            order.canceled_by = Staff.objects.get(user=request.user)
-        except:
+        if order.is_paid:
+            result = send_order_return_to_1c(order)
+            if result['success']:
+                try:
+                    order.canceled_by = Staff.objects.get(user=request.user)
+                except:
+                    data = {
+                        'success': False,
+                        'message': 'Что-то пошло не так при поиске персонала!'
+                    }
+                    client.captureException()
+                    return JsonResponse(data)
+                order.is_canceled = True
+                order.save()
+                data = {
+                    'success': True
+                }
+            else:
+                return JsonResponse(result)
+        else:
+            try:
+                order.canceled_by = Staff.objects.get(user=request.user)
+            except:
+                data = {
+                    'success': False,
+                    'message': 'Что-то пошло не так при поиске персонала!'
+                }
+                client.captureException()
+                return JsonResponse(data)
+            order.is_canceled = True
+            order.save()
             data = {
-                'success': False,
-                'message': 'Что-то пошло не так при поиске персонала!'
+                'success': True
             }
-            client.captureException()
-            return JsonResponse(data)
-        order.is_canceled = True
-        order.save()
-        data = {
-            'success': True
-        }
     else:
         data = {
             'success': False
@@ -1755,8 +2585,11 @@ def finish_all_content(request):
                                                             menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
         cook_products = OrderContent.objects.filter(order=order,
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
-        products = OrderContent.objects.filter(order=order,
-                                               menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
+        if staff.staff_category.title == 'Operator':
+            products = shashlychnik_products
+        else:
+            products = OrderContent.objects.filter(order=order,
+                                                   menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
         for product in products:
             product.is_in_grill = False
             product.finish_timestamp = datetime.datetime.now()
@@ -1806,8 +2639,11 @@ def grill_all_content(request):
                                                             menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
         cook_products = OrderContent.objects.filter(order=order,
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
-        products = OrderContent.objects.filter(order=order,
-                                               menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
+        if staff.staff_category.title == 'Operator':
+            products = shashlychnik_products
+        else:
+            products = OrderContent.objects.filter(order=order,
+                                                   menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
         for product in products:
             product.start_timestamp = datetime.datetime.now()
             product.grill_timestamp = datetime.datetime.now()
@@ -1910,6 +2746,27 @@ def pay_order(request):
     ids = json.loads(request.POST.get('ids', None))
     values = json.loads(request.POST.get('values', None))
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
+    servery_id = request.POST['servery_id']
+
+    if servery_id != 'auto':
+        try:
+            servery = Servery.objects.get(id=servery_id)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Multiple serveries returned!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Something wrong happened while getting servery!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+    total = 0
     if order_id:
         for index, item_id in enumerate(ids):
             try:
@@ -1920,7 +2777,8 @@ def pay_order(request):
                     'message': 'Что-то пошло не так при поиске продуктов!'
                 }
                 return JsonResponse(data)
-            item.quantity = float(values[index])
+            item.quantity = round(float(values[index]), 3)
+            total += item.menu_item.price * item.quantity
             item.save()
 
         try:
@@ -1931,14 +2789,21 @@ def pay_order(request):
                 'message': 'Что-то пошло не так при поиске заказа!'
             }
             return JsonResponse(data)
+        cash_to_throw_out = 0
+        rounding_discount = 0
+        if order.with_shashlyk:
+            rounding_discount = (round(total, 2) - order.discount) % 5
+        order.discount += rounding_discount
         order.is_paid = True
         order.paid_with_cash = paid_with_cash
+        if servery_id != 'auto':
+            order.servery = servery
 
         total = 0
         content_presence = False
         supplement_presence = False
         try:
-            content = OrderContent.objects.filter(order=order)
+            content = OrderContent.objects.filter(order=order, is_canceled=False)
         except:
             data = {
                 'success': False,
@@ -1949,20 +2814,35 @@ def pay_order(request):
             menu_item = item.menu_item
             if menu_item.can_be_prepared_by.title == 'Cook':
                 content_presence = True
+            if menu_item.can_be_prepared_by.title == 'Shashlychnik':
+                if cash_to_throw_out > 0:
+                    weight_to_throw_out = cash_to_throw_out / menu_item.price
+                    if item.quantity - weight_to_throw_out > 0:
+                        item.quantity -= weight_to_throw_out
+                        item.save()
+                        cash_to_throw_out -= weight_to_throw_out * menu_item.price
+
             if menu_item.can_be_prepared_by.title == 'Operator':
                 supplement_presence = True
             total += menu_item.price * item.quantity
-        order.total = total
+        order.total = round(total, 2)
         # order.supplement_completed = not supplement_presence
         # order.content_completed = not content_presence
         order.save()
-        print("Sending request to " + order.servery.ip_address)
         # print order
-        requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
+
+        print("Sending request to " + order.servery.ip_address)
+        if FORCE_TO_LISTNER:
+            data = send_order_to_listner(order)
+        else:
+            data = send_order_to_1c(order, False)
+            if not data["success"]:
+                print("Payment canceled.")
+                order.is_paid = False
+                order.save()
+        data['total'] = order.total - order.discount
         print("Request sent.")
-        data = {
-            'success': True
-        }
+
     else:
         data = {
             'success': False
@@ -1975,6 +2855,7 @@ def pay_order(request):
 @permission_required('shaw_queue.change_order')
 def cancel_item(request):
     product_id = request.POST.get('id', None)
+    staff = Staff.objects.get(user=request.user)
     if product_id:
         try:
             item = OrderContent.objects.get(id=product_id)
@@ -1984,12 +2865,20 @@ def cancel_item(request):
                 'message': 'Что-то пошло не так при поиске продуктов!'
             }
             return JsonResponse(data)
-        item.canceled_by = request.user
+        item.canceled_by = staff
         item.is_canceled = True
         item.save()
         data = {
             'success': True
         }
+        order = item.order
+        curr_order_content = OrderContent.objects.filter(order=order, is_canceled=False)
+        total = 0
+        for order_item in curr_order_content:
+            total += order_item.menu_item.price * order_item.quantity
+
+        order.total = total
+        order.save()
     else:
         data = {
             'success': False
@@ -2058,6 +2947,7 @@ def statistic_page_ajax(request):
         avg_preparation_time = Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv,
                                                     close_time__isnull=False, is_canceled=False).values(
             'open_time', 'close_time').aggregate(preparation_time=Avg(F('close_time') - F('open_time')))
+        aux = list(avg_preparation_time)
     except:
         data = {
             'success': False,
@@ -2504,7 +3394,8 @@ def prepare_json_check(order):
 
 def get_1c_menu(request):
     try:
-        result = requests.get('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + GETLIST_URL, auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS))
+        result = requests.get('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + GETLIST_URL,
+                              auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS))
     except ConnectionError:
         data = {
             'success': False,
@@ -2519,7 +3410,6 @@ def get_1c_menu(request):
         }
         print("Unexpected error:", sys.exc_info()[0])
         client.captureException()
-        raise
         return JsonResponse(data)
 
     json_data = result.json()
@@ -2534,52 +3424,341 @@ def get_1c_menu(request):
         else:
 
             menu_item = Menu(guid_1c=item["GUID"], price=item["Price"], title=item["Name"],
-                             category=undistributed_category,avg_preparation_time=datetime.timedelta(minutes=1), can_be_prepared_by=can_be_prepared)
+                             category=undistributed_category, avg_preparation_time=datetime.timedelta(minutes=1),
+                             can_be_prepared_by=can_be_prepared)
             menu_item.save()
 
     return HttpResponse()
 
 
-def send_order_to_1c(order):
-    order = Order.servery.t
+def send_order_to_1c(order, is_return):
+    if order.prepared_by is not None:
+        cook = order.prepared_by.user.first_name
+    else:
+        cook = '  '
     order_dict = {
-        'servery_number': order.servery.title,
+        'servery_number': order.servery.guid_1c,
         'cash': order.paid_with_cash,
-        'cashless': '',
-        'internet_order': '',
-        'queue_number': order.daily_number,
+        'cashless': not order.paid_with_cash,
+        'internet_order': False,
+        'queue_number': order.daily_number % 100,
+        'cook': cook,
+        'return_of_goods': is_return,
+        'total': order.total,
+        'DC': '111',
+        'Discount': order.discount,
         'Goods': []
     }
-    curr_order_content = OrderContent.objects.filter(order=order)
+    curr_order_content = OrderContent.objects.filter(order=order).values('menu_item__title',
+                                                                         'menu_item__guid_1c').annotate(
+        count=Sum('quantity'))
     for item in curr_order_content:
-        order_dict['items'].append(
+        order_dict['Goods'].append(
             {
-                'Name': item.menu_item.title,
-                'Count':
-                    curr_order_content.filter(menu_item__guid_1c=item.menu_item.guid_1c).aggregate(count=Count('id'))[
-                        'count'],
-                'GUID': item.menu_item.guid_1c
+                'Name': item['menu_item__title'],
+                'Count': round(item['count'], 3),
+                'GUID': item['menu_item__guid_1c']
             }
         )
-
-
     try:
-        result = requests.post('http://' + SERVER_1C_URL + ':' + SERVER_1C_PORT, auth=('user', 'pass'),
-                               json=json.dumps(order_dict, ensure_ascii=False))
+        result = requests.post('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + ORDER_URL,
+                               auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
+                               json=order_dict)
     except ConnectionError:
         data = {
             'success': False,
-            'message': 'Connection error occured while sending to 1C!'
+            'message': 'Возникла проблема соединения с 1C при отправке информации о заказе! Заказ удалён! Вы можете повторить попытку!'
         }
         client.captureException()
-        return JsonResponse(data)
+        return data
     except:
         data = {
             'success': False,
-            'message': 'Something wrong happened while sending to 1C!'
+            'message': 'Возникло необработанное исключение при отправке информации о заказе в 1C! Заказ удалён! Вы можете повторить попытку!'
         }
         client.captureException()
+        return data
+
+    if result.status_code == 200:
+        order.sent_to_1c = True
+        try:
+            order.guid_1c = result.json()['GUID']
+        except KeyError:
+            data = {
+                'success': False,
+                'message': 'Нет GUID в ответе 1С!'
+            }
+            client.captureException()
+            return data
+
+        order.save()
+
+        return {"success": True}
+    else:
+        order.status_1c = result.status_code
+        if result.status_code == 500:
+            return {
+                'success': False,
+                'message': '500: Ошибка в обработке 1С! Заказ удалён! Вы можете повторить попытку!'
+            }
+        else:
+            if result.status_code == 400:
+                return {
+                    'success': False,
+                    'message': '400: Ошибка в запросе, отправленном в 1С! Заказ удалён! Вы можете повторить попытку!'
+                }
+            else:
+                if result.status_code == 399:
+                    return {
+                        'success': False,
+                        'message': '399: Сумма чека не совпадает! Заказ удалён! Вы можете повторить попытку!'
+                    }
+                else:
+                    if result.status_code == 398:
+                        return {
+                            'success': False,
+                            'message': '398: Не удалось записать чек! Заказ удалён! Вы можете повторить попытку!'
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'message': '{} в ответе 1С! Заказ удалён! Вы можете повторить попытку!'.format(
+                                result.status_code)
+                        }
+
+
+def send_order_return_to_1c(order):
+    order_dict = {
+        'Order': order.guid_1c
+    }
+    try:
+        result = requests.post('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + RETURN_URL,
+                               auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
+                               json=order_dict)
+    except ConnectionError:
+        data = {
+            'success': False,
+            'message': 'Возникла проблема соединения с 1C при отправке информации о возврате заказа!'
+        }
+        client.captureException()
+        return data
+    except:
+        data = {
+            'success': False,
+            'message': 'Возникло необработанное исключение при отправке информации о возврате заказа в 1C!'
+        }
+        client.captureException()
+        return data
+
+    if result.status_code == 200:
+        order.sent_to_1c = True
+        order.save()
+
+        return {"success": True}
+    else:
+        if result.status_code == 500:
+            return {
+                'success': False,
+                'message': '500: Ошибка в обработке 1С!'
+            }
+        else:
+            if result.status_code == 400:
+                return {
+                    'success': False,
+                    'message': '400: Ошибка в запросе, отправленном в 1С!'
+                }
+            else:
+                if result.status_code == 399:
+                    return {
+                        'success': False,
+                        'message': '399: Сумма в чека не совпала!'
+                    }
+                else:
+                    if result.status_code == 398:
+                        return {
+                            'success': False,
+                            'message': '398: Не удалось записать чек!'
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'message': '{} в ответе 1С!'.format(result.status_code)
+                        }
+
+
+@csrf_exempt
+def recive_1c_order_status(request):
+    result = json.loads(request.body.decode('utf-8'))
+    order_guid = result['GUID']
+    status = result['Order_status']
+    if order_guid is not None and status is not None:
+        try:
+            order = Order.objects.get(guid_1c=order_guid)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров точек возвращено!'
+            }
+            client.captureException()
+            return HttpResponse()
+        except:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров точек возвращено!'
+            }
+            client.captureException()
+            return HttpResponse()
+
+        # All Good
+        if status == 200:
+            order.paid_in_1c = True
+            order.status_1c = 200
+            order.save()
+        else:
+            # Payment Failed
+            if status == 397:
+                order.status_1c = 397
+                order.save()
+            else:
+                # Print Failed
+                if status == 396:
+                    order.status_1c = 396
+                    order.save()
+    return HttpResponse()
+
+
+def status_refresher(request):
+    order_guid = request.POST.get('order_guid', None)
+    if order_guid is not None:
+        try:
+            order = Order.objects.get(guid_1c=order_guid)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Множество экземпляров заказов возвращено!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except:
+            data = {
+                'success': False,
+                'message': 'Необработанное исключение при поиске заказа!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        if order.status_1c == 0:
+            data = {
+                'success': True,
+                'message': 'Ожидается ответ от 1С!',
+                'daily_number': order.daily_number,
+                'status': order.status_1c,
+                'guid': order.guid_1c
+            }
+            return JsonResponse(data)
+        else:
+            if order.status_1c == 200:
+                data = {
+                    'success': True,
+                    'message': 'Оплата прошла успешно!',
+                    'daily_number': order.daily_number,
+                    'status': order.status_1c,
+                    'guid': order.guid_1c
+                }
+                return JsonResponse(data)
+            else:
+                if order.status_1c == 397:
+                    data = {
+                        'success': True,
+                        'message': 'Произошла ошибка при оплате! Заказ удалён! Вы можете повторить попытку!',
+                        'daily_number': order.daily_number,
+                        'status': order.status_1c,
+                        'guid': order.guid_1c
+                    }
+                    order.delete()
+                    return JsonResponse(data)
+                else:
+                    if order.status_1c == 396:
+                        data = {
+                            'success': True,
+                            'message': 'Произошла ошибка при печати чека! Заказ удалён! Вы можете повторить попытку!',
+                            'daily_number': order.daily_number,
+                            'status': order.status_1c,
+                            'guid': order.guid_1c
+                        }
+                        order.delete()
+                        return JsonResponse(data)
+                    else:
+                        data = {
+                            'success': True,
+                            'message': '1С вернула статус {}! Заказ удалён! Вы можете повторить попытку!'.format(
+                                order.status_1c),
+                            'daily_number': order.daily_number,
+                            'status': order.status_1c,
+                            'guid': order.guid_1c
+                        }
+                        order.delete()
+                        return JsonResponse(data)
+    else:
+        data = {
+            'success': False,
+            'message': 'В запросе отсутствует идентификатор заказа!'
+        }
         return JsonResponse(data)
+
+
+def send_order_to_listner(order):
+    try:
+        requests.post('http://' + order.servery.ip_address + ':' + LISTNER_PORT, json=prepare_json_check(order))
+    except ConnectionError:
+        data = {
+            'success': False,
+            'message': 'Connection error occured while sending to listner!'
+        }
+        client.captureException()
+        return data
+    except:
+        data = {
+            'success': False,
+            'message': 'Something wrong happened while sending to listner!'
+        }
+        client.captureException()
+        return data
+
+    return {"success": True}
+
+
+def order_1c_payment(request):
+    order_guid = request.POST.get('GUID', None)
+    payment_result = request.POST.get('payment_result', None)
+    order = Order.objects.get(guid_1c=order_guid)
+    order.paid_in_1c = payment_result
+    order.save()
+    return HttpResponse()
+
+
+def define_service_point(ip):
+    ip_blocks = ip.split('.')
+    subnet_number = ip_blocks[2]
+    try:
+        service_point = ServicePoint.objects.get(subnetwork=subnet_number)
+    except MultipleObjectsReturned:
+        data = {
+            'success': False,
+            'message': 'Множество экземпляров точек возвращено!'
+        }
+        logger.error('Множество точек возвращено для ip {}!'.format(ip_blocks))
+        client.captureException()
+        return data
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске точки!'
+        }
+        logger.error('Что-то пошло не так при поиске точки для ip {}!'.format(ip_blocks))
+        client.captureException()
+        return data
+    return {'success': True, 'service_point': service_point}
 
 
 def send_email(subject, message):
