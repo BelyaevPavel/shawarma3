@@ -12,8 +12,9 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F
+from django.core.mail import send_mail
 from hashlib import md5
-from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS
+from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR
 from raven.contrib.django.raven_compat.models import client
 import requests
 import datetime
@@ -39,6 +40,7 @@ def redirection(request):
 
 def cook_pause(request):
     user = request.user
+
     try:
         staff = Staff.objects.get(user=user)
     except MultipleObjectsReturned:
@@ -61,6 +63,9 @@ def cook_pause(request):
         pause.save()
         staff.available = False
         staff.save()
+
+        mail_subject = str(staff) + ' ушел на перерыв'
+        mail_text = 'Время события: ' + str(datetime.datetime.now())[:-7]
     else:
         try:
             last_pause = PauseTracker.objects.filter(staff=staff,
@@ -79,6 +84,11 @@ def cook_pause(request):
 
         staff.available = True
         staff.save()
+
+        mail_subject = str(staff) + ' начал работать'
+        mail_text = 'Время события: ' + str(datetime.datetime.now())[:-7]
+
+    send_email(mail_subject, mail_text)
 
     data = {
         'success': True
@@ -2570,3 +2580,10 @@ def send_order_to_1c(order):
         }
         client.captureException()
         return JsonResponse(data)
+
+
+def send_email(subject, message):
+    try:
+        send_mail(subject, message, SMTP_FROM_ADDR, [SMTP_TO_ADDR], fail_silently=False, auth_user=SMTP_LOGIN, auth_password=SMTP_PASSWORD)
+    except:
+        print('failed to send mail')
