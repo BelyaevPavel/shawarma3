@@ -17,6 +17,7 @@ from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F, Sum, Q
 from django.utils import timezone
 from django.core.mail import send_mail
+from threading import Thread
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, \
@@ -79,7 +80,6 @@ def cook_pause(request):
         staff.save()
 
         mail_subject = str(staff) + ' ушел на перерыв'
-        mail_text = 'Время события: ' + str(datetime.datetime.now())[:-7]
     else:
         try:
             last_pause = PauseTracker.objects.filter(staff=staff,
@@ -105,9 +105,9 @@ def cook_pause(request):
             return JsonResponse(result)
 
         mail_subject = str(staff) + ' начал работать'
-        mail_text = 'Время события: ' + str(datetime.datetime.now())[:-7]
 
-    send_email(mail_subject, mail_text)
+    Thread(target=send_email, args=(mail_subject, staff, device_ip)).start()
+    # send_email(mail_subject, staff, device_ip)
 
     data = {
         'success': True
@@ -3761,7 +3761,43 @@ def define_service_point(ip):
     return {'success': True, 'service_point': service_point}
 
 
-def send_email(subject, message):
+def get_queue_info(staff, device_ip):
+    result = define_service_point(device_ip)
+    if result['success']:
+        service_point = result['service_point']
+
+    text = 'Время события: ' + str(datetime.datetime.now())[:-7] + '\r\n' + \
+           'Место события: ' + str(service_point) + '\r\n\r\n'
+
+    cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                 service_point=service_point)
+    if len(cooks) == 0:
+        text += 'НЕТ АКТИВНЫХ ПОВАРОВ!'
+    else:
+        text += '|\t\t\t Повар \t\t\t|\t Заказов \t|\t Шаурмы \t|\r\n'
+
+    for cook in cooks:
+        cooks_order = Order.objects.filter(prepared_by=cook,
+                                           open_time__contains=datetime.date.today(),
+                                           is_canceled=False,
+                                           close_time__isnull=True,
+                                           is_ready=False).count()
+
+        cooks_order_content = OrderContent.objects.filter(order__prepared_by=cook,
+                                                      order__open_time__contains=datetime.date.today(),
+                                                      order__is_canceled=False,
+                                                      order__close_time__isnull=True,
+                                                      order__is_ready=False,
+                                                      menu_item__can_be_prepared_by__title__iexact='Cook').count()
+
+        text += '\t' + str(cook) + '\t\t\t\t\t' + str(cooks_order) + '\t\t\t\t\t' + str(cooks_order_content) +'\r\n'
+
+    return text
+
+
+def send_email(subject, staff, device_ip):
+    message = get_queue_info(staff, device_ip)
+
     try:
         send_mail(subject, message, SMTP_FROM_ADDR, [SMTP_TO_ADDR], fail_silently=False, auth_user=SMTP_LOGIN, auth_password=SMTP_PASSWORD)
     except:
