@@ -8,6 +8,7 @@ urlpatterns = [
     url(r'^menu', views.menu, name='menu'),
     url(r'^cook_pause', views.cook_pause, name="cook_pause"),
     url(r'^aux_control_page', views.aux_control_page, name="aux_control_page"),
+    url(r'^ats_listner', views.ats_listner, name="ats_listner"),
     url(r'^order/1c_payment_result/$', views.order_1c_payment, name="order_1c_payment"),
     url(r'^order/print/(?P<order_id>[0-9]+)/$', views.print_order, name="order_print"),
     url(r'^order/voice/(?P<order_id>[0-9]+)/$', views.voice_order, name="voice_order"),

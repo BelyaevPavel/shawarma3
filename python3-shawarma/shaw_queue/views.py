@@ -45,6 +45,11 @@ def redirection(request):
     if staff_category.title == 'Operator':
         return HttpResponseRedirect('current_queue')
 
+def ats_listner(request):    
+    #content_id = request.POST.get('id', '')
+    print('ATS sent .')
+    return HttpResponse('Recived.')
+
 
 def cook_pause(request):
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
