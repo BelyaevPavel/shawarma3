@@ -1751,6 +1751,12 @@ def long_poll_handler(request):
     return JsonResponse(data)
 
 
+def delivery_interface(request):
+    template = loader.get_template('shaw_queue/delivery_main.html')
+    context = {}
+    return HttpResponse(template.render(context, request))
+
+
 def print_order(request, order_id):
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
