@@ -6,7 +6,7 @@
     <script type="text/javascript" src="{% static 'js/jquery.datetimepicker.full.js' %}"></script>
 {% endblock %}
 {% block content %}
-    <input hidden id="urls" data-update-statistics-url="{% url 'update_opinion_statistics' %}">
+    <input hidden id="urls" data-update-statistics-url="{% url 'update_pause_statistics' %}">
     <div class="stat-controls">
         <label for="datetimepicker1">От:</label>
         <input type="text" id="datetimepicker1"/>
@@ -43,7 +43,7 @@
                         {{ pause.start_timestamp }}
                     </div>
                     <div class="stat-opinion-note">
-                        {{ pause.start_timestamp }}
+                        {{ pause.end_timestamp }}
                     </div>
                     <div class="stat-opinion-mark">
                         {{ pause.duration }}
