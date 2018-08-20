@@ -3160,14 +3160,21 @@ def pause_statistic_page(request):
 @login_required()
 def pause_statistic_page_ajax(request):
     start_date = request.POST.get('start_date', None)
-    start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+    if start_date is None:
+        start_date_conv = datetime.datetime.today()
+    else:
+        start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+
     end_date = request.POST.get('end_date', None)
-    end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+    if end_date is None:
+        end_date_conv = datetime.datetime.today()
+    else:
+        end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
     template = loader.get_template('shaw_queue/pause_statistics_ajax.html')
     try:
         avg_duration_time = PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
                                                         end_timestamp__lte=end_date_conv).values(
-            'start_timestamp', 'end_timestamp').aggregate(duration=Avg(F('start_timestamp') - F('end_timestamp')))
+            'start_timestamp', 'end_timestamp').aggregate(duration=Avg(F('end_timestamp') - F('start_timestamp')))
     except:
         data = {
             'success': False,
@@ -3178,7 +3185,7 @@ def pause_statistic_page_ajax(request):
     try:
         min_duration_time = PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
                                                         end_timestamp__lte=end_date_conv).values(
-            'start_timestamp', 'end_timestamp').aggregate(duration=Min(F('start_timestamp') - F('start_timestamp')))
+            'start_timestamp', 'end_timestamp').aggregate(duration=Min(F('end_timestamp') - F('start_timestamp')))
     except:
         data = {
             'success': False,
@@ -3189,7 +3196,7 @@ def pause_statistic_page_ajax(request):
     try:
         max_duration_time = PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
                                                         end_timestamp__lte=end_date_conv).values(
-            'start_timestamp', 'end_timestamp').aggregate(duration=Max(F('start_timestamp') - F('start_timestamp')))
+            'start_timestamp', 'end_timestamp').aggregate(duration=Max(F('end_timestamp') - F('start_timestamp')))
     except:
         data = {
             'success': False,
@@ -3210,8 +3217,8 @@ def pause_statistic_page_ajax(request):
                            'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
                            'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
                        }
-                       for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
-                                                                end_timestamp__contains=datetime.date.today()).order_by(
+                       for pause in PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+                                                                end_timestamp__lte=end_date_conv).order_by(
                     'start_timestamp')]
         }
     except:
