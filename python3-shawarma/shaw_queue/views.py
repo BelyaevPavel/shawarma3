@@ -18,7 +18,8 @@ from django.db.models import Max, Min, Count, Avg, F, Sum, Q
 from django.utils import timezone
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
-    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL
+    GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, \
+    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL
 from raven.contrib.django.raven_compat.models import client
 from random import sample
 from itertools import chain
@@ -326,9 +327,11 @@ def buyer_queue(request):
         'open_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in open_orders],
         'ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in
                          ready_orders],
-        'display_open_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
+        'display_open_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for
+                                order in
                                 open_orders],
-        'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
+        'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for
+                                 order in
                                  ready_orders],
         'carousel_images': carousel_images
     }
@@ -374,9 +377,11 @@ def buyer_queue_ajax(request):
         'open_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in open_orders],
         'ready_orders': [{'servery': order.servery, 'daily_number': order.daily_number} for order in
                          ready_orders],
-        'display_open_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
+        'display_open_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for
+                                order in
                                 open_orders],
-        'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for order in
+        'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for
+                                 order in
                                  ready_orders]
     }
     template = loader.get_template('shaw_queue/buyer_queue_ajax.html')
@@ -3144,13 +3149,13 @@ def pause_statistic_page(request):
 @login_required()
 def pause_statistic_page_ajax(request):
     start_date = request.POST.get('start_date', None)
-    if start_date is None:
+    if start_date is None or start_date == '':
         start_date_conv = datetime.datetime.today()
     else:
         start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
 
     end_date = request.POST.get('end_date', None)
-    if end_date is None:
+    if end_date is None or end_date == '':
         end_date_conv = datetime.datetime.today()
     else:
         end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
@@ -3189,29 +3194,54 @@ def pause_statistic_page_ajax(request):
         return JsonResponse(data)
 
     try:
-        context = {
-            'total_pauses': len(PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
-                                                            end_timestamp__lte=end_date_conv)),
-            'avg_duration': str(avg_duration_time['duration']).split('.', 2)[0],
-            'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
-            'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
-            'pauses': [{
-                           'staff': pause.staff,
-                           'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-                           'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-                           'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-                       }
-                       for pause in PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
-                                                                end_timestamp__lte=end_date_conv).order_by(
-                    'start_timestamp')]
-        }
+        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cook')
     except:
         data = {
             'success': False,
-            'message': 'Что-то пошло не так при построении шаблона!'
+            'message': 'Что-то пошло не так при поиске персонала!'
         }
-        client.captureException()
         return JsonResponse(data)
+
+    # try:
+    context = {
+        'total_pauses': len(PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+                                                        end_timestamp__lte=end_date_conv)),
+        'avg_duration': str(avg_duration_time['duration']).split('.', 2)[0],
+        'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
+        'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
+        # 'pauses': [{
+        #                'staff': pause.staff,
+        #                'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+        #                'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+        #                'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+        #            }
+        #            for pause in PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+        #                                                     end_timestamp__lte=end_date_conv).order_by(
+        #         'start_timestamp')],
+        'pause_info': [{
+                           'total_duration': PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+                                                                         end_timestamp__lte=end_date_conv,
+                                                                         staff=staff).aggregate(
+                               duration=Sum(F('end_timestamp') - F('start_timestamp'))),
+                           'staff': staff,
+                           'pauses': [{
+                                          'staff': pause.staff,
+                                          'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+                                          'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+                                          'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+                                      }
+                                      for pause in PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+                                                                               end_timestamp__lte=end_date_conv,
+                                                                               staff=staff).order_by('start_timestamp')]
+                       } for staff in engaged_staff]
+    }
+    # except:
+    #     data = {
+    #         'success': False,
+    #         'message': 'Что-то пошло не так при построении шаблона!'
+    #     }
+    #     client.captureException()
+    #     return JsonResponse(data)
     data = {
         'html': template.render(context, request)
     }
