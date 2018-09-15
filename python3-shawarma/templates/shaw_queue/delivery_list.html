@@ -1,0 +1,11 @@
+{% extends "shaw_queue/base.html" %}
+
+{% block content %}
+    <h2>Delivery</h2>
+    <ul>
+        {% for delivery in object_list %}
+            <li>{{ delivery.car_driver }} <a href="{% url 'delivery-update' delivery.pk %}">Update</a> <a href="{% url 'delivery-delete' delivery.pk %}">Delete</a> </li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'delivery-add' %}">Add Delivery</a>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "shaw_queue/base.html" %}
+
+{% block content %}
+    <h2>Discount Card</h2>
+    <ul>
+        {% for card in object_list %}
+            <li>{{ card.number }} <a href="{% url 'discount-card-update' card.pk %}">Update</a> <a href="{% url 'discount-card-delete' card.pk %}">Delete</a> </li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'discount-card-add' %}">Add Discount Card</a>
+{% endblock %}

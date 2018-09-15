@@ -1,13 +1,12 @@
-<div class="delivery-block-container shadowed" draggable="true">
-    <div class="delivery-block-header">Order №1 15:30 - 16:15</div>
-    <div class="delivery-block-content">Content</div>
-    <div class="delivery-block-content">Content</div>
-    <div class="delivery-block-content">Content</div>
+<div class="delivery-block-container shadowed" draggable="true" onclick="CreateDeliveryOrder({{ delivery_order.pk }})">
+    <div class="delivery-block-header">Order №{{ delivery_order.order.daily_number }} {{ delivery_order.obtain_timepoint }} - {{ delivery_order.delivered_timepoint }}</div>
+    <div class="delivery-block-content">Delivery: {{ delivery_order.delivery }}</div>
+    <div class="delivery-block-content">Driver: {{ delivery_order.delivery.car_driver }}</div>
     <div class="delivery-block-actions">
-        <button class="small-btn success" disabled>
+        <button class="small-btn success" {% if not delivery_order.order.content_completed %} disabled {% endif %}>
             &#10003;
         </button>
-        <button class="small-btn warning">
+        <button class="small-btn warning" {% if not delivery_order.order %} disabled {% endif %}>
             Готовить
         </button>
         <button class="small-btn danger" onclick="CancelItem({{ order_item.id }},{{ order_info.id }})">

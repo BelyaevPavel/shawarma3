@@ -1,0 +1,8 @@
+<div class="opaque-container" id="delivery-workspace-controls">
+    <button class="btn info" onclick="CreateDeliveryOrder()" title="Add Order">+</button>
+    <button class="btn info" onclick="CreateIncomingCall()" title="Add Customer">+</button>
+</div>
+{% for delivery_order in delivery_orders %}
+    {% include 'shaw_queue/delivery_order_block.html' with delivery_order=delivery_order %}
+{% empty %}
+{% endfor %}
