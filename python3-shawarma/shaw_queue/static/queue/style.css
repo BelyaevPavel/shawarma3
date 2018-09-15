@@ -852,7 +852,7 @@ div.stat-opinion-order-datetime {
     min-width: 10%;
     width: 15%;
     max-width: 25%;
-    font-size: larger;
+    font-size: medium;
     float: left;
     text-align: center;
 }
@@ -862,7 +862,7 @@ div.stat-opinion-daily-number {
     min-width: 10%;
     width: 10%;
     max-width: 25%;
-    font-size: larger;
+    font-size: medium;
     float: left;
     text-align: center;
 }
@@ -872,7 +872,7 @@ div.stat-opinion-note {
     min-width: 10%;
     width: 55%;
     max-width: 55%;
-    font-size: larger;
+    font-size: medium;
     float: left;
     text-align: center;
 }
@@ -882,7 +882,7 @@ div.stat-opinion-mark {
     min-width: 10%;
     width: 10%;
     max-width: 25%;
-    font-size: larger;
+    font-size: medium;
     float: left;
     text-align: center;
 }
@@ -1237,4 +1237,28 @@ div.filter-container {
 
 .delivery-block-actions {
     text-align: center;
+}
+
+.stat-view-container {
+    width: 100%;
+    font-size: medium;
+    border: solid 1px #D8D8D8;
+}
+
+.stat-view {
+    width: 100%;
+    overflow-y: hidden;
+    font-size: inherit;
+}
+
+.pause-total-section {
+    width: 100%;
+    font-size: inherit;
+}
+
+.pause-cook-section {
+    border: solid 1px #D8D8D8;
+    background-color: #6789A4;
+    color: white;
+    font-size: inherit;
 }

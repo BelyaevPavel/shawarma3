@@ -33,23 +33,35 @@
                 Продолжительность
             </div>
         </div>
-        {% for pause in pauses %}
+        {% for staff_pauses in pause_info %}
             <div class="stat-view-container">
-                <div class="stat-view" id="pause-{{ forloop.counter }}">
-                    <div class="stat-opinion-order-datetime">
-                        {{ pause.staff }}
+                <div class="pause-cook-section">
+                    {{ staff_pauses.staff }}
+                </div>
+                {% for pause in staff_pauses.pauses %}
+                    <div class="stat-view" id="pause-{{ forloop.counter }}">
+                        <div class="stat-opinion-order-datetime">
+                            {{ pause.staff }}
+                        </div>
+                        <div class="stat-opinion-daily-number">
+                            {{ pause.start_timestamp }}
+                        </div>
+                        <div class="stat-opinion-note">
+                            {{ pause.start_timestamp }}
+                        </div>
+                        <div class="stat-opinion-mark">
+                            {{ pause.duration }}
+                        </div>
                     </div>
-                    <div class="stat-opinion-daily-number">
-                        {{ pause.start_timestamp }}
-                    </div>
-                    <div class="stat-opinion-note">
-                        {{ pause.end_timestamp }}
-                    </div>
-                    <div class="stat-opinion-mark">
-                        {{ pause.duration }}
-                    </div>
+                {% empty %}
+                    There is no pauses.
+                {% endfor %}
+                <div class="pause-total-section">
+                    Total: {{ staff_pauses.total_duration.duration }}
                 </div>
             </div>
+        {% empty %}
+            No cooks.
         {% endfor %}
         <div class="stat-actions-container">
             <button onclick="UpdateStatistics()">Обновить</button>
