@@ -1,0 +1,11 @@
+{% block content %}
+    <div class="modal-content" id="modal-delivery-order-create">
+        <form id="delivery-order-form" method="post" action="{% url 'delivery-order-ajax' %}">
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <button type="submit" class="btn success">Submit</button>
+        </form>
+    </div>
+{% endblock %}

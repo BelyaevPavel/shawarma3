@@ -1,0 +1,11 @@
+{% extends "shaw_queue/base.html" %}
+
+{% block content %}
+    <h2>Customers</h2>
+    <ul>
+        {% for customer in object_list %}
+            <li>{{ customer.name }} <a href="{% url 'customer-update' customer.pk %}">Update</a> <a href="{% url 'customer-delete' customer.pk %}">Delete</a> </li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'customer-add' %}">Add Customer</a>
+{% endblock %}

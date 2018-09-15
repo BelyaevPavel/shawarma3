@@ -4,7 +4,18 @@
     <script type="text/javascript" src="{% static 'js/delivery_handlers.js' %}"></script>
 {% endblock %}
 {% block content %}
-    <button id="show-left-column" class="btn info" onclick="ShowSidebar('delivery-left-column', 'show-left-column')" style="height: 100%; float: left; width: 0px" hidden>
+    <input id="urls" hidden data-close-delivery-order-url="" order-specifics-url=""
+           incoming-call-url="{% url 'incoming-call' %}"
+           data-cancel-delivery-order-url="" create-order-url="{% url 'delivery-order-ajax' %}"
+           menu-url="{% url 'menu' %}"
+           workspace-update="{% url 'delivery-workspace-update' %}">
+    <input id="current-order-data" customer-pk="-1">
+    <div class="modal" id="modal-menu">
+    </div>
+    <div class="modal" id="modal-delivery-order">
+    </div>
+    <button id="show-left-column" class="btn info" onclick="ShowSidebar('delivery-left-column', 'show-left-column')"
+            style="height: 100%; float: left; width: 0px" hidden>
         &raquo;
     </button>
     <div id="delivery-left-column" class="shadowed">
@@ -12,20 +23,14 @@
             Content
         </div>
         <div>
-            <button class="btn info" onclick="HideSidebar('delivery-left-column', 'show-left-column')" style="width: 100%;">
+            <button class="btn info" onclick="HideSidebar('delivery-left-column', 'show-left-column')"
+                    style="width: 100%;">
                 &laquo;
             </button>
         </div>
     </div>
     <div id="delivery-workspace">
-        {% include 'shaw_queue/delivery_order_block.html' %}
-        {% include 'shaw_queue/delivery_order_block.html' %}
-        {% include 'shaw_queue/delivery_order_block.html' %}
-        {% include 'shaw_queue/delivery_order_block.html' %}
-        {% include 'shaw_queue/delivery_order_block.html' %}
-        {% include 'shaw_queue/delivery_order_block.html' %}
-        {% include 'shaw_queue/delivery_order_block.html' %}
-        {% include 'shaw_queue/delivery_order_block.html' %}
+        {% include 'shaw_queue/delivery_workspace.html' with delivery_orders=delivery_orders %}
     </div>
     <div id="delivery-right-column">
         <div class="delivery-sidebar-content">
@@ -57,90 +62,26 @@
             </div>
             <div class="section">
                 <div class="section-title">
-                    Клиент
+                    Доставка
                 </div>
                 <div class="section-content">
-                    <label class="delivery-label" for="client-name">Клиент</label>
-                    <input class="delivery-textbox" type="text" id="client-name" value="Client Client">
-                    <label class="delivery-label" for="client-address">Адрес</label>
-                    <input class="delivery-textbox" type="text" id="client-address" value="Street 12b">
-                </div>
-            </div>
-            <div class="section">
-                <div class="section-title">
-                    Заказ
-                </div>
-                <div class="section-content">
-                    <p>
-                        <label class="delivery-label" for="client-name">Начало готовки</label>
-                        <input class="delivery-textbox" type="time" id="client-name" value="12:30">
-                    </p>
-                    <p>
-                        <label class="delivery-label" for="client-address">Доставить к</label>
-                        <input class="delivery-textbox" type="time" id="client-address" value="15:32">
-                    </p>
-                </div>
-            </div>
-            <div class="section">
-                <div class="section-title">
-                    Клиент
-                </div>
-                <div class="section-content">
-                    <label class="delivery-label" for="client-name">Клиент</label>
-                    <input class="delivery-textbox" type="text" id="client-name" value="Client Client">
-                    <label class="delivery-label" for="client-address">Адрес</label>
-                    <input class="delivery-textbox" type="text" id="client-address" value="Street 12b">
-                </div>
-            </div>
-            <div class="section">
-                <div class="section-title">
-                    Заказ
-                </div>
-                <div class="section-content">
-                    <p>
-                        <label class="delivery-label" for="client-name">Начало готовки</label>
-                        <input class="delivery-textbox" type="time" id="client-name" value="12:30">
-                    </p>
-                    <p>
-                        <label class="delivery-label" for="client-address">Доставить к</label>
-                        <input class="delivery-textbox" type="time" id="client-address" value="15:32">
-                    </p>
-                </div>
-            </div>
-            <div class="section">
-                <div class="section-title">
-                    Клиент
-                </div>
-                <div class="section-content">
-                    <label class="delivery-label" for="client-name">Клиент</label>
-                    <input class="delivery-textbox" type="text" id="client-name" value="Client Client">
-                    <label class="delivery-label" for="client-address">Адрес</label>
-                    <input class="delivery-textbox" type="text" id="client-address" value="Street 12b">
-                </div>
-            </div>
-            <div class="section">
-                <div class="section-title">
-                    Заказ
-                </div>
-                <div class="section-content">
-                    <p>
-                        <label class="delivery-label" for="client-name">Начало готовки</label>
-                        <input class="delivery-textbox" type="time" id="client-name" value="12:30">
-                    </p>
-                    <p>
-                        <label class="delivery-label" for="client-address">Доставить к</label>
-                        <input class="delivery-textbox" type="time" id="client-address" value="15:32">
-                    </p>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ delivery_order_form.as_p }}
+                        <input type="submit" value="Save">
+                    </form>
                 </div>
             </div>
         </div>
         <div>
-            <button class="btn info" onclick="HideSidebar('delivery-right-column', 'show-right-column')" style="width: 100%;">
+            <button class="btn info" onclick="HideSidebar('delivery-right-column', 'show-right-column')"
+                    style="width: 100%;">
                 &raquo;
             </button>
         </div>
     </div>
-    <button id="show-right-column"  class="btn info" onclick="ShowSidebar('delivery-right-column', 'show-right-column')" style="height: 100%; float: left; width: 0px" hidden>
+    <button id="show-right-column" class="btn info" onclick="ShowSidebar('delivery-right-column', 'show-right-column')"
+            style="height: 100%; float: left; width: 0px" hidden>
         &laquo;
     </button>
 {% endblock %}

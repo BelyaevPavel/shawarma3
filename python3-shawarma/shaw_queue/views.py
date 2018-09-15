@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-
-
+from django.core.files import temp
 from django.http.response import HttpResponseRedirect
 
 from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker, \
-    ServicePoint, Printer
+    ServicePoint, Printer, Customer, CallData, DiscountCard, Delivery, DeliveryOrder
 from django.template import loader
 from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist
 from django.core.paginator import Paginator
@@ -34,6 +33,340 @@ import subprocess
 logger = logging.getLogger(__name__)
 flag_marker = False
 waiting_numbers = {}
+
+from django.urls import reverse_lazy
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.views.generic import ListView, DetailView
+from django.views import View
+from django.forms import modelformset_factory
+from .forms import DeliveryForm, DeliveryOrderForm, IncomingCallForm, CustomerForm
+
+
+class CustomerList(ListView):
+    model = Customer
+
+
+class CustomerDetailView(DetailView):
+    model = Customer
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()
+        return context
+
+
+class CustomerCreate(CreateView):
+    model = Customer
+    fields = ['name', 'phone_number', 'email', 'note']
+
+
+class CustomerUpdate(UpdateView):
+    model = Customer
+    fields = ['name', 'phone_number', 'email', 'note']
+
+
+class CustomerDelete(DeleteView):
+    model = Customer
+    success_url = reverse_lazy('customer-list')
+
+
+class DiscountCardList(ListView):
+    model = DiscountCard
+
+
+class DiscountCardView(DetailView):
+    model = DiscountCard
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()
+        return context
+
+
+class DiscountCardCreate(CreateView):
+    model = DiscountCard
+    fields = ['number', 'discount', 'guid_1c', 'customer']
+
+
+class DiscountCardUpdate(UpdateView):
+    model = DiscountCard
+    fields = ['number', 'discount', 'guid_1c', 'customer']
+
+
+class DiscountCardDelete(DeleteView):
+    model = DiscountCard
+    success_url = reverse_lazy('discount-card-list')
+
+
+class DeliveryList(ListView):
+    model = Delivery
+
+
+class DeliveryView(DetailView):
+    model = Delivery
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()
+        return context
+
+
+class DeliveryCreate(CreateView):
+    model = Delivery
+    form_class = DeliveryForm
+
+
+class DeliveryUpdate(UpdateView):
+    model = Delivery
+    form_class = DeliveryForm
+
+
+class DeliveryDelete(DeleteView):
+    model = Delivery
+    success_url = reverse_lazy('delivery-list')
+
+
+class DeliveryOrderList(ListView):
+    model = DeliveryOrder
+
+
+class DeliveryOrderView(DetailView):
+    model = DeliveryOrder
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()
+        return context
+
+
+class DeliveryOrderCreate(CreateView):
+    model = DeliveryOrder
+    initial = {
+        'obtain_timepoint': timezone.datetime.now()
+    }
+    # form_class = DeliveryOrderForm
+    fields = '__all__'
+
+
+class AjaxableResponseMixin(object):
+    """
+    Mixin to add AJAX support to a form.
+    Must be used with an object-based FormView (e.g. CreateView)
+    """
+
+    def form_invalid(self, form):
+        response = super(AjaxableResponseMixin, self).form_invalid(form)
+        if self.request.is_ajax():
+            return JsonResponse(form.errors, status=400)
+        else:
+            return response
+
+    def form_valid(self, form):
+        # We make sure to call the parent's form_valid() method because
+        # it might do some processing (in the case of CreateView, it will
+        # call form.save() for example).
+        response = super(AjaxableResponseMixin, self).form_valid(form)
+        if self.request.is_ajax():
+            data = {
+                'pk': self.object.pk,
+            }
+            return JsonResponse(data)
+        else:
+            return response
+
+
+class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
+    # model = DeliveryOrder
+    # fields = '__all__'
+    def get(self, request):
+        delivery_order_pk = request.GET.get('delivery_order_pk', None)
+        customer_pk = request.GET.get('customer_pk', None)
+        delivery_pk = request.GET.get('delivery_pk', None)
+        order_pk = request.GET.get('order_pk', None)
+        customers = Customer.objects.all()
+        initial_data = {}
+        template = loader.get_template('shaw_queue/deliveryorder_form.html')
+        if delivery_order_pk is not None:
+            context = {
+                'object_pk': delivery_order_pk,
+                'form': DeliveryOrderForm(instance=DeliveryOrder.objects.get(pk=delivery_order_pk))
+            }
+        else:
+            initial_data['obtain_timepoint'] = timezone.datetime.now()
+            if customer_pk is not None:
+                initial_data['customer'] = Customer.objects.get(pk=customer_pk)
+            if delivery_pk is not None:
+                initial_data['delivery'] = Delivery.objects.get(pk=delivery_pk)
+            if order_pk is not None:
+                initial_data['order'] = Order.objects.get(pk=order_pk)
+            context = {
+                'form': DeliveryOrderForm(initial=initial_data)
+            }
+
+        for field in context['form'].fields:
+            context['form'].fields[field].widget.attrs['class'] = 'form-control'
+            print(context['form'].fields[field].widget.attrs)
+        data = {
+            'success': True,
+            'html': template.render(context, request)
+        }
+        return JsonResponse(data=data)
+
+    def post(self, request):
+        delivery_order_pk = request.POST.get('delivery_order_pk', None)
+        if delivery_order_pk is not None:
+            form = DeliveryOrderForm(request.POST, instance=DeliveryOrder.objects.get(pk=delivery_order_pk))
+        else:
+            form = DeliveryOrderForm(request.POST)
+        if form.is_valid():
+            cleaned_data = form.cleaned_data
+            form.save()
+            print("Is valid.")
+            data = {
+                'success': True
+            }
+            return JsonResponse(data)
+        else:
+            template = loader.get_template('shaw_queue/deliveryorder_form.html')
+
+            context = {
+                'form': form
+            }
+            for field in context['form'].fields:
+                context['form'].fields[field].widget.attrs['class'] = 'form-control'
+                errors = context['form'].errors.get(field, None)
+                if errors is not None:
+                    context['form'].fields[field].widget.attrs['class'] += ' is-invalid'
+                else:
+                    context['form'].fields[field].widget.attrs['class'] += ' is-valid'
+
+                print(context['form'].fields[field].widget.attrs)
+            data = {
+                'success': False,
+                'html': template.render(context, request)
+            }
+            return JsonResponse(data)
+            # return HttpResponseRedirect(redirect_to='/shaw_queue/delivery_interface/')
+
+
+class DeliveryOrderUpdate(UpdateView):
+    model = DeliveryOrder
+    fields = ['delivery', 'order', 'customer', 'obtain_timepoint', 'delivered_timepoint', 'prep_start_timepoint',
+              'preparation_duration', 'delivery_duration', 'note']
+
+
+class DeliveryOrderDelete(DeleteView):
+    model = DeliveryOrder
+    success_url = reverse_lazy('delivery-order-list')
+
+
+class IncomingCall(View):
+    def get(self, request):
+        template = loader.get_template('shaw_queue/incoming_call.html')
+        context = {
+            'form': IncomingCallForm()
+        }
+        for field in context['form'].fields:
+            context['form'].fields[field].widget.attrs['class'] = 'form-control'
+            print(context['form'].fields[field].widget.attrs)
+        data = {
+            'success': True,
+            'html': template.render(context, request)
+        }
+
+        return JsonResponse(data)
+
+    def post(self, request):
+        phone_number = request.POST.get('phone_number', None)
+        customer = None
+        if phone_number is not None:
+            try:
+                customer = Customer.objects.get(phone_number=phone_number)
+            except MultipleObjectsReturned:
+                client.captureException()
+            except ObjectDoesNotExist:
+                pass
+
+            if customer is not None:
+                form = CustomerForm(instance=customer)
+            else:
+                form = CustomerForm(request.POST)
+        else:
+            form = CustomerForm(request.POST)
+
+        if customer is not None:
+            template = loader.get_template('shaw_queue/incoming_call.html')
+            customer_orders = DeliveryOrder.objects.filter(customer=customer).order_by('-obtain_timepoint')[:3]
+
+            context = {
+                'customer_pk': customer.pk,
+                'form': CustomerForm(instance=customer),
+                'customer_orders': [
+                    {
+                        'delivery_order': delivery_order,
+                        'content': OrderContent.objects.filter(order=delivery_order.order)
+                    } for delivery_order in customer_orders
+                    ]
+            }
+            for field in context['form'].fields:
+                context['form'].fields[field].widget.attrs['class'] = 'form-control'
+                errors = context['form'].errors.get(field, None)
+                if errors is not None:
+                    context['form'].fields[field].widget.attrs['class'] += ' is-invalid'
+                else:
+                    context['form'].fields[field].widget.attrs['class'] += ' is-valid'
+
+                print(context['form'].fields[field].widget.attrs)
+            data = {
+                'success': True,
+                'html': template.render(context, request)
+            }
+            return JsonResponse(data)
+
+        else:
+            if form.is_valid():
+                form.save()
+                template = loader.get_template('shaw_queue/incoming_call.html')
+                customer = Customer.objects.get(phone_number=phone_number)
+                context = {
+                    'customer_pk': customer.pk,
+                    'form': form
+                }
+                for field in context['form'].fields:
+                    context['form'].fields[field].widget.attrs['class'] = 'form-control'
+                    errors = context['form'].errors.get(field, None)
+                    if errors is not None:
+                        context['form'].fields[field].widget.attrs['class'] += ' is-invalid'
+                    else:
+                        context['form'].fields[field].widget.attrs['class'] += ' is-valid'
+
+                    print(context['form'].fields[field].widget.attrs)
+                data = {
+                    'success': False,
+                    'html': template.render(context, request)
+                }
+                return JsonResponse(data)
+            else:
+                template = loader.get_template('shaw_queue/incoming_call.html')
+
+                context = {
+                    'customer_pk': None,
+                    'form': form
+                }
+                for field in context['form'].fields:
+                    context['form'].fields[field].widget.attrs['class'] = 'form-control'
+                    errors = context['form'].errors.get(field, None)
+                    if errors is not None:
+                        context['form'].fields[field].widget.attrs['class'] += ' is-invalid'
+                    else:
+                        context['form'].fields[field].widget.attrs['class'] += ' is-valid'
+
+                    print(context['form'].fields[field].widget.attrs)
+                data = {
+                    'success': False,
+                    'html': template.render(context, request)
+                }
+                return JsonResponse(data)
 
 
 @login_required()
@@ -147,6 +480,7 @@ def welcomer(request):
 
 @login_required()
 def menu(request):
+    delivery_order_pk = request.GET.get('delivery_order_pk', None)
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
@@ -159,7 +493,10 @@ def menu(request):
         }
         client.captureException()
         return JsonResponse(data)
-    template = loader.get_template('shaw_queue/menu_page.html')
+    if delivery_order_pk is None:
+        template = loader.get_template('shaw_queue/menu_page.html')
+    else:
+        template = loader.get_template('shaw_queue/modal_menu_page.html')
     result = define_service_point(device_ip)
     if result['success']:
         try:
@@ -181,7 +518,16 @@ def menu(request):
     else:
         return JsonResponse(result)
 
-    return HttpResponse(template.render(context, request))
+    if delivery_order_pk is None:
+        context['is_modal'] = False
+        return HttpResponse(template.render(context, request))
+    else:
+        context['is_modal'] = True
+        data = {
+            'success': True,
+            'html': template.render(context, request)
+        }
+        return JsonResponse(data)
 
 
 def search_comment(request):
@@ -1751,10 +2097,49 @@ def long_poll_handler(request):
     return JsonResponse(data)
 
 
+@login_required()
 def delivery_interface(request):
     template = loader.get_template('shaw_queue/delivery_main.html')
-    context = {}
+    print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
+    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
+        'delivered_timepoint')
+    context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'delivery_order_form': DeliveryOrderForm,
+        'delivery_orders': delivery_orders
+    }
     return HttpResponse(template.render(context, request))
+
+
+@login_required()
+def delivery_workspace_update(request):
+    template = loader.get_template('shaw_queue/delivery_workspace.html')
+    print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
+    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
+        'delivered_timepoint')
+    # tzinfo = datetime.tzinfo(tzname=TIME_ZONE)
+    # processed_d_orders = [
+    #     {
+    #         'order': order,
+    #         'enlight_warning': True if (order.delivered_timepoint - (
+    #             order.delivery_duration + order.preparation_duration)).replace(tzinfo=tzinfo) > datetime.datetime.now() - datetime.timedelta(
+    #             minutes=5) and order.prep_start_timepoint is None else False,
+    #         'enlight_alert': True if (order.delivered_timepoint - (
+    #             order.delivery_duration + order.preparation_duration)).replace(tzinfo=tzinfo) > datetime.datetime.now()
+    #             and order.prep_start_timepoint is None else False
+    #     } for order in delivery_orders
+    #     ]
+    # context = {
+    #     'delivery_orders': processed_d_orders
+    # }
+    context = {
+        'delivery_orders': delivery_orders
+    }
+    data = {
+        'success': True,
+        'html': template.render(context, request)
+    }
+    return JsonResponse(data)
 
 
 def print_order(request, order_id):
@@ -1935,6 +2320,7 @@ def voice_all(request):
 @login_required()
 @permission_required('shaw_queue.add_order')
 def make_order(request):
+    delivery_order_pk = request.POST.get('delivery_order_pk', None)
     file = open('log/cook_choose.log', 'a')
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
@@ -2187,12 +2573,14 @@ def make_order(request):
             data["message"] = ''
             data["daily_number"] = order.daily_number
             data["guid"] = order.guid_1c
+            data["pk"] = order.pk
     else:
         data["success"] = True
         data["total"] = order.total
         data["content"] = json.dumps(content_to_send)
         data["message"] = ''
         data["daily_number"] = order.daily_number
+        data["pk"] = order.pk
 
     return JsonResponse(data)
 

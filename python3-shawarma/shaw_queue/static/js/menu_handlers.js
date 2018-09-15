@@ -5,6 +5,7 @@ $(document).ready(function () {
     $('#menu').addClass('header-active');
     $('.menu-item').hide();
     $('.subm').prop('disabled', false);
+    $('#cook_auto').prop('checked', true);
 
     // Get the modal
     var modal = document.getElementById('modal-edit');
@@ -59,6 +60,7 @@ function SendOrder() {
         var status = $('#status-display');
         var payment_choose = $('[name=payment_choose]:checked');
         var loading_indiactor = $('#loading-indicator');
+        var is_modal = $('#is-modal');
         var confirmation = confirm("Подтвердить заказ?");
         var form = $('.subm');
 
@@ -75,6 +77,12 @@ function SendOrder() {
                 change_label.show();
                 change_display.show();
             }
+            var order_data = {
+                "order_content": JSON.stringify(currOrder),
+                "payment": $('[name=payment_choose]:checked').val(),
+                "cook_choose": $('[name=cook_choose]:checked').val()
+            };
+
             $('.subm').prop('disabled', true);
             $.ajaxSetup({
                 beforeSend: function (xhr, settings) {
@@ -84,15 +92,11 @@ function SendOrder() {
             $.ajax({
                     type: 'POST',
                     url: form.attr('data-send-url'),
-                    data: {
-                        "order_content": JSON.stringify(currOrder),
-                        "payment": $('[name=payment_choose]:checked').val(),
-                        "cook_choose": $('[name=cook_choose]:checked').val()
-                    },
+                    data: order_data,
                     dataType: 'json',
                     success: function (data) {
                         if (data['success']) {
-                            if(payment_choose.val() != "not_paid"){
+                            if (payment_choose.val() != "not_paid") {
                                 if (payment_choose.val() == "paid_with_cash") {
                                     status.text('Заказ №' + data.daily_number + ' добавлен! Введите полученную сумму:');
                                     //var cash = prompt('Заказ №' + data.daily_number + ' добавлен!, Введите полученную сумму:', "");
@@ -111,6 +115,13 @@ function SendOrder() {
                                 OK.prop('disabled', false);
                                 cancel.prop('disabled', true);
                                 retry.prop('disabled', true);
+                                if (is_modal.val() == 'True') {
+                                    OK.off('click');
+                                    OK.unbind('click', OKHandeler);
+                                    OK.click(function () {
+                                        DeliveryOKHandeler(data['pk']);
+                                    });
+                                }
                                 OK.focus();
                                 loading_indiactor.hide();
                             }
@@ -146,7 +157,7 @@ function StatusRefresher(guid) {
     var loading_indiactor = $('#loading-indicator');
     if (current_retries < max_retries) {
         current_retries++;
-        status.text('Попытка '+current_retries+' из '+max_retries);
+        status.text('Попытка ' + current_retries + ' из ' + max_retries);
         $.ajaxSetup({
             beforeSend: function (xhr, settings) {
                 xhr.setRequestHeader("X-CSRFToken", csrftoken)
@@ -209,6 +220,9 @@ function StatusRefresher(guid) {
                 }
             }
         ).fail(function () {
+            OK.prop('disabled', false);
+            cancel.prop('disabled', true);
+            retry.prop('disabled', true);
             loading_indiactor.hide();
             status.text('Необработанное исключение!');
         });
@@ -227,7 +241,23 @@ function OKHandeler() {
     CalculateTotal();
     $('#cook_auto').prop('checked', true);
     CloseModalStatus();
+    console.log('OKHandler fired.');
     location.reload();
+}
+
+function DeliveryOKHandeler(order_pk) {
+    var modal_window = $('#modal-menu');
+    var customer_pk = $('#current-order-data').attr('customer-pk');
+    CreateDeliveryOrder(-1, customer_pk, -1, order_pk);
+    currOrder = [];
+    DrawOrderTable();
+    CalculateTotal();
+    $('#cook_auto').prop('checked', true);
+    CloseModalStatus();
+    // location.reload();
+    modal_window.html('');
+    modal_window.hide();
+    console.log('DeliveryOKHandeler fired.');
 }
 
 function CancelHandler() {
@@ -236,6 +266,7 @@ function CancelHandler() {
     CalculateTotal();
     $('#cook_auto').prop('checked', true);
     CloseModalStatus();
+    console.log('CancelHandler fired.');
     location.reload();
 }
 
@@ -401,7 +432,7 @@ function DrawOrderTable() {
             // '</td></tr>'
             '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModalEdit(' + i + ')">' +
             '<div class="table-item-title">' + currOrder[i]['title'] + '</div><div class="noteText">' + currOrder[i]['note'] + '</div>' +
-            '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] + '<button class="small-btn danger" onclick="MinusOneItem('+i+')">-1</button></td></tr>'
+            '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] + '<button class="small-btn danger" onclick="MinusOneItem(' + i + ')">-1</button></td></tr>'
         );
     }
 }
@@ -422,7 +453,7 @@ function ShowModalEdit(index) {
     );
     quantity.keyup(
         function (event) {
-            if(event.keyCode === 13){
+            if (event.keyCode === 13) {
                 UpdateQuantity(index);
                 CloseModalEdit();
             }
@@ -431,7 +462,7 @@ function ShowModalEdit(index) {
     note.val(currOrder[index]['note']);
     note.keyup(
         function (event) {
-            if(event.keyCode === 13){
+            if (event.keyCode === 13) {
                 CloseModalEdit();
             }
             else {
@@ -523,7 +554,7 @@ function CalculateChange() {
     var cash_input = $('#order-change');
     var change_display = $('#change-display');
     var change = parseFloat((cash_input.val()).replace(/,/g, '.')) - total;
-    change_display.text('Сдача ' + change +' р.');
+    change_display.text('Сдача ' + change + ' р.');
 }
 
 function ChangeCategory(category) {

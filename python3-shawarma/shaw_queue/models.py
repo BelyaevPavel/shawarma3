@@ -2,7 +2,10 @@
 
 from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
+from django.utils import timezone
+from django.urls import reverse
 from django.db import models
+import datetime
 
 
 # Create your models here.
@@ -183,3 +186,87 @@ class Printer(models.Model):
     def __unicode__(self):
         return "№{} {}".format(self.title, self.service_point)
 
+
+class Customer(models.Model):
+    name = models.CharField(max_length=30, default="Name not set", null=True, verbose_name="имя")
+    phone_number = models.CharField(max_length=20, verbose_name="телефон")
+    email = models.EmailField(blank=True, verbose_name="email")
+    note = models.CharField(max_length=200, blank=True, verbose_name="комментарий")
+
+    def __str__(self):
+        return "{} {}".format(self.phone_number, self.name)
+
+    def __unicode__(self):
+        return "{} {}".format(self.name, self.phone_number)
+
+    def get_absolute_url(self):
+        return reverse('customer-list')  # , kwargs={'pk': self.pk}
+
+
+class DiscountCard(models.Model):
+    number = models.CharField(max_length=30)
+    discount = models.FloatField()
+    guid_1c = models.CharField(max_length=100, default="")
+    customer = models.ForeignKey(Customer, blank=True, null=True, verbose_name="owner of card")
+
+    def __str__(self):
+        return "№{} {}".format(self.number, self.customer)
+
+    def __unicode__(self):
+        return "№{} {}".format(self.number, self.customer)
+
+    def get_absolute_url(self):
+        return reverse('discount-card-list')  # , kwargs={'pk': self.pk}
+
+
+class Delivery(models.Model):
+    car_driver = models.ForeignKey(Staff, on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return "№{} {}".format(self.id, self.car_driver)
+
+    def __unicode__(self):
+        return "№{} {}".format(self.id, self.car_driver)
+
+    def get_absolute_url(self):
+        return reverse('delivery-list')  # , kwargs={'pk': self.pk}
+
+
+class DeliveryOrder(models.Model):
+    delivery = models.ForeignKey(Delivery, null=True, blank=True, verbose_name="доставка")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="включеный заказ")
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="клиент")
+    address = models.CharField(max_length=250, default="Address not set", verbose_name="адрес")
+    obtain_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время получения заказа")
+    delivered_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время доставки заказа")
+    prep_start_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время начала готовки")
+    preparation_duration = models.DurationField(null=True, blank=True, default=datetime.timedelta(seconds=0),
+                                                verbose_name="продолжительность готовки")
+    delivery_duration = models.DurationField(null=True, blank=True, default=datetime.timedelta(seconds=0),
+                                             verbose_name="продолжительность доставки")
+    note = models.CharField(max_length=250, null=True, blank=True, help_text="Введите комментарий к заказу.",
+                            verbose_name="комментарий")
+
+    def __str__(self):
+        return "{} {}".format(self.delivery, self.order)
+
+    def __unicode__(self):
+        return "{} {}".format(self.delivery, self.order)
+
+    def get_absolute_url(self):
+        return reverse('delivery-order-list')  # , kwargs={'pk': self.pk}
+
+
+class CallData(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="customer who called")
+    call_manager = models.ForeignKey(Staff, on_delete=models.CASCADE, verbose_name="manager who accepted call")
+    ats_id = models.CharField(max_length=250, default="ID not set")
+    timepoint = models.DateTimeField(blank=True, null=True)
+    duration = models.DurationField(null=True, blank=True, default=datetime.timedelta(seconds=0))
+    record = models.CharField(max_length=256, default="Record path not set")
+
+    def __str__(self):
+        return "{} {}".format(self.customer, self.duration)
+
+    def __unicode__(self):
+        return "{} {}".format(self.customer, self.duration)
