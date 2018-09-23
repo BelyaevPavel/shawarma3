@@ -64,6 +64,7 @@ class CustomerForm(forms.ModelForm):
 
 
 class DeliveryOrderForm(forms.ModelForm):
+    order = forms.ModelChoiceField(queryset=Order.objects.filter(pk=10))
     class Meta:
         model = DeliveryOrder
         exclude = ['prep_start_timepoint']

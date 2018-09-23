@@ -2120,7 +2120,6 @@ def delivery_interface(request):
         'delivered_timepoint')
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
-        'delivery_order_form': DeliveryOrderForm,
         'delivery_orders': delivery_orders
     }
     return HttpResponse(template.render(context, request))
