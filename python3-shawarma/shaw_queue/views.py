@@ -380,6 +380,8 @@ def redirection(request):
         return HttpResponseRedirect('menu')
     if staff_category.title == 'Operator':
         return HttpResponseRedirect('current_queue')
+    if staff_category.title == 'Administration':
+        return HttpResponseRedirect('statistics')
 
 def ats_listner(request):    
     #content_id = request.POST.get('id', '')
@@ -3290,6 +3292,7 @@ def cancel_item(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def statistic_page(request):
     template = loader.get_template('shaw_queue/statistics.html')
     avg_preparation_time = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
@@ -3339,6 +3342,7 @@ def statistic_page(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def statistic_page_ajax(request):
     start_date = request.POST.get('start_date', None)
     start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
@@ -3430,6 +3434,7 @@ def statistic_page_ajax(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def opinion_statistics(request):
     template = loader.get_template('shaw_queue/opinion_statistics.html')
     avg_mark = OrderOpinion.objects.filter(post_time__contains=datetime.date.today()).values('mark').aggregate(
@@ -3450,6 +3455,7 @@ def opinion_statistics(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def opinion_statistics_ajax(request):
     start_date = request.POST.get('start_date', None)
     start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
@@ -3518,6 +3524,7 @@ def opinion_statistics_ajax(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def pause_statistic_page(request):
     template = loader.get_template('shaw_queue/pause_statistics.html')
     avg_duration_time = PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
@@ -3549,6 +3556,7 @@ def pause_statistic_page(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def pause_statistic_page_ajax(request):
     start_date = request.POST.get('start_date', None)
     if start_date is None or start_date == '':
