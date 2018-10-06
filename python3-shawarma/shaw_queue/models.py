@@ -108,6 +108,7 @@ class Order(models.Model):
     is_grilling_shash = models.BooleanField(default=False, verbose_name="Shashlyk Is Grilling")
     is_ready = models.BooleanField(default=False, verbose_name="Is Ready")
     is_voiced = models.BooleanField(default=False, verbose_name="Is Voiced")
+    is_delivery = models.BooleanField(default=False, verbose_name="Is Delivery Order")
     # True - if paid with cash, False - if paid with card.
     paid_with_cash = models.BooleanField(default=True, verbose_name="Paid With Cash")
     servery = models.ForeignKey(Servery, verbose_name="Servery")
@@ -226,6 +227,9 @@ class DiscountCard(models.Model):
 
 class Delivery(models.Model):
     car_driver = models.ForeignKey(Staff, on_delete=models.CASCADE, null=True, blank=True)
+    departure_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время отправки")
+    creation_timepoint = models.DateTimeField(verbose_name="время создания", default=timezone.now)
+    daily_number = models.IntegerField(verbose_name="Daily Number", unique_for_date=datetime.date.today)
 
     def __str__(self):
         return "№{} {}".format(self.id, self.car_driver)
@@ -265,10 +269,11 @@ class DeliveryOrder(models.Model):
 class CallData(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="customer who called")
     call_manager = models.ForeignKey(Staff, on_delete=models.CASCADE, verbose_name="manager who accepted call")
-    ats_id = models.CharField(max_length=250, default="ID not set")
+    ats_id = models.CharField(max_length=250, default="ID not set", unique=True)
     timepoint = models.DateTimeField(blank=True, null=True)
     duration = models.DurationField(null=True, blank=True, default=datetime.timedelta(seconds=0))
     record = models.CharField(max_length=256, default="Record path not set")
+    accepted = models.BooleanField(default=False, verbose_name="Звонок принят")
 
     def __str__(self):
         return "{} {}".format(self.customer, self.duration)

@@ -4,23 +4,26 @@
     <script type="text/javascript" src="{% static 'js/delivery_handlers.js' %}"></script>
 {% endblock %}
 {% block content %}
-    <input id="urls" hidden data-close-delivery-order-url="" order-specifics-url=""
-           incoming-call-url="{% url 'incoming-call' %}"
+    <input id="delivery-urls" hidden data-close-delivery-order-url="" order-specifics-url=""
+           incoming-call-url="{% url 'incoming-call' %}" check-calls-url = "{% url 'check_calls' %}"
            data-cancel-delivery-order-url="" create-order-url="{% url 'delivery-order-ajax' %}"
-           menu-url="{% url 'menu' %}"
+           menu-url="{% url 'menu' %}" delivery-url="{% url 'delivery' %}" select-cook-url="{% url 'select_cook' %}"
            workspace-update="{% url 'delivery-workspace-update' %}">
-    <input id="current-order-data" customer-pk="-1">
+    <input hidden id="current-order-data" customer-pk="-1">
     <div class="modal" id="modal-menu">
     </div>
     <div class="modal" id="modal-delivery-order">
     </div>
-    <button id="show-left-column" class="btn info" onclick="ShowSidebar('delivery-left-column', 'show-left-column')"
-            style="height: 100%; float: left; width: 0px" hidden>
-        &raquo;
-    </button>
+    {#    <button id="show-left-column" class="btn info" onclick="ShowSidebar('delivery-left-column', 'show-left-column')"#}
+    {#            style="height: 100%; float: left; width: 0px" hidden>#}
+    {#        &raquo;#}
+    {#    </button>#}
     <div id="delivery-left-column" class="shadowed">
         <div class="delivery-sidebar-content">
-            Content
+            {% for delivery in delivery_info %}
+                {% include 'shaw_queue/delivery_info_block.html' with delivery_info=delivery %}
+            {% endfor %}
+    <button class="btn success" onclick="CreateDelivery()">&plus;</button>
         </div>
         <div>
             <button class="btn info" onclick="HideSidebar('delivery-left-column', 'show-left-column')"

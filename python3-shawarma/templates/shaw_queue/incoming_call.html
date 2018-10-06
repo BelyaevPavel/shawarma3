@@ -51,19 +51,19 @@
                 {% endfor %}
 
                 <button type="submit" class="btn info">Подтвердить</button>
+                {% if customer_pk %}
+                    <button class="btn info" onclick="ShowMenu()">Создать заказ
+                    </button>
+                {% endif %}
             </form>
-{#            <button class="btn btn-primary" {% if not form.is_valid %}#}
-{#                    disabled#}
-{#            {% endif %} {% if not form.is_bound %}#}
-{#                    hidden#}
-{#            {% endif %}>Создать доставку#}
-{#            </button>#}
+            {#            <button class="btn btn-primary" {% if not form.is_valid %}#}
+            {#                    disabled#}
+            {#            {% endif %} {% if not form.is_bound %}#}
+            {#                    hidden#}
+            {#            {% endif %}>Создать доставку#}
+            {#            </button>#}
             {#        <button class="btn btn-primary" onclick="ShowMenu(1)">Создать заказ#}
             {#        </button>#}
-            {% if customer_pk %}
-                <button class="btn info" onclick="ShowMenu(1)">Создать заказ
-                </button>
-            {% endif %}
         </div>
         {% if customer_pk %}
             <div class="last-orders-container">

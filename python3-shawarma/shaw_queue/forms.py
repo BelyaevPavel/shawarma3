@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.admin import widgets
 from django.utils import timezone
+import datetime
 
 from .models import Order, OrderContent, Staff, Delivery, StaffCategory, DeliveryOrder, Customer
 
@@ -64,7 +65,9 @@ class CustomerForm(forms.ModelForm):
 
 
 class DeliveryOrderForm(forms.ModelForm):
-    order = forms.ModelChoiceField(queryset=Order.objects.filter(pk=10))
+    order = forms.ModelChoiceField(queryset=Order.objects.filter(open_time__contains=datetime.date.today),
+                                   widget=forms.HiddenInput())
+    #  delivery = forms.ModelChoiceField(queryset=Delivery.objects.filter(creation_timepoint__contains=datetime.date.today))
     class Meta:
         model = DeliveryOrder
         exclude = ['prep_start_timepoint']
