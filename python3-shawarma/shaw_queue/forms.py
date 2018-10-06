@@ -21,7 +21,7 @@ class OrderForm(forms.ModelForm):
 
 
 class DeliveryForm(forms.ModelForm):
-    car_driver = forms.ModelChoiceField(queryset=Staff.objects.filter(staff_category__title__iexact='Cook'))
+    car_driver = forms.ModelChoiceField(queryset=Staff.objects.filter(staff_category__title__iexact='Driver'))
 
     class Meta:
         model = Delivery

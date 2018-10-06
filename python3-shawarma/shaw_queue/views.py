@@ -523,11 +523,12 @@ class DeliveryView(View):
 
 
 def ats_listner(request):
-    tel = request.GET.get('tel', None)
+    tel = request.GET.get('queue_id', None)
     caller_id = request.GET.get('caller_id', None)
     call_uid = request.GET.get('uid', None)
     operator_id = request.GET.get('operator_id', None)
     event_code = request.GET.get('event_code', None)  # 1 - from_queue, 2 - accept_call, 3 - discarb_call
+    print("{} {} {} {} {}".format(tel, caller_id, call_uid, operator_id, event_code))
     if event_code is not None:
         try:
             event_code = int(event_code)
@@ -2356,6 +2357,8 @@ def delivery_interface(request):
     utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_main.html')
     print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
+    staff = Staff.objects.get(user=request.user)
+    print("staff_id = {}".format(staff.id))
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
     deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today()).order_by(

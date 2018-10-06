@@ -11,7 +11,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('shaw_queue', '0030_auto_20180827_1716'),
+        ('shaw_queue', '0031_auto_20180923_1027'),
     ]
 
     operations = [
