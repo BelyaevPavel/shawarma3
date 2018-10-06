@@ -1,0 +1,20 @@
+{#<div class="delivery-info-block">#}
+{#    {{ delivery_info.delivery }} {{ delivery_info.departure_time }}#}
+{#    <ul class="list-group">#}
+{#        {% for delivery_order in delivery_info.delivery_orders %}#}
+{#            <li class="list-group-item">#}
+{#                {{ delivery_order }}#}
+{#            </li>#}
+{#        {% endfor %}#}
+{#    </ul>#}
+{#</div>#}
+<div class="dropdown">
+    <button class="dropbtn"><span>{{ delivery_info.delivery }} {{ delivery_info.departure_time }}</span> <span class="badge">{{ delivery_info.delivery_orders_number }}</span> </button>
+    <div class="dropdown-content">
+        {% for delivery_order in delivery_info.delivery_orders %}
+            <a onclick="CreateDeliveryOrder({{ delivery_order.pk }})" >
+                {{ delivery_order }}
+            </a>
+        {% endfor %}
+    </div>
+</div>
