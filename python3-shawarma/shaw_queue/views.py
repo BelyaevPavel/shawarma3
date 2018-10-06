@@ -24,6 +24,7 @@ from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL,
 from raven.contrib.django.raven_compat.models import client
 from random import sample
 from itertools import chain
+import time
 import requests
 import datetime
 import logging
@@ -384,9 +385,11 @@ def redirection(request):
         return HttpResponseRedirect('statistics')
 
 def ats_listner(request):    
-    #content_id = request.POST.get('id', '')
-    print('ATS sent .')
-    return HttpResponse('Recived.')
+    uid = request.GET.get('uid', '')    
+    caller_id = request.GET.get('callerid', '')    
+    tel = request.GET.get('tel', '')
+    print("tel = {} uid = {} caller_id = {}".format(tel, uid, caller_id))
+    return HttpResponse("tel = {} uid = {} caller_id = {}".format(tel, uid, caller_id))
 
 
 def cook_pause(request):
