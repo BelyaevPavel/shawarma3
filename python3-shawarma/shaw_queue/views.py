@@ -622,8 +622,8 @@ def redirection(request):
         return HttpResponseRedirect('menu')
     if staff_category.title == 'Operator':
         return HttpResponseRedirect('current_queue')
-    if staff_category.title == 'Administration':
-        return HttpResponseRedirect('statistics')
+    # if staff_category.title == 'Administration':
+    #     return HttpResponseRedirect('statistics')
 
 
 def cook_pause(request):
