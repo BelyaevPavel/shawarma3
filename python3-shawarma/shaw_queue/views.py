@@ -3638,6 +3638,7 @@ def statistic_page(request):
                                                 is_canceled=False).values(
         'open_time', 'close_time').aggregate(preparation_time=Max(F('close_time') - F('open_time')))
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_orders': len(Order.objects.filter(open_time__contains=datetime.date.today())),
         'canceled_orders': len(
             Order.objects.filter(open_time__contains=datetime.date.today(), is_canceled__isnull=True)),
@@ -3717,6 +3718,7 @@ def statistic_page_ajax(request):
 
     try:
         context = {
+            'staff_category': StaffCategory.objects.get(staff__user=request.user),
             'total_orders': len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv)),
             'canceled_orders': len(
                 Order.objects.filter(open_time__contains=datetime.date.today(), is_canceled__isnull=True)),
@@ -3775,6 +3777,7 @@ def opinion_statistics(request):
     max_mark = OrderOpinion.objects.filter(post_time__contains=datetime.date.today()).values('mark').aggregate(
         max_mark=Max('mark'))
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_orders': len(OrderOpinion.objects.filter(post_time__contains=datetime.date.today())),
         'avg_mark': avg_mark['avg_mark'],
         'min_mark': min_mark['min_mark'],
@@ -3829,6 +3832,7 @@ def opinion_statistics_ajax(request):
 
     try:
         context = {
+            'staff_category': StaffCategory.objects.get(staff__user=request.user),
             'total_orders': len(
                 OrderOpinion.objects.filter(post_time__gte=start_date_conv, post_time__lte=end_date_conv)),
             'avg_mark': avg_mark['avg_mark'],
@@ -3866,6 +3870,7 @@ def pause_statistic_page(request):
                                                     end_timestamp__contains=datetime.date.today()).values(
         'start_timestamp', 'end_timestamp').aggregate(duration=Max(F('end_timestamp') - F('start_timestamp')))
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_pauses': len(PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
                                                         end_timestamp__contains=datetime.date.today())),
         'avg_duration': str(avg_duration_time['duration']).split('.', 2)[0],
@@ -3942,6 +3947,7 @@ def pause_statistic_page_ajax(request):
 
     # try:
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_pauses': len(PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
                                                         end_timestamp__lte=end_date_conv)),
         'avg_duration': str(avg_duration_time['duration']).split('.', 2)[0],

@@ -1,9 +1,12 @@
 {% extends 'shaw_queue/base.html' %}
 {% block aditional_static %}
-{% load static %}
+    {% load static %}
     <link rel="stylesheet" type="text/css" href={% static 'queue/jquery.datetimepicker.min.css' %}>
     <script type="text/javascript" src="{% static 'js/statistics_handlers.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/jquery.datetimepicker.full.js' %}"></script>
+    <script type="text/javascript">
+        var interface_button = $("#pause_statistics_interface");
+    </script>
 {% endblock %}
 {% block content %}
     <input hidden id="urls" data-update-statistics-url="{% url 'update_pause_statistics' %}">
@@ -14,59 +17,59 @@
         <input type="text" id="datetimepicker2"/>
     </div>
     <div id="statistics-content">
-    <div class="stat-sect-container">
-        Всего заказов: {{ total_pauses }}
-        Мин. продолжительность: {{ min_duration }}
-        Ср. продолжительность: {{ avg_duration }}
-        Макс. продолжительность: {{ max_duration }}
-        <div class="stat-cook-table-header">
-            <div class="stat-opinion-order-datetime">
-                Повар
-            </div>
-            <div class="stat-opinion-daily-number">
-                Начало
-            </div>
-            <div class="stat-opinion-note">
-                Конец
-            </div>
-            <div class="stat-opinion-mark">
-                Продолжительность
-            </div>
-        </div>
-        {% for staff_pauses in pause_info %}
-            <div class="stat-view-container">
-                <div class="pause-cook-section">
-                    {{ staff_pauses.staff }}
+        <div class="stat-sect-container">
+            Всего заказов: {{ total_pauses }}
+            Мин. продолжительность: {{ min_duration }}
+            Ср. продолжительность: {{ avg_duration }}
+            Макс. продолжительность: {{ max_duration }}
+            <div class="stat-cook-table-header">
+                <div class="stat-opinion-order-datetime">
+                    Повар
                 </div>
-                {% for pause in staff_pauses.pauses %}
-                    <div class="stat-view" id="pause-{{ forloop.counter }}">
-                        <div class="stat-opinion-order-datetime">
-                            {{ pause.staff }}
-                        </div>
-                        <div class="stat-opinion-daily-number">
-                            {{ pause.start_timestamp }}
-                        </div>
-                        <div class="stat-opinion-note">
-                            {{ pause.start_timestamp }}
-                        </div>
-                        <div class="stat-opinion-mark">
-                            {{ pause.duration }}
-                        </div>
+                <div class="stat-opinion-daily-number">
+                    Начало
+                </div>
+                <div class="stat-opinion-note">
+                    Конец
+                </div>
+                <div class="stat-opinion-mark">
+                    Продолжительность
+                </div>
+            </div>
+            {% for staff_pauses in pause_info %}
+                <div class="stat-view-container">
+                    <div class="pause-cook-section">
+                        {{ staff_pauses.staff }}
                     </div>
-                {% empty %}
-                    There is no pauses.
-                {% endfor %}
-                <div class="pause-total-section">
-                    Total: {{ staff_pauses.total_duration.duration }}
+                    {% for pause in staff_pauses.pauses %}
+                        <div class="stat-view" id="pause-{{ forloop.counter }}">
+                            <div class="stat-opinion-order-datetime">
+                                {{ pause.staff }}
+                            </div>
+                            <div class="stat-opinion-daily-number">
+                                {{ pause.start_timestamp }}
+                            </div>
+                            <div class="stat-opinion-note">
+                                {{ pause.start_timestamp }}
+                            </div>
+                            <div class="stat-opinion-mark">
+                                {{ pause.duration }}
+                            </div>
+                        </div>
+                    {% empty %}
+                        There is no pauses.
+                    {% endfor %}
+                    <div class="pause-total-section">
+                        Total: {{ staff_pauses.total_duration.duration }}
+                    </div>
                 </div>
+            {% empty %}
+                No cooks.
+            {% endfor %}
+            <div class="stat-actions-container">
+                <button onclick="UpdateStatistics()">Обновить</button>
             </div>
-        {% empty %}
-            No cooks.
-        {% endfor %}
-        <div class="stat-actions-container">
-            <button onclick="UpdateStatistics()">Обновить</button>
         </div>
-    </div>
 
     </div>
 {% endblock %}

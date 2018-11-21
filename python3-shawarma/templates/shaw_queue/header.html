@@ -45,6 +45,27 @@
                 </div>
             </a>
         {% endif %}
+        {% if staff_category.title == 'Administration' %}
+            <a href="{% url 'pause_statistics' %}">
+                <div class="header-buttons" id="pause_statistics_interface">
+                        Паузы
+                </div>
+            </a>
+        {% endif %}
+        {% if staff_category.title == 'Administration' %}
+            <a href="{% url 'statistics' %}">
+                <div class="header-buttons" id="statistics_interface">
+                        Шаурма
+                </div>
+            </a>
+        {% endif %}
+        {% if staff_category.title == 'Administration' %}
+            <a href="{% url 'opinion_statistics' %}">
+                <div class="header-buttons" id="opinion_statistics_interface">
+                        Отзывы
+                </div>
+            </a>
+        {% endif %}
         <div class="header-who-logged" id="header-who-logged">
             {{ user.first_name }} {{ user.last_name }}
         </div>

@@ -1,9 +1,12 @@
 {% extends 'shaw_queue/base.html' %}
 {% block aditional_static %}
-{% load static %}
+    {% load static %}
     <link rel="stylesheet" type="text/css" href={% static 'queue/jquery.datetimepicker.min.css' %}>
     <script type="text/javascript" src="{% static 'js/statistics_handlers.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/jquery.datetimepicker.full.js' %}"></script>
+    <script type="text/javascript">
+        var interface_button = $("#statistics_interface");
+    </script>
 {% endblock %}
 {% block content %}
     <input hidden id="urls" data-update-statistics-url="{% url 'update_statistics' %}">
@@ -14,60 +17,60 @@
         <input type="text" id="datetimepicker2"/>
     </div>
     <div id="statistics-content">
-    <div class="stat-sect-container">
-        Всего заказов: {{ total_orders }}
-        Отмененных заказов: {{ canceled_orders }}
-        Мин. время выполнения: {{ min_prep_time }}
-        Ср. время выполнения: {{ avg_prep_time }}
-        Макс. время: {{ max_prep_time }}
-        <div class="stat-cook-table-header">
-            <div class="stat-cook-name">
-                Имя повара
-            </div>
-            <div class="stat-cook-table-cell">
-                Количество заказов
-            </div>
-            <div class="stat-cook-table-cell">
-                Количество продуктов
-            </div>
-            <div class="stat-cook-table-cell">
-                Мин. время выполнения
-            </div>
-            <div class="stat-cook-table-cell">
-                Ср. время выполнения
-            </div>
-            <div class="stat-cook-table-cell">
-                Макс. время выполнения
-            </div>
-        </div>
-        {% for cook in cooks %}
-            <div class="stat-view-container">
-                <div class="stat-view" id="person-prod-cooked">
-                    <div class="stat-cook-name">
-                        {{ cook.person.user.first_name }} {{ cook.person.user.last_name }}
-                    </div>
-                    <div class="stat-cook-table-cell">
-                        {{ cook.prepared_orders_count }}
-                    </div>
-                    <div class="stat-cook-table-cell">
-                        {{ cook.prepared_products_count }}
-                    </div>
-                    <div class="stat-cook-table-cell">
-                        {{ cook.min_prep_time }}
-                    </div>
-                    <div class="stat-cook-table-cell">
-                        {{ cook.avg_prep_time }}
-                    </div>
-                    <div class="stat-cook-table-cell">
-                        {{ cook.max_prep_time }}
-                    </div>
+        <div class="stat-sect-container">
+            Всего заказов: {{ total_orders }}
+            Отмененных заказов: {{ canceled_orders }}
+            Мин. время выполнения: {{ min_prep_time }}
+            Ср. время выполнения: {{ avg_prep_time }}
+            Макс. время: {{ max_prep_time }}
+            <div class="stat-cook-table-header">
+                <div class="stat-cook-name">
+                    Имя повара
+                </div>
+                <div class="stat-cook-table-cell">
+                    Количество заказов
+                </div>
+                <div class="stat-cook-table-cell">
+                    Количество продуктов
+                </div>
+                <div class="stat-cook-table-cell">
+                    Мин. время выполнения
+                </div>
+                <div class="stat-cook-table-cell">
+                    Ср. время выполнения
+                </div>
+                <div class="stat-cook-table-cell">
+                    Макс. время выполнения
                 </div>
             </div>
-        {% endfor %}
-        <div class="stat-actions-container">
-            <button onclick="UpdateStatistics()">Обновить</button>
+            {% for cook in cooks %}
+                <div class="stat-view-container">
+                    <div class="stat-view" id="person-prod-cooked">
+                        <div class="stat-cook-name">
+                            {{ cook.person.user.first_name }} {{ cook.person.user.last_name }}
+                        </div>
+                        <div class="stat-cook-table-cell">
+                            {{ cook.prepared_orders_count }}
+                        </div>
+                        <div class="stat-cook-table-cell">
+                            {{ cook.prepared_products_count }}
+                        </div>
+                        <div class="stat-cook-table-cell">
+                            {{ cook.min_prep_time }}
+                        </div>
+                        <div class="stat-cook-table-cell">
+                            {{ cook.avg_prep_time }}
+                        </div>
+                        <div class="stat-cook-table-cell">
+                            {{ cook.max_prep_time }}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            <div class="stat-actions-container">
+                <button onclick="UpdateStatistics()">Обновить</button>
+            </div>
         </div>
-    </div>
 
     </div>
 {% endblock %}
