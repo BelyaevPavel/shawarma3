@@ -68,11 +68,6 @@
                     Доставка
                 </div>
                 <div class="section-content">
-                    <form method="post">
-                        {% csrf_token %}
-                        {{ delivery_order_form.as_p }}
-                        <input type="submit" value="Save">
-                    </form>
                 </div>
             </div>
         </div>

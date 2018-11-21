@@ -16,13 +16,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F, Sum, Q, ExpressionWrapper, DateTimeField
 from django.utils import timezone
+from django.core.mail import send_mail
+from threading import Thread
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, \
-    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL
+    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR
 from raven.contrib.django.raven_compat.models import client
 from random import sample
 from itertools import chain
+import time
 import requests
 import datetime
 import logging
@@ -520,11 +523,12 @@ class DeliveryView(View):
 
 
 def ats_listner(request):
-    tel = request.GET.get('tel', None)
+    tel = request.GET.get('queue_id', None)
     caller_id = request.GET.get('caller_id', None)
     call_uid = request.GET.get('uid', None)
     operator_id = request.GET.get('operator_id', None)
     event_code = request.GET.get('event_code', None)  # 1 - from_queue, 2 - accept_call, 3 - discarb_call
+    print("{} {} {} {} {}".format(tel, caller_id, call_uid, operator_id, event_code))
     if event_code is not None:
         try:
             event_code = int(event_code)
@@ -618,6 +622,8 @@ def redirection(request):
         return HttpResponseRedirect('menu')
     if staff_category.title == 'Operator':
         return HttpResponseRedirect('current_queue')
+    if staff_category.title == 'Administration':
+        return HttpResponseRedirect('statistics')
 
 
 def cook_pause(request):
@@ -625,6 +631,7 @@ def cook_pause(request):
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
     user = request.user
+
     try:
         staff = Staff.objects.get(user=user)
     except MultipleObjectsReturned:
@@ -648,6 +655,8 @@ def cook_pause(request):
         staff.available = False
         staff.service_point = None
         staff.save()
+
+        mail_subject = str(staff) + ' ушел на перерыв'
     else:
         try:
             last_pause = PauseTracker.objects.filter(staff=staff,
@@ -671,6 +680,11 @@ def cook_pause(request):
             staff.save()
         else:
             return JsonResponse(result)
+
+        mail_subject = str(staff) + ' начал работать'
+
+    Thread(target=send_email, args=(mail_subject, staff, device_ip)).start()
+    # send_email(mail_subject, staff, device_ip)
 
     data = {
         'success': True
@@ -2343,6 +2357,8 @@ def delivery_interface(request):
     utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_main.html')
     print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
+    staff = Staff.objects.get(user=request.user)
+    print("staff_id = {}".format(staff.id))
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
     deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today()).order_by(
@@ -3626,6 +3642,7 @@ def cancel_item(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def statistic_page(request):
     template = loader.get_template('shaw_queue/statistics.html')
     avg_preparation_time = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
@@ -3676,6 +3693,7 @@ def statistic_page(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def statistic_page_ajax(request):
     start_date = request.POST.get('start_date', None)
     start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
@@ -3768,6 +3786,7 @@ def statistic_page_ajax(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def opinion_statistics(request):
     template = loader.get_template('shaw_queue/opinion_statistics.html')
     avg_mark = OrderOpinion.objects.filter(post_time__contains=datetime.date.today()).values('mark').aggregate(
@@ -3789,6 +3808,7 @@ def opinion_statistics(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def opinion_statistics_ajax(request):
     start_date = request.POST.get('start_date', None)
     start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
@@ -3858,6 +3878,7 @@ def opinion_statistics_ajax(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def pause_statistic_page(request):
     template = loader.get_template('shaw_queue/pause_statistics.html')
     avg_duration_time = PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
@@ -3890,6 +3911,7 @@ def pause_statistic_page(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def pause_statistic_page_ajax(request):
     start_date = request.POST.get('start_date', None)
     if start_date is None or start_date == '':
@@ -4535,3 +4557,46 @@ def define_service_point(ip):
         client.captureException()
         return data
     return {'success': True, 'service_point': service_point}
+
+
+def get_queue_info(staff, device_ip):
+    result = define_service_point(device_ip)
+    if result['success']:
+        service_point = result['service_point']
+
+    text = 'Время события: ' + str(datetime.datetime.now())[:-7] + '\r\n' + \
+           'Место события: ' + str(service_point) + '\r\n\r\n'
+
+    cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                 service_point=service_point)
+    if len(cooks) == 0:
+        text += 'НЕТ АКТИВНЫХ ПОВАРОВ!'
+    else:
+        text += '|\t\t\t Повар \t\t\t|\t Заказов \t|\t Шаурмы \t|\r\n'
+
+    for cook in cooks:
+        cooks_order = Order.objects.filter(prepared_by=cook,
+                                           open_time__contains=datetime.date.today(),
+                                           is_canceled=False,
+                                           close_time__isnull=True,
+                                           is_ready=False).count()
+
+        cooks_order_content = OrderContent.objects.filter(order__prepared_by=cook,
+                                                      order__open_time__contains=datetime.date.today(),
+                                                      order__is_canceled=False,
+                                                      order__close_time__isnull=True,
+                                                      order__is_ready=False,
+                                                      menu_item__can_be_prepared_by__title__iexact='Cook').count()
+
+        text += '\t' + str(cook) + '\t\t\t\t\t' + str(cooks_order) + '\t\t\t\t\t' + str(cooks_order_content) +'\r\n'
+
+    return text
+
+
+def send_email(subject, staff, device_ip):
+    message = get_queue_info(staff, device_ip)
+
+    try:
+        send_mail(subject, message, SMTP_FROM_ADDR, [SMTP_TO_ADDR], fail_silently=False, auth_user=SMTP_LOGIN, auth_password=SMTP_PASSWORD)
+    except:
+        print('failed to send mail')

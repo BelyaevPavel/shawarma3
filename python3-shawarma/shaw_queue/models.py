@@ -175,6 +175,11 @@ class PauseTracker(models.Model):
     start_timestamp = models.DateTimeField(verbose_name="Start Timestamp", null=True)
     end_timestamp = models.DateTimeField(verbose_name="End Timestamp", null=True)
 
+    class Meta:
+        permissions = (
+            ('view_statistics', 'User can view statistics pages.'),
+        )
+
 
 class Printer(models.Model):
     title = models.CharField(max_length=20, default="")
