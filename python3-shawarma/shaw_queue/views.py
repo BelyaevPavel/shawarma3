@@ -527,7 +527,7 @@ def ats_listner(request):
     caller_id = request.GET.get('caller_id', None)
     call_uid = request.GET.get('uid', None)
     operator_id = request.GET.get('operator_id', None)
-    event_code = request.GET.get('event_code', None)  # 1 - from_queue, 2 - accept_call, 3 - discarb_call
+    event_code = request.GET.get('event_code', None)  # 1 - from_queue, 2 - call_manager_chose, 3 - accept, 4 - discarb
     print("{} {} {} {} {}".format(tel, caller_id, call_uid, operator_id, event_code))
     if event_code is not None:
         try:
@@ -540,25 +540,27 @@ def ats_listner(request):
             client.captureException()
             return HttpResponse('Wrong event code provided.')
 
-    if event_code < 1 and event_code > 3:
+    if event_code < 1 and event_code > 4:
         return HttpResponse('Wrong event code provided.')
 
-    if tel is not None and caller_id is not None and call_uid is not None and operator_id is not None and event_code is not None:
-        try:
-            customer = Customer.objects.get(phone_number=caller_id)
-        except Customer.DoesNotExist:
-            if event_code == 1:
-                customer = Customer(phone_number=caller_id)
+    if caller_id is not None and call_uid is not None and operator_id is not None and event_code is not None:
+        if event_code == 1:
+            try:  
+                customer = Customer.objects.get(phone_number=caller_id)   
+                print("Choosing customer {}".format(caller_id))
+            except Customer.DoesNotExist:
+                customer = Customer(phone_number=caller_id)        
+                print("Creating customer {}".format(caller_id))
                 customer.save()
-            else:
-                return HttpResponse('Failed to find customer.')
 
-        try:
-            call_manager = Staff.objects.get(pk=operator_id)
-        except Staff.DoesNotExist:
-            return HttpResponse('Failed to find call manager.')
+            try:
+                call_manager = Staff.objects.get(phone_number=operator_id)   
+                print("Choosing manager {}".format(operator_id))
+            except Staff.DoesNotExist:   
+                print("Failed to find manager {}".format(operator_id))
+                return HttpResponse('Failed to find call manager.')
 
-        if event_code == 2 or event_code == 3:
+        if event_code == 3 or event_code == 4:
             try:
                 call_data = CallData.objects.get(ats_id=call_uid)
             except CallData.DoesNotExist:
@@ -574,10 +576,12 @@ def ats_listner(request):
                 logger.error('Something wrong happened while searching call data for uid {}!'.format(call_uid))
                 return HttpResponse('Something wrong happened while searching call data.')
 
-            call_data.accepted = True
+            call_data.accepted = True        
+            print("Accepted {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
         else:
             call_data = CallData(ats_id=call_uid, timepoint=datetime.datetime.now(), customer=customer,
                                  call_manager=call_manager)
+            print("Created {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
 
         try:
             call_data.full_clean()
@@ -588,8 +592,8 @@ def ats_listner(request):
                 exception_messages += message
                 logger.error('Call data has not pass validation: {}'.format(message))
             return HttpResponse('Call data has not pass validation: {}'.format(exception_messages))
-
         call_data.save()
+        print("Saving {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
         return HttpResponse('Success')
     else:
         return HttpResponse('Fail')
@@ -598,8 +602,8 @@ def ats_listner(request):
 @login_required()
 def check_incoming_calls(request):
     call_manager = Staff.objects.get(user=request.user)
-    last_call = CallData.objects.filter(call_manager=call_manager, accepted=False,
-                                        timepoint__contains=datetime.date.today()).order_by('timepoint').last()
+    last_call = CallData.objects.filter(call_manager=call_manager, accepted=False).order_by('timepoint').last() # , accepted=False, timepoint__contains=datetime.date.today()
+    print(CallData.objects.filter(call_manager=call_manager).order_by('timepoint').last())
     if last_call is not None:
         data = {
             'success': True,
