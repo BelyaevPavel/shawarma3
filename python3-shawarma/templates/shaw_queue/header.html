@@ -66,6 +66,13 @@
                 </div>
             </a>
         {% endif %}
+        {% if staff_category.title == 'Administration' %}
+            <a href="{% url 'records_statistics' %}">
+                <div class="header-buttons" id="records_statistics_interface">
+                        Записи
+                </div>
+            </a>
+        {% endif %}
         <div class="header-who-logged" id="header-who-logged">
             {{ user.first_name }} {{ user.last_name }}
         </div>
