@@ -16,7 +16,8 @@ import psycopg2.extensions
 from .my_settings import login, password, db_name, allowed_hosts, debug_flag, listner_url, listner_port, printer_url, \
     raven_dsn, secret_key, server_1c_ip, server_1c_port, getlist_url, server_1c_user, server_1c_pass, order_url, \
     force_to_listner, debug_servery, return_url, carousel_img_dir, carousel_img_url, \
-    smtp_server, smtp_port, smtp_login, smtp_password, smtp_from_addr, smtp_to_addr
+    smtp_server, smtp_port, smtp_login, smtp_password, smtp_from_addr, smtp_to_addr, elastix_action, elastix_login, \
+    elastix_script, elastix_secret, elastix_server
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -231,6 +232,12 @@ SMTP_LOGIN = smtp_login
 SMTP_PASSWORD = smtp_password
 SMTP_FROM_ADDR = smtp_from_addr
 SMTP_TO_ADDR = smtp_to_addr
+
+ELASTIX_SERVER = elastix_server
+ELASTIX_SCRIPT = elastix_script
+ELASTIX_LOGIN = elastix_login
+ELASTIX_SECRET = elastix_secret
+ELASTIX_ACTION = elastix_action
 
 CAROUSEL_IMG_DIR = carousel_img_dir
 
