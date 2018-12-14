@@ -544,13 +544,14 @@ def ats_listner(request):
         return HttpResponse('Wrong event code provided.')
 
     if caller_id is not None and call_uid is not None and operator_id is not None and event_code is not None:
+        call_data = None
         if event_code == 1:
             try:  
-                customer = Customer.objects.get(phone_number=caller_id)   
-                print("Choosing customer {}".format(caller_id))
+                customer = Customer.objects.get(phone_number="+{}".format(caller_id))   
+                print("Choosing customer {}".format("+{}".format(caller_id)))
             except Customer.DoesNotExist:
-                customer = Customer(phone_number=caller_id)        
-                print("Creating customer {}".format(caller_id))
+                customer = Customer(phone_number="+{}".format(caller_id))        
+                print("Creating customer {}".format("+{}".format(caller_id)))
                 customer.save()
 
             try:
@@ -559,6 +560,9 @@ def ats_listner(request):
             except Staff.DoesNotExist:   
                 print("Failed to find manager {}".format(operator_id))
                 return HttpResponse('Failed to find call manager.')
+            call_data = CallData(ats_id=call_uid, timepoint=datetime.datetime.now(), customer=customer,
+                                 call_manager=call_manager)
+            print("Created {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
 
         if event_code == 3 or event_code == 4:
             try:
@@ -575,26 +579,26 @@ def ats_listner(request):
                 client.captureException()
                 logger.error('Something wrong happened while searching call data for uid {}!'.format(call_uid))
                 return HttpResponse('Something wrong happened while searching call data.')
+            if call_data is not None:
+                call_data.accepted = True        
+                print("Accepted {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
 
-            call_data.accepted = True        
-            print("Accepted {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
+        if call_data is not None:
+            try:
+                call_data.full_clean()
+            except ValidationError as e:
+                client.captureException()
+                exception_messages = ""
+                for message in e.messages:
+                    exception_messages += message
+                    logger.error('Call data has not pass validation: {}'.format(message))
+                return HttpResponse('Call data has not pass validation: {}'.format(exception_messages))
+            call_data.save()
+            print("Saving {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
+            return HttpResponse('Success')
         else:
-            call_data = CallData(ats_id=call_uid, timepoint=datetime.datetime.now(), customer=customer,
-                                 call_manager=call_manager)
-            print("Created {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
+            return HttpResponse('Fail')
 
-        try:
-            call_data.full_clean()
-        except ValidationError as e:
-            client.captureException()
-            exception_messages = ""
-            for message in e.messages:
-                exception_messages += message
-                logger.error('Call data has not pass validation: {}'.format(message))
-            return HttpResponse('Call data has not pass validation: {}'.format(exception_messages))
-        call_data.save()
-        print("Saving {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
-        return HttpResponse('Success')
     else:
         return HttpResponse('Fail')
 
@@ -602,8 +606,8 @@ def ats_listner(request):
 @login_required()
 def check_incoming_calls(request):
     call_manager = Staff.objects.get(user=request.user)
-    last_call = CallData.objects.filter(call_manager=call_manager, accepted=False).order_by('timepoint').last() # , accepted=False, timepoint__contains=datetime.date.today()
-    print(CallData.objects.filter(call_manager=call_manager).order_by('timepoint').last())
+    last_call = CallData.objects.filter(call_manager=call_manager, accepted=False).order_by('-timepoint').last() # , accepted=False, timepoint__contains=datetime.date.today()
+    print(last_call)
     if last_call is not None:
         data = {
             'success': True,
