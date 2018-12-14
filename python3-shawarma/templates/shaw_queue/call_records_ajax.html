@@ -1,0 +1,61 @@
+<div class="stat-sect-container">
+    Всего звонков: {{ total_calls }}
+    Мин. продолжительность: {{ min_duration }}
+    Ср. продолжительность: {{ avg_duration }}
+    Макс. продолжительность: {{ max_duration }}
+    <div class="stat-cook-table-header">
+        <div class="stat-opinion-order-datetime">
+            Менеджер
+        </div>
+        <div class="stat-opinion-daily-number">
+            Клиент
+        </div>
+        <div class="stat-opinion-note">
+            Дата-время
+        </div>
+        <div class="stat-opinion-mark">
+            Продолжительность
+        </div>
+        <div class="stat-opinion-mark">
+            Запись
+        </div>
+    </div>
+    {% for staff_records in records_info %}
+        <div class="stat-view-container">
+            <div class="pause-cook-section">
+                {{ staff_records.call_manager }}
+            </div>
+            {% for record in staff_records.records %}
+                <div class="stat-view" id="call-{{ forloop.counter }}">
+                    <div class="stat-opinion-order-datetime">
+                        {{ record.call_manager }}
+                    </div>
+                    <div class="stat-opinion-daily-number">
+                        {{ record.customer }}
+                    </div>
+                    <div class="stat-opinion-note">
+                        {{ record.timepoint }}
+                    </div>
+                    <div class="stat-opinion-mark">
+                        {{ record.duration }}
+                    </div>
+                    <div class="stat-opinion-mark">
+                        <audio controls id="speaker-0">
+                            <source src="{{ record.record }}" type="audio/ogg">
+                        </audio>
+                    </div>
+                </div>
+            {% empty %}
+                There is no pauses.
+            {% endfor %}
+            <div class="pause-total-section">
+                Total: {{ staff_records.total_duration.duration }}
+            </div>
+        </div>
+    {% empty %}
+        No cooks.
+    {% endfor %}
+    <div class="stat-actions-container">
+        <button onclick="UpdateStatistics()">Обновить</button>
+    </div>
+</div>

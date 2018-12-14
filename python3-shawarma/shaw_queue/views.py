@@ -555,9 +555,9 @@ def ats_listner(request):
                 customer.save()
 
             try:
-                call_manager = Staff.objects.get(phone_number=operator_id)   
+                call_manager = Staff.objects.get(phone_number=operator_id)
                 print("Choosing manager {}".format(operator_id))
-            except Staff.DoesNotExist:   
+            except Staff.DoesNotExist:
                 print("Failed to find manager {}".format(operator_id))
                 return HttpResponse('Failed to find call manager.')
             call_data = CallData(ats_id=call_uid, timepoint=datetime.datetime.now(), customer=customer,
@@ -583,6 +583,7 @@ def ats_listner(request):
                 call_data.accepted = True        
                 print("Accepted {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
 
+<<<<<<< HEAD
         if call_data is not None:
             try:
                 call_data.full_clean()
@@ -598,7 +599,6 @@ def ats_listner(request):
             return HttpResponse('Success')
         else:
             return HttpResponse('Fail')
-
     else:
         return HttpResponse('Fail')
 
@@ -608,6 +608,7 @@ def check_incoming_calls(request):
     call_manager = Staff.objects.get(user=request.user)
     last_call = CallData.objects.filter(call_manager=call_manager, accepted=False).order_by('-timepoint').last() # , accepted=False, timepoint__contains=datetime.date.today()
     print(last_call)
+
     if last_call is not None:
         data = {
             'success': True,
@@ -630,8 +631,8 @@ def redirection(request):
         return HttpResponseRedirect('menu')
     if staff_category.title == 'Operator':
         return HttpResponseRedirect('current_queue')
-    # if staff_category.title == 'Administration':
-    #     return HttpResponseRedirect('statistics')
+        # if staff_category.title == 'Administration':
+        #     return HttpResponseRedirect('statistics')
 
 
 def cook_pause(request):
@@ -4022,6 +4023,154 @@ def pause_statistic_page_ajax(request):
     return JsonResponse(data=data)
 
 
+#@login_required()
+#@permission_required('shaw_queue.view_statistics')
+def call_record_page(request):
+    template = loader.get_template('shaw_queue/call_records.html')
+    try:
+        avg_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'duration').aggregate(duration_avg=Avg('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении средней продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        min_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values('duration').aggregate(
+        duration_min=Min('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении минимальной продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        max_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values('duration').aggregate(
+        duration_max=Max('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении максимальной продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cashier')
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        return JsonResponse(data)
+
+    context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'total_records': len(CallData.objects.filter(timepoint__contains=datetime.date.today())),
+        'avg_duration': str(avg_duration_time['duration_avg']).split('.', 2)[0],
+        'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
+        'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
+        'records_info': [{
+                           'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                     call_manager=staff).aggregate(duration=Sum('duration')),
+                           'call_manager': staff,
+                           'records': [{
+                                          'call_manager': record.call_manager,
+                                          'customer': record.customer,
+                                          'timepoint': str(record.timepoint).split('.', 2)[0],
+                                          'duration': str(record.duration).split('.', 2)[0],
+                                          'record_url': record.record
+                                      }
+                                      for record in CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                            call_manager=staff).order_by('timepoint')]
+                       } for staff in engaged_staff]
+    }
+    return HttpResponse(template.render(context, request))
+
+
+#@login_required()
+#@permission_required('shaw_queue.view_statistics')
+def call_record_page_ajax(request):
+    start_date = request.POST.get('start_date', None)
+    if start_date is None or start_date == '':
+        start_date_conv = datetime.datetime.today()
+    else:
+        start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+
+    end_date = request.POST.get('end_date', None)
+    if end_date is None or end_date == '':
+        end_date_conv = datetime.datetime.today()
+    else:
+        end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+    template = loader.get_template('shaw_queue/call_records_ajax.html')
+    try:
+        avg_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'duration').aggregate(duration_avg=Avg('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении средней продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        min_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values('duration').aggregate(
+        duration_min=Min('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении минимальной продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        max_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values('duration').aggregate(
+        duration_max=Max('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении максимальной продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cashier')
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        return JsonResponse(data)
+
+    context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'total_records': len(CallData.objects.filter(timepoint__contains=datetime.date.today())),
+        'avg_duration': str(avg_duration_time['duration_avg']).split('.', 2)[0],
+        'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
+        'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
+        'records_info': [{
+                           'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                     call_manager=staff).aggregate(duration=Sum('duration')),
+                           'call_manager': staff,
+                           'records': [{
+                                          'call_manager': record.call_manager,
+                                          'customer': record.customer,
+                                          'timepoint': str(record.timepoint).split('.', 2)[0],
+                                          'duration': str(record.duration).split('.', 2)[0],
+                                          'record_url': record.record
+                                      }
+                                      for record in CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                            call_manager=staff).order_by('timepoint')]
+                       } for staff in engaged_staff]
+    }
+    data = {
+        'html': template.render(context, request)
+    }
+    return JsonResponse(data=data)
+
+
 def prepare_json_check(order):
     aux_query = OrderContent.objects.filter(order=order).values('menu_item__title', 'menu_item__guid_1c',
                                                                 'menu_item__price', 'order__paid_with_cash').annotate(
@@ -4590,13 +4739,13 @@ def get_queue_info(staff, device_ip):
                                            is_ready=False).count()
 
         cooks_order_content = OrderContent.objects.filter(order__prepared_by=cook,
-                                                      order__open_time__contains=datetime.date.today(),
-                                                      order__is_canceled=False,
-                                                      order__close_time__isnull=True,
-                                                      order__is_ready=False,
-                                                      menu_item__can_be_prepared_by__title__iexact='Cook').count()
+                                                          order__open_time__contains=datetime.date.today(),
+                                                          order__is_canceled=False,
+                                                          order__close_time__isnull=True,
+                                                          order__is_ready=False,
+                                                          menu_item__can_be_prepared_by__title__iexact='Cook').count()
 
-        text += '\t' + str(cook) + '\t\t\t\t\t' + str(cooks_order) + '\t\t\t\t\t' + str(cooks_order_content) +'\r\n'
+        text += '\t' + str(cook) + '\t\t\t\t\t' + str(cooks_order) + '\t\t\t\t\t' + str(cooks_order_content) + '\r\n'
 
     return text
 
@@ -4605,6 +4754,7 @@ def send_email(subject, staff, device_ip):
     message = get_queue_info(staff, device_ip)
 
     try:
-        send_mail(subject, message, SMTP_FROM_ADDR, [SMTP_TO_ADDR], fail_silently=False, auth_user=SMTP_LOGIN, auth_password=SMTP_PASSWORD)
+        send_mail(subject, message, SMTP_FROM_ADDR, [SMTP_TO_ADDR], fail_silently=False, auth_user=SMTP_LOGIN,
+                  auth_password=SMTP_PASSWORD)
     except:
         print('failed to send mail')
