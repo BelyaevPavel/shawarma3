@@ -13,13 +13,16 @@ class Command(BaseCommand):
     #     parser.add_argument('poll_id', nargs='+', type=int)
 
     def handle(self, *args, **options):
-        # https://192.168.20.25/queue.php?_login=amiuser&_secret=amipass33&_action=cdr
+        original_prefix = '/var/spool/asterisk/monitor'
+        substitute_prefix = 'https://192.168.20.25/rec/monitor'
         result = None
         try:
-            self.stdout.write('Requesting records from {}'.format('http://' + ELASTIX_SERVER + '/' + ELASTIX_SCRIPT))
-            result = requests.get('http://' + ELASTIX_SERVER + '/' + ELASTIX_SCRIPT,
+            self.stdout.write('Requesting records from {}'.format('https://' + ELASTIX_SERVER + '/' + ELASTIX_SCRIPT+'?'+'_login='+ ELASTIX_LOGIN+ '&_secret='+ ELASTIX_SECRET+
+                                          '&_action='+ ELASTIX_ACTION))
+            result = requests.get('https://' + ELASTIX_SERVER + '/' + ELASTIX_SCRIPT,
                                   params={'_login': ELASTIX_LOGIN, '_secret': ELASTIX_SECRET,
-                                          '_action': ELASTIX_ACTION})
+                                          '_action': ELASTIX_ACTION}, verify=False)
+            print("{}".format(result.url))
             result.raise_for_status()
             self.stdout.write(self.style.SUCCESS('Records requested successfully!'))
         except Timeout:
@@ -55,12 +58,14 @@ class Command(BaseCommand):
                     self.stderr.write(self.style.ERROR('Нет uniqueid в ответе Elastix!'))
                     client.captureException()
                 except CallData.DoesNotExist:
-                    self.stderr.write(self.style.ERROR('Нет CallData c ats id == {}!'.format(record['uniqueid'])))
-                    client.captureException()
+                    # self.stderr.write(self.style.ERROR('Нет CallData c ats id == {}!'.format(record['uniqueid'])))
+                    # client.captureException()
+                    continue
 
                 try:
-                    if call.record == "Record path not set":
-                        call.record = record['recordingfile']
+                    record_url = substitute_prefix+(record['recordingfile'])[len(original_prefix):]
+                    if call.record == "Record path not set" or call.record != record_url:
+                        call.record = record_url
                         call.save()
                 except KeyError:
                     self.stderr.write(self.style.ERROR('Нет recordingfile в ответе Elastix!'))
