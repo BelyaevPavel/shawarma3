@@ -568,7 +568,6 @@ def ats_listner(request):
             try:
                 call_data = CallData.objects.get(ats_id=call_uid)
             except CallData.DoesNotExist:
-                client.captureException()
                 logger.error('Failed to find call data for uid {}!'.format(call_uid))
                 return HttpResponse('Failed to find call data.')
             except CallData.MultipleObjectsReturned:
@@ -4086,6 +4085,11 @@ def call_record_page(request):
                                                                             call_manager=staff).order_by('timepoint')]
                        } for staff in engaged_staff]
     }
+    for index, info in enumerate(context['records_info']):    
+        if len(info['records'])==0:
+            print("To remove {}".format(info['call_manager']))
+            context['records_info'].remove(info)
+            print("after removal {}".format(len(context['records_info'])))
     return HttpResponse(template.render(context, request))
 
 
@@ -4164,6 +4168,11 @@ def call_record_page_ajax(request):
                                                                             call_manager=staff).order_by('timepoint')]
                        } for staff in engaged_staff]
     }
+    for index, info in enumerate(context['records_info']):
+        if len(info['records'])==0:
+            print("To remove {}".format(info['call_manager']))
+            context['records_info'].remove(info)
+            print("after removal {}".format(len(context['records_info'])))
     data = {
         'html': template.render(context, request)
     }

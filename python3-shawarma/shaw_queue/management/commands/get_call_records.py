@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         original_prefix = '/var/spool/asterisk/monitor'
-        substitute_prefix = 'https://192.168.20.25/rec/monitor'
+        substitute_prefix = '//192.168.20.25/rec/monitor'
         result = None
         try:
             self.stdout.write('Requesting records from {}'.format('https://' + ELASTIX_SERVER + '/' + ELASTIX_SCRIPT+'?'+'_login='+ ELASTIX_LOGIN+ '&_secret='+ ELASTIX_SECRET+
