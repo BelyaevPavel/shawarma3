@@ -992,11 +992,12 @@ div.stat-opinion-daily-number {
 div.stat-opinion-note {
 
     min-width: 10%;
-    width: 55%;
+    width: 25%;
     max-width: 55%;
     font-size: medium;
     float: left;
     text-align: center;
+    overflow-y: auto;
 }
 
 div.stat-opinion-mark {

@@ -21,7 +21,7 @@ from threading import Thread
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, \
-    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR
+    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR, TIME_ZONE
 from raven.contrib.django.raven_compat.models import client
 from random import sample
 from itertools import chain
@@ -540,17 +540,17 @@ def ats_listner(request):
             client.captureException()
             return HttpResponse('Wrong event code provided.')
 
-    if event_code < 1 and event_code > 4:
+    if 1 > event_code > 4:
         return HttpResponse('Wrong event code provided.')
 
     if caller_id is not None and call_uid is not None and operator_id is not None and event_code is not None:
         call_data = None
         if event_code == 1:
-            try:  
-                customer = Customer.objects.get(phone_number="+{}".format(caller_id))   
+            try:
+                customer = Customer.objects.get(phone_number="+{}".format(caller_id))
                 print("Choosing customer {}".format("+{}".format(caller_id)))
             except Customer.DoesNotExist:
-                customer = Customer(phone_number="+{}".format(caller_id))        
+                customer = Customer(phone_number="+{}".format(caller_id))
                 print("Creating customer {}".format("+{}".format(caller_id)))
                 customer.save()
 
@@ -560,16 +560,18 @@ def ats_listner(request):
             except Staff.DoesNotExist:
                 print("Failed to find manager {}".format(operator_id))
                 return HttpResponse('Failed to find call manager.')
-            call_data = CallData(ats_id=call_uid, timepoint=datetime.datetime.now(), customer=customer,
+            call_data = CallData(ats_id=call_uid, timepoint=timezone.now(), customer=customer,
                                  call_manager=call_manager)
-            print("Created {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
+            print("Created {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,
+                                               call_data.call_manager))
 
         if event_code == 3 or event_code == 4:
             try:
                 call_data = CallData.objects.get(ats_id=call_uid)
             except CallData.DoesNotExist:
-                logger.error('Failed to find call data for uid {}!'.format(call_uid))
-                return HttpResponse('Failed to find call data.')
+                if not (event_code == 4 and tel == "s"):
+                    logger.error('Failed to find call data for uid {}!'.format(call_uid))
+                    return HttpResponse('Failed to find call data.')
             except CallData.MultipleObjectsReturned:
                 client.captureException()
                 logger.error('Multiple call records returned for uid {}!'.format(call_uid))
@@ -579,8 +581,9 @@ def ats_listner(request):
                 logger.error('Something wrong happened while searching call data for uid {}!'.format(call_uid))
                 return HttpResponse('Something wrong happened while searching call data.')
             if call_data is not None:
-                call_data.accepted = True        
-                print("Accepted {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
+                call_data.accepted = True
+                print("Accepted {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,
+                                                    call_data.call_manager))
 
         if call_data is not None:
             try:
@@ -593,7 +596,8 @@ def ats_listner(request):
                     logger.error('Call data has not pass validation: {}'.format(message))
                 return HttpResponse('Call data has not pass validation: {}'.format(exception_messages))
             call_data.save()
-            print("Saving {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer, call_data.call_manager))
+            print("Saving {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,
+                                              call_data.call_manager))
             return HttpResponse('Success')
         else:
             return HttpResponse('Fail')
@@ -604,7 +608,8 @@ def ats_listner(request):
 @login_required()
 def check_incoming_calls(request):
     call_manager = Staff.objects.get(user=request.user)
-    last_call = CallData.objects.filter(call_manager=call_manager, accepted=False).order_by('-timepoint').last() # , accepted=False, timepoint__contains=datetime.date.today()
+    last_call = CallData.objects.filter(call_manager=call_manager, accepted=False).order_by(
+        '-timepoint').last()  # , accepted=False, timepoint__contains=datetime.date.today()
     print(last_call)
 
     if last_call is not None:
@@ -4021,8 +4026,8 @@ def pause_statistic_page_ajax(request):
     return JsonResponse(data=data)
 
 
-#@login_required()
-#@permission_required('shaw_queue.view_statistics')
+# @login_required()
+# @permission_required('shaw_queue.view_statistics')
 def call_record_page(request):
     template = loader.get_template('shaw_queue/call_records.html')
     try:
@@ -4036,8 +4041,9 @@ def call_record_page(request):
         return JsonResponse(data)
 
     try:
-        min_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values('duration').aggregate(
-        duration_min=Min('duration'))
+        min_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'duration').aggregate(
+            duration_min=Min('duration'))
     except:
         data = {
             'success': False,
@@ -4046,8 +4052,9 @@ def call_record_page(request):
         return JsonResponse(data)
 
     try:
-        max_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values('duration').aggregate(
-        duration_max=Max('duration'))
+        max_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'duration').aggregate(
+            duration_max=Max('duration'))
     except:
         data = {
             'success': False,
@@ -4071,30 +4078,32 @@ def call_record_page(request):
         'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
         'records_info': [{
-                           'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
-                                                                     call_manager=staff).aggregate(duration=Sum('duration')),
-                           'call_manager': staff,
-                           'records': [{
-                                          'call_manager': record.call_manager,
-                                          'customer': record.customer,
-                                          'timepoint': str(record.timepoint).split('.', 2)[0],
-                                          'duration': str(record.duration).split('.', 2)[0],
-                                          'record_url': record.record
-                                      }
-                                      for record in CallData.objects.filter(timepoint__contains=datetime.date.today(),
-                                                                            call_manager=staff).order_by('timepoint')]
-                       } for staff in engaged_staff]
+                             'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                       call_manager=staff).aggregate(
+                                 duration=Sum('duration')),
+                             'call_manager': staff,
+                             'records': [{
+                                             'call_manager': record.call_manager,
+                                             'customer': record.customer,
+                                             'timepoint': record.timepoint,
+                                             'duration': str(record.duration).split('.', 2)[0],
+                                             'record_url': record.record
+                                         }
+                                         for record in
+                                         CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                 call_manager=staff).order_by('timepoint')]
+                         } for staff in engaged_staff]
     }
-    for index, info in enumerate(context['records_info']):    
-        if len(info['records'])==0:
+    for index, info in enumerate(context['records_info']):
+        if len(info['records']) == 0:
             print("To remove {}".format(info['call_manager']))
             context['records_info'].remove(info)
             print("after removal {}".format(len(context['records_info'])))
     return HttpResponse(template.render(context, request))
 
 
-#@login_required()
-#@permission_required('shaw_queue.view_statistics')
+# @login_required()
+# @permission_required('shaw_queue.view_statistics')
 def call_record_page_ajax(request):
     start_date = request.POST.get('start_date', None)
     if start_date is None or start_date == '':
@@ -4120,7 +4129,7 @@ def call_record_page_ajax(request):
 
     try:
         min_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv).values('duration').aggregate(
-        duration_min=Min('duration'))
+            duration_min=Min('duration'))
     except:
         data = {
             'success': False,
@@ -4130,7 +4139,7 @@ def call_record_page_ajax(request):
 
     try:
         max_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv).values('duration').aggregate(
-        duration_max=Max('duration'))
+            duration_max=Max('duration'))
     except:
         data = {
             'success': False,
@@ -4154,22 +4163,24 @@ def call_record_page_ajax(request):
         'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
         'records_info': [{
-                           'total_duration': CallData.objects.filter(timepoint__gte=start_date_conv,
-                                                                     call_manager=staff).aggregate(duration=Sum('duration')),
-                           'call_manager': staff,
-                           'records': [{
-                                          'call_manager': record.call_manager,
-                                          'customer': record.customer,
-                                          'timepoint': str(record.timepoint).split('.', 2)[0],
-                                          'duration': str(record.duration).split('.', 2)[0],
-                                          'record_url': record.record
-                                      }
-                                      for record in CallData.objects.filter(timepoint__gte=start_date_conv,
-                                                                            call_manager=staff).order_by('timepoint')]
-                       } for staff in engaged_staff]
+                             'total_duration': CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                                       call_manager=staff).aggregate(
+                                 duration=Sum('duration')),
+                             'call_manager': staff,
+                             'records': [{
+                                             'call_manager': record.call_manager,
+                                             'customer': record.customer,
+                                             'timepoint': record.timepoint,
+                                             'duration': str(record.duration).split('.', 2)[0],
+                                             'record_url': record.record
+                                         }
+                                         for record in CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                                               call_manager=staff).order_by(
+                                     'timepoint')]
+                         } for staff in engaged_staff]
     }
     for index, info in enumerate(context['records_info']):
-        if len(info['records'])==0:
+        if len(info['records']) == 0:
             print("To remove {}".format(info['call_manager']))
             context['records_info'].remove(info)
             print("after removal {}".format(len(context['records_info'])))

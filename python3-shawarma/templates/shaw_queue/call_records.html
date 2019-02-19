@@ -9,12 +9,14 @@
     </script>
 {% endblock %}
 {% block content %}
+    {% load tz %}
     <input hidden id="urls" data-update-statistics-url="{% url 'update_records_statistics' %}">
     <div class="stat-controls">
         <label for="datetimepicker1">От:</label>
         <input type="text" id="datetimepicker1"/>
         <label for="datetimepicker2">До:</label>
         <input type="text" id="datetimepicker2"/>
+        <button onclick="UpdateStatistics()">Обновить</button>
     </div>
     <div id="statistics-content">
         <div class="stat-sect-container">
@@ -53,7 +55,7 @@
                                 {{ record.customer }}
                             </div>
                             <div class="stat-opinion-note">
-                                {{ record.timepoint }}
+                                {{ record.timepoint|timezone:'Asia/Yekaterinburg' }}
                             </div>
                             <div class="stat-opinion-mark">
                                 {{ record.duration }}

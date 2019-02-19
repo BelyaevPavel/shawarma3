@@ -1,3 +1,4 @@
+{% load tz %}
 <div class="stat-sect-container">
     Всего звонков: {{ total_calls }}
     Мин. продолжительность: {{ min_duration }}
@@ -34,7 +35,7 @@
                         {{ record.customer }}
                     </div>
                     <div class="stat-opinion-note">
-                        {{ record.timepoint }}
+                        {{ record.timepoint|timezone:'Asia/Yekaterinburg' }}
                     </div>
                     <div class="stat-opinion-mark">
                         {{ record.duration }}
