@@ -4644,7 +4644,7 @@ def status_refresher(request):
                 if order.status_1c == 397:
                     data = {
                         'success': True,
-                        'message': 'Произошла ошибка при оплате! Заказ удалён! Вы можете повторить попытку!',
+                        'message': 'Нет соединеня с терминалом! Заказ удалён! Вы можете повторить попытку!',
                         'daily_number': order.daily_number,
                         'status': order.status_1c,
                         'guid': order.guid_1c
@@ -4655,7 +4655,7 @@ def status_refresher(request):
                     if order.status_1c == 396:
                         data = {
                             'success': True,
-                            'message': 'Произошла ошибка при печати чека! Заказ удалён! Вы можете повторить попытку!',
+                            'message': 'Экваеринговая операция не проведена! Заказ удалён! Вы можете повторить попытку!',
                             'daily_number': order.daily_number,
                             'status': order.status_1c,
                             'guid': order.guid_1c
@@ -4663,16 +4663,87 @@ def status_refresher(request):
                         order.delete()
                         return JsonResponse(data)
                     else:
-                        data = {
-                            'success': True,
-                            'message': '1С вернула статус {}! Заказ удалён! Вы можете повторить попытку!'.format(
-                                order.status_1c),
-                            'daily_number': order.daily_number,
-                            'status': order.status_1c,
-                            'guid': order.guid_1c
-                        }
-                        order.delete()
-                        return JsonResponse(data)
+                        if order.status_1c == 395:
+                            data = {
+                                'success': True,
+                                'message': 'Чек безнличного расчёта не распечатан! Отмена оплаты прошла успешно! '
+                                           'Заказ удалён! Вы можете повторить попытку!',
+                                'daily_number': order.daily_number,
+                                'status': order.status_1c,
+                                'guid': order.guid_1c
+                            }
+                            order.delete()
+                            return JsonResponse(data)
+                        else:
+                            if order.status_1c == 394:
+                                data = {
+                                    'success': True,
+                                    'message': 'Чек безнличного расчёта не распечатан! Отмена оплаты прошла неудачно! '
+                                               'Заказ удалён! Вы можете повторить попытку!',
+                                    'daily_number': order.daily_number,
+                                    'status': order.status_1c,
+                                    'guid': order.guid_1c
+                                }
+                                order.delete()
+                                return JsonResponse(data)
+                            else:
+                                if order.status_1c == 393:
+                                    data = {
+                                        'success': True,
+                                        'message': 'Чек не распечатан, но оплата прошла успешно! Заказ удалён! Вы '
+                                                   'можете повторить попытку!',
+                                        'daily_number': order.daily_number,
+                                        'status': order.status_1c,
+                                        'guid': order.guid_1c
+                                    }
+                                    order.delete()
+                                    return JsonResponse(data)
+                                else:
+                                    if order.status_1c == 392:
+                                        data = {
+                                            'success': True,
+                                            'message': 'Чек не записан в 1С!',
+                                            'daily_number': order.daily_number,
+                                            'status': order.status_1c,
+                                            'guid': order.guid_1c
+                                        }
+                                        order.delete()
+                                        return JsonResponse(data)
+                                    else:
+                                        if order.status_1c == 391:
+                                            data = {
+                                                'success': True,
+                                                'message': 'На карте нет средств! Заказ удалён! '
+                                                           'Вы можете повторить попытку!',
+                                                'daily_number': order.daily_number,
+                                                'status': order.status_1c,
+                                                'guid': order.guid_1c
+                                            }
+                                            order.delete()
+                                            return JsonResponse(data)
+                                        else:
+                                            if order.status_1c == 390:
+                                                data = {
+                                                    'success': True,
+                                                    'message': 'Проблемы с картой клиента! Заказ удалён! Вы можете '
+                                                               'повторить попытку!',
+                                                    'daily_number': order.daily_number,
+                                                    'status': order.status_1c,
+                                                    'guid': order.guid_1c
+                                                }
+                                                order.delete()
+                                                return JsonResponse(data)
+                                            else:
+                                                data = {
+                                                    'success': True,
+                                                    'message': '1С вернула статус {}! Заказ удалён! Вы можете '
+                                                               'повторить попытку!'.format(order.status_1c),
+                                                    'daily_number': order.daily_number,
+                                                    'status': order.status_1c,
+                                                    'guid': order.guid_1c
+                                                }
+                                                order.delete()
+                                                return JsonResponse(data)
     else:
         data = {
             'success': False,
