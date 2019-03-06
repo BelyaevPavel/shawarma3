@@ -4063,7 +4063,17 @@ def call_record_page(request):
         return JsonResponse(data)
 
     try:
-        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cashier')
+        call_managers = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'call_manager__user').distinct('call_manager__user')
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        return JsonResponse(data)
+
+    try:
+        engaged_staff = Staff.objects.filter(user__in=call_managers)
     except:
         data = {
             'success': False,
@@ -4118,7 +4128,8 @@ def call_record_page_ajax(request):
         end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
     template = loader.get_template('shaw_queue/call_records_ajax.html')
     try:
-        avg_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv).values(
+        avg_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                    timepoint__lte=end_date_conv).values(
             'duration').aggregate(duration_avg=Avg('duration'))
     except:
         data = {
@@ -4128,7 +4139,8 @@ def call_record_page_ajax(request):
         return JsonResponse(data)
 
     try:
-        min_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv).values('duration').aggregate(
+        min_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                    timepoint__lte=end_date_conv).values('duration').aggregate(
             duration_min=Min('duration'))
     except:
         data = {
@@ -4138,7 +4150,8 @@ def call_record_page_ajax(request):
         return JsonResponse(data)
 
     try:
-        max_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv).values('duration').aggregate(
+        max_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                    timepoint__lte=end_date_conv).values('duration').aggregate(
             duration_max=Max('duration'))
     except:
         data = {
@@ -4148,7 +4161,17 @@ def call_record_page_ajax(request):
         return JsonResponse(data)
 
     try:
-        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cashier')
+        call_managers = CallData.objects.filter(timepoint__gte=start_date_conv, timepoint__lte=end_date_conv).values(
+            'call_manager__user').distinct('call_manager__user')
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        return JsonResponse(data)
+
+    try:
+        engaged_staff = Staff.objects.filter(user__in=call_managers)
     except:
         data = {
             'success': False,
@@ -4158,12 +4181,13 @@ def call_record_page_ajax(request):
 
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
-        'total_records': len(CallData.objects.filter(timepoint__gte=start_date_conv)),
+        'total_records': len(CallData.objects.filter(timepoint__gte=start_date_conv, timepoint__lte=end_date_conv)),
         'avg_duration': str(avg_duration_time['duration_avg']).split('.', 2)[0],
         'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
         'records_info': [{
                              'total_duration': CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                                       timepoint__lte=end_date_conv,
                                                                        call_manager=staff).aggregate(
                                  duration=Sum('duration')),
                              'call_manager': staff,
@@ -4175,6 +4199,7 @@ def call_record_page_ajax(request):
                                              'record_url': record.record
                                          }
                                          for record in CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                                               timepoint__lte=end_date_conv,
                                                                                call_manager=staff).order_by(
                                      'timepoint')]
                          } for staff in engaged_staff]
