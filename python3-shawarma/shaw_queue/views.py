@@ -4182,7 +4182,7 @@ def call_record_page_ajax(request):
     for index, info in enumerate(context['records_info']):
         if len(info['records']) == 0:
             print("To remove {}".format(info['call_manager']))
-            context['records_info'].remove(info)
+            del context['records_info'][index]
             print("after removal {}".format(len(context['records_info'])))
     data = {
         'html': template.render(context, request)
