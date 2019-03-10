@@ -179,15 +179,32 @@ function StatusRefresher(guid) {
                                 }, 1000);
                                 break;
                             case 397:
-                                OK.prop('disabled', true);
-                                cancel.prop('disabled', false);
-                                retry.prop('disabled', false);
-                                retry_cash.show();
-                                break;
                             case 396:
+                            case 395:
+                            case 394:
+                            case 393:
+                            case 391:
+                            case 390:
                                 OK.prop('disabled', true);
                                 cancel.prop('disabled', false);
                                 retry.prop('disabled', false);
+                                if (payment_choose.val() != "paid_with_cash")
+                                    retry_cash.show();
+                                break;
+                            // case 396:
+                            //     OK.prop('disabled', true);
+                            //     cancel.prop('disabled', false);
+                            //     retry.prop('disabled', false);
+                            //     break;
+                            case 392:
+                                if (payment_choose == "paid_with_cash")
+                                    status.text('Заказ №' + data.daily_number + '. ' + data['message']+ ' Введите полученную сумму, отдайте клиенту сдачу и нажмите ОК');
+                                else
+                                    status.text('Заказ №' + data.daily_number + '. ' + data['message']+ ' проведён в 1С! Операция безналичного расчёта завершена успешно! Нажмите ОК');
+                                OK.prop('disabled', false);
+                                cancel.prop('disabled', true);
+                                retry.prop('disabled', true);
+                                OK.focus();
                                 break;
                             case 200:
                                 if (payment_choose.val() == "paid_with_cash")
