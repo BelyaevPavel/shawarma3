@@ -4207,7 +4207,7 @@ def call_record_page_ajax(request):
     for index, info in enumerate(context['records_info']):
         if len(info['records']) == 0:
             print("To remove {}".format(info['call_manager']))
-            context['records_info'].remove(info)
+            del context['records_info'][index]
             print("after removal {}".format(len(context['records_info'])))
     data = {
         'html': template.render(context, request)
@@ -4590,6 +4590,7 @@ def recive_1c_order_status(request):
     result = json.loads(request.body.decode('utf-8'))
     order_guid = result['GUID']
     status = result['Order_status']
+    # print("{0} {1}".format(order_guid, status))
     if order_guid is not None and status is not None:
         try:
             order = Order.objects.get(guid_1c=order_guid)
@@ -4622,6 +4623,9 @@ def recive_1c_order_status(request):
                 # Print Failed
                 if status == 396:
                     order.status_1c = 396
+                    order.save()
+                else:
+                    order.status_1c = status
                     order.save()
     return HttpResponse()
 
@@ -4669,7 +4673,7 @@ def status_refresher(request):
                 if order.status_1c == 397:
                     data = {
                         'success': True,
-                        'message': 'Нет соединеня с терминалом! Заказ удалён! Вы можете повторить попытку!',
+                        'message': '397: Нет соединеня с терминалом! Заказ удалён! Вы можете повторить попытку!',
                         'daily_number': order.daily_number,
                         'status': order.status_1c,
                         'guid': order.guid_1c
@@ -4680,7 +4684,7 @@ def status_refresher(request):
                     if order.status_1c == 396:
                         data = {
                             'success': True,
-                            'message': 'Экваеринговая операция не проведена! Заказ удалён! Вы можете повторить попытку!',
+                            'message': '396: Экваеринговая операция не проведена! Заказ удалён! Вы можете повторить попытку!',
                             'daily_number': order.daily_number,
                             'status': order.status_1c,
                             'guid': order.guid_1c
@@ -4691,7 +4695,7 @@ def status_refresher(request):
                         if order.status_1c == 395:
                             data = {
                                 'success': True,
-                                'message': 'Чек безнличного расчёта не распечатан! Отмена оплаты прошла успешно! '
+                                'message': '395: Чек безналичного расчёта не распечатан! Отмена оплаты прошла успешно! '
                                            'Заказ удалён! Вы можете повторить попытку!',
                                 'daily_number': order.daily_number,
                                 'status': order.status_1c,
@@ -4703,7 +4707,7 @@ def status_refresher(request):
                             if order.status_1c == 394:
                                 data = {
                                     'success': True,
-                                    'message': 'Чек безнличного расчёта не распечатан! Отмена оплаты прошла неудачно! '
+                                    'message': '394: Чек безнличного расчёта не распечатан! Отмена оплаты прошла неудачно! '
                                                'Заказ удалён! Вы можете повторить попытку!',
                                     'daily_number': order.daily_number,
                                     'status': order.status_1c,
@@ -4715,7 +4719,7 @@ def status_refresher(request):
                                 if order.status_1c == 393:
                                     data = {
                                         'success': True,
-                                        'message': 'Чек не распечатан, но оплата прошла успешно! Заказ удалён! Вы '
+                                        'message': '393: Чек не распечатан, но оплата прошла успешно! Заказ удалён! Вы '
                                                    'можете повторить попытку!',
                                         'daily_number': order.daily_number,
                                         'status': order.status_1c,
@@ -4727,7 +4731,7 @@ def status_refresher(request):
                                     if order.status_1c == 392:
                                         data = {
                                             'success': True,
-                                            'message': 'Чек не записан в 1С!',
+                                            'message': '392: Чек не записан в 1С!',
                                             'daily_number': order.daily_number,
                                             'status': order.status_1c,
                                             'guid': order.guid_1c
@@ -4738,7 +4742,7 @@ def status_refresher(request):
                                         if order.status_1c == 391:
                                             data = {
                                                 'success': True,
-                                                'message': 'На карте нет средств! Заказ удалён! '
+                                                'message': '391: На карте нет средств! Заказ удалён! '
                                                            'Вы можете повторить попытку!',
                                                 'daily_number': order.daily_number,
                                                 'status': order.status_1c,
@@ -4750,7 +4754,7 @@ def status_refresher(request):
                                             if order.status_1c == 390:
                                                 data = {
                                                     'success': True,
-                                                    'message': 'Проблемы с картой клиента! Заказ удалён! Вы можете '
+                                                    'message': '390: Проблемы с картой клиента! Заказ удалён! Вы можете '
                                                                'повторить попытку!',
                                                     'daily_number': order.daily_number,
                                                     'status': order.status_1c,

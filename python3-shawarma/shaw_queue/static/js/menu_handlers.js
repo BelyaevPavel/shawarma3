@@ -207,7 +207,7 @@ function StatusRefresher(guid) {
                                 OK.focus();
                                 break;
                             case 200:
-                                if (payment_choose == "paid_with_cash")
+                                if (payment_choose.val() == "paid_with_cash")
                                     status.text('Заказ №' + data.daily_number + ' проведён в 1С! Введите полученную сумму, отдайте клиенту сдачу и нажмите ОК');
                                 else
                                     status.text('Заказ №' + data.daily_number + ' проведён в 1С! Операция безналичного расчёта завершена успешно! Нажмите ОК');
