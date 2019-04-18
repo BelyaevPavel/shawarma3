@@ -25,7 +25,7 @@
             {% for pause in staff_pauses.pauses %}
                 <div class="stat-view" id="pause-{{ forloop.counter }}">
                     <div class="stat-opinion-order-datetime">
-                        {{ pause.staff }}
+                        №{{ forloop.counter }} {{ pause.staff }}
                     </div>
                     <div class="stat-opinion-daily-number">
                         {{ pause.start_timestamp }}
