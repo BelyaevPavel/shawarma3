@@ -4719,13 +4719,11 @@ def status_refresher(request):
                                 if order.status_1c == 393:
                                     data = {
                                         'success': True,
-                                        'message': '393: Чек не распечатан, но оплата прошла успешно! Заказ удалён! Вы '
-                                                   'можете повторить попытку!',
+                                        'message': '393: Чек не распечатан, но оплата прошла успешно!',
                                         'daily_number': order.daily_number,
                                         'status': order.status_1c,
                                         'guid': order.guid_1c
                                     }
-                                    order.delete()
                                     return JsonResponse(data)
                                 else:
                                     if order.status_1c == 392:
@@ -4736,7 +4734,6 @@ def status_refresher(request):
                                             'status': order.status_1c,
                                             'guid': order.guid_1c
                                         }
-                                        order.delete()
                                         return JsonResponse(data)
                                     else:
                                         if order.status_1c == 391:
