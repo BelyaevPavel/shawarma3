@@ -51,7 +51,7 @@ class CustomerForm(forms.ModelForm):
             'name': forms.TextInput(attrs={
                 'required': True,
                 'placeholder': 'Введите имя',
-                'pattern': "^[А-Яа-яЁё\s]+$",  # '+7[0-9]{10}',
+                'pattern': "^[А-Яа-яЁёA-Za-z\s]+$",  # '+7[0-9]{10}',
                 'title': 'Имя не может содержать цифр и спец. знаков.'
             }),
             'phone_number': forms.TextInput(attrs={
