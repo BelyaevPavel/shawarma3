@@ -12,6 +12,7 @@
 
 var workspace_update_timeout = 10000; // ms
 var call_check_timeout = 10000; // ms
+var modal_is_opened = false;
 
 $(document).ready(function () {
     UpdateWorkspace();
@@ -259,7 +260,7 @@ function SendIncomingCall(CustomerPK = null) {
         'note': $('#id_note').val(),
         'pk': customer_pk
     };
-    if(CustomerPK != null)
+    if (CustomerPK != null)
         form_data['pk'] = CustomerPK;
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
@@ -410,7 +411,10 @@ function CheckCalls() {
             dataType: 'json',
             success: function (data) {
                 if (data['success']) {
-                    SendIncomingCall(data['caller_pk']);
+                    if (!modal_is_opened)
+                        SendIncomingCall(data['caller_pk']);
+                    else
+                        console.log('There is a call but some modal window seams to be opened.');
                 }
                 else {
                     console.log('Waiting for calls...');
@@ -438,7 +442,7 @@ function SelectCook(CookPK, DeliveryOrderPK) {
             data: {"cook_pk": CookPK, "delivery_order_pk": DeliveryOrderPK},
             dataType: 'json',
             success: function (data) {
-                if(data['success']){
+                if (data['success']) {
                     alert(data['message']);
                 }
                 else {
