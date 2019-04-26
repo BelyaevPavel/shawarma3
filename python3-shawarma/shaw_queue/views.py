@@ -4630,6 +4630,11 @@ def recive_1c_order_status(request):
     return HttpResponse()
 
 
+def log_deleted_order(order):
+    file = open('log/deleted_orders.log', 'a')
+    file.write("Заказ №{}\tВремя создания: {}\nКасса {}\n1C GUID {}\nStatus {}\n\n".format(order.daily_number, order.open_time, order.servery, order.guid_1c, order.status_1c))
+
+
 def status_refresher(request):
     order_guid = request.POST.get('order_guid', None)
     if order_guid is not None:
@@ -4678,6 +4683,7 @@ def status_refresher(request):
                         'status': order.status_1c,
                         'guid': order.guid_1c
                     }
+                    log_deleted_order(order)
                     order.delete()
                     return JsonResponse(data)
                 else:
@@ -4689,6 +4695,7 @@ def status_refresher(request):
                             'status': order.status_1c,
                             'guid': order.guid_1c
                         }
+                        log_deleted_order(order)
                         order.delete()
                         return JsonResponse(data)
                     else:
@@ -4701,6 +4708,7 @@ def status_refresher(request):
                                 'status': order.status_1c,
                                 'guid': order.guid_1c
                             }
+                            log_deleted_order(order)
                             order.delete()
                             return JsonResponse(data)
                         else:
@@ -4713,19 +4721,21 @@ def status_refresher(request):
                                     'status': order.status_1c,
                                     'guid': order.guid_1c
                                 }
+                                log_deleted_order(order)
                                 order.delete()
                                 return JsonResponse(data)
                             else:
                                 if order.status_1c == 393:
                                     data = {
                                         'success': True,
-                                        'message': '393: Чек не распечатан, но оплата прошла успешно! Заказ удалён! Вы '
+                                        'message': '393: Чек не распечатан, но оплата прошла успешно! Заказ НЕ удалён! Вы '
                                                    'можете повторить попытку!',
                                         'daily_number': order.daily_number,
                                         'status': order.status_1c,
                                         'guid': order.guid_1c
                                     }
-                                    order.delete()
+                                    # log_deleted_order(order)
+                                    # order.delete()
                                     return JsonResponse(data)
                                 else:
                                     if order.status_1c == 392:
@@ -4736,6 +4746,7 @@ def status_refresher(request):
                                             'status': order.status_1c,
                                             'guid': order.guid_1c
                                         }
+                                        log_deleted_order(order)
                                         order.delete()
                                         return JsonResponse(data)
                                     else:
@@ -4748,6 +4759,7 @@ def status_refresher(request):
                                                 'status': order.status_1c,
                                                 'guid': order.guid_1c
                                             }
+                                            log_deleted_order(order)
                                             order.delete()
                                             return JsonResponse(data)
                                         else:
@@ -4760,6 +4772,7 @@ def status_refresher(request):
                                                     'status': order.status_1c,
                                                     'guid': order.guid_1c
                                                 }
+                                                log_deleted_order(order)
                                                 order.delete()
                                                 return JsonResponse(data)
                                             else:
@@ -4771,6 +4784,7 @@ def status_refresher(request):
                                                     'status': order.status_1c,
                                                     'guid': order.guid_1c
                                                 }
+                                                log_deleted_order(order)
                                                 order.delete()
                                                 return JsonResponse(data)
     else:
