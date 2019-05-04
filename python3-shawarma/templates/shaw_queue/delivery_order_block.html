@@ -1,15 +1,37 @@
-<div class="delivery-block-container shadowed" draggable="true" onclick="CreateDeliveryOrder({{ delivery_order.pk }})">
-    <div class="delivery-block-header">Order №{{ delivery_order.order.daily_number }} {{ delivery_order.obtain_timepoint }} - {{ delivery_order.delivered_timepoint }}</div>
-    <div class="delivery-block-content">Delivery: {{ delivery_order.delivery }}</div>
-    <div class="delivery-block-content">Driver: {{ delivery_order.delivery.car_driver }}</div>
+<div class="delivery-block-container shadowed {% if delivery_order.enlight_alert %} alert-aura {% elif delivery_order.enlight_warning %} warning-aura {% endif %}"
+     draggable="true" title="Advise text.">
+    <div class="delivery-block-header" onclick="CreateDeliveryOrder({{ delivery_order.order.pk }})">Заказ
+        №{{ delivery_order.order.order.daily_number }} {{ delivery_order.order.obtain_timepoint }}
+        - {{ delivery_order.order.delivered_timepoint }}</div>
+    <div class="delivery-block-content">Delivery: {{ delivery_order.order.delivery }}</div>
+    <div class="delivery-block-content">Driver: {{ delivery_order.order.delivery.car_driver }}</div>
     <div class="delivery-block-actions">
-        <button class="small-btn success" {% if not delivery_order.order.content_completed %} disabled {% endif %}>
+        <button class="small-btn success" {% if not delivery_order.order.order.content_completed %}
+                disabled {% endif %}>
             &#10003;
         </button>
-        <button class="small-btn warning" {% if not delivery_order.order %} disabled {% endif %}>
-            Готовить
-        </button>
-        <button class="small-btn danger" onclick="CancelItem({{ order_item.id }},{{ order_info.id }})">
+        <div class="dropdown">
+            {% if delivery_order.order.order.prepared_by %}
+                <button class="small-btn warning"
+                        {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
+                        disabled
+                        {% endif %}>
+                    Отправить
+                </button>
+            {% else %}
+                <button class="small-btn warning" {% if not delivery_order.order.order %} disabled {% endif %}>
+                    Готовить
+                </button>
+                <div class="dropdown-content">
+                    {% for available_cook in delivery_order.available_cooks %}
+                        <a onclick="SelectCook({{ available_cook.pk }}, {{ delivery_order.order.pk }})">
+                            {{ available_cook }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        <button class="small-btn danger" onclick="CancelDeliveryOrder()">
             &times;
         </button>
     </div>

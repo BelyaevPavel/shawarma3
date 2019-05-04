@@ -5,62 +5,63 @@
     <script type="text/javascript" src="{% static 'js/statistics_handlers.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/jquery.datetimepicker.full.js' %}"></script>
     <script type="text/javascript">
-        var interface_button = $("#pause_statistics_interface");
+        var interface_button = $("#records_statistics_interface");
     </script>
 {% endblock %}
 {% block content %}
-    <input hidden id="urls" data-update-statistics-url="{% url 'update_pause_statistics' %}">
+    {% load tz %}
+    <input hidden id="urls" data-update-statistics-url="{% url 'update_records_statistics' %}">
     <div class="stat-controls">
         <label for="datetimepicker1">От:</label>
         <input type="text" id="datetimepicker1"/>
         <label for="datetimepicker2">До:</label>
         <input type="text" id="datetimepicker2"/>
+        <button onclick="UpdateStatistics()">Обновить</button>
     </div>
     <div id="statistics-content">
         <div class="stat-sect-container">
-            Всего заказов: {{ total_pauses }}
-            Мин. продолжительность: {{ min_duration }}
-            Ср. продолжительность: {{ avg_duration }}
-            Макс. продолжительность: {{ max_duration }}
+            Всего звонков: {{ total_calls }}
             <div class="stat-cook-table-header">
                 <div class="stat-opinion-order-datetime">
-                    Повар
+                    Менеджер
                 </div>
                 <div class="stat-opinion-daily-number">
-                    Начало
+                    Клиент
                 </div>
                 <div class="stat-opinion-note">
-                    Конец
+                    Дата-время
                 </div>
                 <div class="stat-opinion-mark">
-                    Продолжительность
+                    Запись
                 </div>
             </div>
-            {% for staff_pauses in pause_info %}
+            {% for staff_records in records_info %}
                 <div class="stat-view-container">
                     <div class="pause-cook-section">
-                        {{ staff_pauses.staff }}
+                        {{ staff_records.call_manager }}
                     </div>
-                    {% for pause in staff_pauses.pauses %}
-                        <div class="stat-view" id="pause-{{ forloop.counter }}">
+                    {% for record in staff_records.records %}
+                        <div class="stat-view" id="call-{{ forloop.counter }}">
                             <div class="stat-opinion-order-datetime">
-                                №{{ forloop.counter }} {{ pause.staff }}
+                                №{{ forloop.counter }} {{ record.call_manager }}
                             </div>
                             <div class="stat-opinion-daily-number">
-                                {{ pause.start_timestamp }}
+                                {{ record.customer }}
                             </div>
                             <div class="stat-opinion-note">
-                                {{ pause.start_timestamp }}
+                                {{ record.timepoint|timezone:'Asia/Yekaterinburg' }}
                             </div>
                             <div class="stat-opinion-mark">
-                                {{ pause.duration }}
+                                <audio controls id="speaker-0">
+                                    <source src="{{ record.record_url}}" type="audio/ogg">
+                                </audio>
                             </div>
                         </div>
                     {% empty %}
-                        There is no pauses.
+                        There is no call records.
                     {% endfor %}
                     <div class="pause-total-section">
-                        Total: {{ staff_pauses.total_duration.duration }}
+                        Total: {{ staff_records.total_duration.duration }}
                     </div>
                 </div>
             {% empty %}

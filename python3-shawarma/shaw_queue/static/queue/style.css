@@ -1,3 +1,125 @@
+/* TODO: Rework CSS */
+
+ul {
+
+}
+
+.list-group {
+    padding-left: 0;
+    margin-bottom: 20px;
+}
+
+.list-group-item:first-child {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+.list-group-item {
+    position: relative;
+    display: block;
+    padding: 10px 15px;
+    margin-bottom: -1px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+}
+
+.list-group-item:last-child {
+    margin-bottom: 0;
+    border-bottom-right-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.badge {
+    display: inline-block;
+    min-width: 10px;
+    padding: 3px 7px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    background-color: #777;
+    border-radius: 10px;
+}
+
+
+/* Dropdown description*/
+/* Style The Dropdown Button */
+.dropbtn {
+    /*background-color: #4CAF50;*/
+    background-color: #f9f9f9;
+    /*color: white;*/
+    color: black;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+.dropbtn > .badge {
+    float: right;
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+    color: black;
+    position: relative;
+    display: inline-block;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    overflow-y: auto;
+    max-height: 250px;
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content a:hover {
+    background-color: #f1f1f1
+}
+
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Change the background color of the dropdown button when the dropdown content is shown */
+.dropdown:hover .dropbtn {
+    /* background-color: #3e8e41; */
+    background-color: #f1f1f1
+}
+
+/* Dropdowns description ended */
+
+/* Auras description start */
+.success-aura {
+    box-shadow: 0 0 15px 0 rgb(0, 255, 0) !important;
+}
+
+.warning-aura {
+    box-shadow: 0 0 15px 0 rgb(255, 208, 27) !important;
+}
+
+.alert-aura {
+    box-shadow: 0 0 15px 0 rgb(255, 0, 2) !important;
+}
+/* Auras description end */
 table.currentOrderTable {
     width: 100%;
     border-spacing: 0px;
@@ -860,7 +982,6 @@ div.stat-opinion-order-datetime {
 div.stat-opinion-daily-number {
 
     min-width: 10%;
-    width: 10%;
     max-width: 25%;
     font-size: medium;
     float: left;
@@ -870,11 +991,12 @@ div.stat-opinion-daily-number {
 div.stat-opinion-note {
 
     min-width: 10%;
-    width: 55%;
+    width: 25%;
     max-width: 55%;
     font-size: medium;
     float: left;
     text-align: center;
+    overflow-y: auto;
 }
 
 div.stat-opinion-mark {
@@ -1139,6 +1261,14 @@ div.filter-container {
     overflow-x: hidden;
 }
 
+.delivery-sidebar-content > .btn, .delivery-sidebar-content .dropbtn, .delivery-sidebar-content .dropdown, form > .btn {
+    width: 100%;
+}
+
+.delivery-sidebar-content > .dropdown > .dropdown-content {
+    min-width: 250px;
+}
+
 #delivery-left-column {
     height: 100%;
     width: 300px;
@@ -1192,8 +1322,8 @@ div.filter-container {
     overflow-x: auto;
     display: grid;
     grid-gap: 10px;
-    grid-template-columns: repeat(7, 160px);
-    grid-template-rows: repeat(5, 100px);
+    grid-template-columns: repeat(6, 180px);
+    grid-template-rows: repeat(5, 140px);
 }
 
 .opaque-container {
@@ -1232,12 +1362,15 @@ div.filter-container {
 
 }
 
+.delivery-info-block {
+
+}
+
 .delivery-block-container {
     border: solid 1px #D8D8D8;
     background-color: white;
-    width: 160px;
-    height: 100px;
-    cursor: move;
+    width: 180px;
+    height: 140px;
 }
 
 .delivery-block-header {
@@ -1245,14 +1378,20 @@ div.filter-container {
     color: white;
     border: solid 1px #D8D8D8;
     text-align: center;
+    cursor: pointer;
+}
+
+.delivery-block-content, .delivery-block-actions {
+    text-align: center;
+    height: 30px;
+}
+
+.delivery-block-actions >  .dropdown > .dropdown-content {
+    min-width: 150px;
 }
 
 .delivery-block-content {
-    text-align: center;
-}
-
-.delivery-block-actions {
-    text-align: center;
+    overflow-x: auto;
 }
 
 .stat-view-container {
@@ -1282,6 +1421,7 @@ div.filter-container {
 .modal-menu {
     overflow-y: auto;
     max-height: 500px;
+    min-height: 350px;
     margin: 5% auto;
 }
 
@@ -1305,7 +1445,7 @@ div.filter-container {
 }
 
 .custom-select.is-invalid:focus, .form-control.is-invalid:focus, .was-validated .custom-select:invalid:focus, .was-validated .form-control:invalid:focus {
-    box-shadow: 0 0 0 .2rem rgba(220,53,69,.25);
+    box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .25);
 }
 
 .form-control:focus {
@@ -1325,13 +1465,13 @@ div.filter-container {
     background-color: #fff;
     background-image: none;
     background-clip: padding-box;
-    border: 1px solid rgba(0,0,0,.15);
-        border-top-color: rgba(0, 0, 0, 0.15);
-        border-right-color: rgba(0, 0, 0, 0.15);
-        border-bottom-color: rgba(0, 0, 0, 0.15);
-        border-left-color: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-top-color: rgba(0, 0, 0, 0.15);
+    border-right-color: rgba(0, 0, 0, 0.15);
+    border-bottom-color: rgba(0, 0, 0, 0.15);
+    border-left-color: rgba(0, 0, 0, 0.15);
     border-radius: .25rem;
-    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
 }
 
 .customer-form-container {

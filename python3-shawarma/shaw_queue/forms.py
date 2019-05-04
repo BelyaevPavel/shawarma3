@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.admin import widgets
 from django.utils import timezone
+import datetime
 
 from .models import Order, OrderContent, Staff, Delivery, StaffCategory, DeliveryOrder, Customer
 
@@ -20,7 +21,7 @@ class OrderForm(forms.ModelForm):
 
 
 class DeliveryForm(forms.ModelForm):
-    car_driver = forms.ModelChoiceField(queryset=Staff.objects.filter(staff_category__title__iexact='Cook'))
+    car_driver = forms.ModelChoiceField(queryset=Staff.objects.filter(staff_category__title__iexact='Driver'))
 
     class Meta:
         model = Delivery
@@ -50,7 +51,7 @@ class CustomerForm(forms.ModelForm):
             'name': forms.TextInput(attrs={
                 'required': True,
                 'placeholder': 'Введите имя',
-                'pattern': "^[А-Яа-яЁё\s]+$",  # '+7[0-9]{10}',
+                'pattern': "^[А-Яа-яЁёA-Za-z\s]+$",  # '+7[0-9]{10}',
                 'title': 'Имя не может содержать цифр и спец. знаков.'
             }),
             'phone_number': forms.TextInput(attrs={
@@ -64,6 +65,9 @@ class CustomerForm(forms.ModelForm):
 
 
 class DeliveryOrderForm(forms.ModelForm):
+    order = forms.ModelChoiceField(queryset=Order.objects.filter(open_time__contains=datetime.date.today),
+                                   widget=forms.HiddenInput())
+    #  delivery = forms.ModelChoiceField(queryset=Delivery.objects.filter(creation_timepoint__contains=datetime.date.today))
     class Meta:
         model = DeliveryOrder
         exclude = ['prep_start_timepoint']

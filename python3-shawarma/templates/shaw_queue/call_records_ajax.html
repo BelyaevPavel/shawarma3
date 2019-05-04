@@ -1,53 +1,55 @@
+{% load tz %}
 <div class="stat-sect-container">
-    Всего заказов: {{ total_pauses }}
+    Всего звонков: {{ total_calls }}
     Мин. продолжительность: {{ min_duration }}
     Ср. продолжительность: {{ avg_duration }}
     Макс. продолжительность: {{ max_duration }}
     <div class="stat-cook-table-header">
         <div class="stat-opinion-order-datetime">
-            Повар
+            Менеджер
         </div>
         <div class="stat-opinion-daily-number">
-            Начало
+            Клиент
         </div>
         <div class="stat-opinion-note">
-            Конец
+            Дата-время
         </div>
         <div class="stat-opinion-mark">
-            Продолжительность
+            Запись
         </div>
     </div>
-    {% for staff_pauses in pause_info %}
+    {% for staff_records in records_info %}
         <div class="stat-view-container">
             <div class="pause-cook-section">
-                {{ staff_pauses.staff }}
+                {{ staff_records.call_manager }}
             </div>
-            {% for pause in staff_pauses.pauses %}
-                <div class="stat-view" id="pause-{{ forloop.counter }}">
+            {% for record in staff_records.records %}
+                <div class="stat-view" id="call-{{ forloop.counter }}">
                     <div class="stat-opinion-order-datetime">
-                        №{{ forloop.counter }} {{ pause.staff }}
+                        №{{ forloop.counter }} {{ record.call_manager }}
                     </div>
                     <div class="stat-opinion-daily-number">
-                        {{ pause.start_timestamp }}
+                        {{ record.customer }}
                     </div>
                     <div class="stat-opinion-note">
-                        {{ pause.start_timestamp }}
+                        {{ record.timepoint|timezone:'Asia/Yekaterinburg' }}
                     </div>
                     <div class="stat-opinion-mark">
-                        {{ pause.duration }}
+                        <audio controls id="speaker-0">
+                            <source src="{{ record.record_url}}" type="audio/ogg">
+                        </audio>
                     </div>
                 </div>
             {% empty %}
-                В выбранном периоде у повара нет пауз.
+                There is no call records.
             {% endfor %}
             <div class="pause-total-section">
-                Суммарная продолжительность пауз: {{ staff_pauses.total_duration.duration }}
+                Total: {{ staff_records.total_duration.duration }}
             </div>
         </div>
     {% empty %}
-        Отсутствуют повара.
+        No cooks.
     {% endfor %}
-
     <div class="stat-actions-container">
         <button onclick="UpdateStatistics()">Обновить</button>
     </div>

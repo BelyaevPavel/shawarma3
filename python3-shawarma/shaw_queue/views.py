@@ -5,7 +5,8 @@ from django.http.response import HttpResponseRedirect
 from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker, \
     ServicePoint, Printer, Customer, CallData, DiscountCard, Delivery, DeliveryOrder
 from django.template import loader
-from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist
+from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist, \
+    ValidationError
 from django.core.paginator import Paginator
 from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
 from django.shortcuts import render, get_object_or_404, redirect
@@ -13,18 +14,22 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http40
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout, login, views as auth_views
-from django.db.models import Max, Min, Count, Avg, F, Sum, Q
+from django.db.models import Max, Min, Count, Avg, F, Sum, Q, ExpressionWrapper, DateTimeField
 from django.utils import timezone
+from django.core.mail import send_mail
+from threading import Thread
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, \
-    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL
+    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR, TIME_ZONE
 from raven.contrib.django.raven_compat.models import client
 from random import sample
 from itertools import chain
+import time
 import requests
 import datetime
 import logging
+import pytz
 import json
 import sys
 import os
@@ -102,13 +107,13 @@ class DeliveryList(ListView):
     model = Delivery
 
 
-class DeliveryView(DetailView):
-    model = Delivery
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['now'] = timezone.now()
-        return context
+# class DeliveryView(DetailView):
+#     model = Delivery
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['now'] = timezone.now()
+#         return context
 
 
 class DeliveryCreate(CreateView):
@@ -277,14 +282,16 @@ class IncomingCall(View):
         return JsonResponse(data)
 
     def post(self, request):
-        phone_number = request.POST.get('phone_number', None)
+        # TODO: Rework 'if' sequence
+        customer_pk = request.POST.get('pk', 'None')
+        phone_number = request.POST.get('phone_number', '')
         customer = None
-        if phone_number is not None:
+        if phone_number != '':
             try:
                 customer = Customer.objects.get(phone_number=phone_number)
             except MultipleObjectsReturned:
                 client.captureException()
-            except ObjectDoesNotExist:
+            except Customer.DoesNotExist:
                 pass
 
             if customer is not None:
@@ -292,7 +299,20 @@ class IncomingCall(View):
             else:
                 form = CustomerForm(request.POST)
         else:
-            form = CustomerForm(request.POST)
+            if customer_pk != 'None':
+                try:
+                    customer = Customer.objects.get(pk=customer_pk)
+                except MultipleObjectsReturned:
+                    client.captureException()
+                except Customer.DoesNotExist:
+                    pass
+
+                if customer is not None:
+                    form = CustomerForm(instance=customer)
+                else:
+                    form = CustomerForm(request.POST)
+            else:
+                form = CustomerForm(request.POST)
 
         if customer is not None:
             template = loader.get_template('shaw_queue/incoming_call.html')
@@ -369,6 +389,242 @@ class IncomingCall(View):
                 return JsonResponse(data)
 
 
+class DeliveryView(View):
+    template = loader.get_template('shaw_queue/delivery_form.html')
+
+    def get(self, request):
+        context = {
+            'form': DeliveryForm()
+        }
+        for field in context['form'].fields:
+            context['form'].fields[field].widget.attrs['class'] = 'form-control'
+            print(context['form'].fields[field].widget.attrs)
+        data = {
+            'success': True,
+            'html': self.template.render(context, request)
+        }
+
+        return JsonResponse(data)
+
+    def post(self, request):
+        car_driver = request.POST.get('car_driver', None)
+        delivery_pk = request.POST.get('delivery_pk', None)
+        delivery = None
+        if delivery_pk is not None:
+            try:
+                delivery = Delivery.objects.get(pk=delivery_pk)
+            except Delivery.MultipleObjectsReturned:
+                client.captureException()
+            except Delivery.DoesNotExist:
+                pass
+
+            if delivery is not None:
+                form = DeliveryForm(instance=delivery)
+            else:
+                form = DeliveryForm(request.POST)
+        else:
+            form = DeliveryForm(request.POST)
+
+        if delivery is not None:
+            delivery_orders = DeliveryOrder.objects.filter(delivery=delivery).order_by('-obtain_timepoint')[:3]
+
+            context = {
+                'customer_pk': delivery.pk,
+                'form': DeliveryForm(instance=delivery),
+                'delivery_orders': [
+                    {
+                        'delivery_order': delivery_order,
+                        'content': OrderContent.objects.filter(order=delivery_order.order)
+                    } for delivery_order in delivery_orders
+                    ]
+            }
+            for field in context['form'].fields:
+                context['form'].fields[field].widget.attrs['class'] = 'form-control'
+                errors = context['form'].errors.get(field, None)
+                if errors is not None:
+                    context['form'].fields[field].widget.attrs['class'] += ' is-invalid'
+                else:
+                    context['form'].fields[field].widget.attrs['class'] += ' is-valid'
+
+                print(context['form'].fields[field].widget.attrs)
+            data = {
+                'success': True,
+                'html': self.template.render(context, request)
+            }
+            return JsonResponse(data)
+
+        else:
+            if form.is_valid():
+                delivery = form.save(commit=False)
+                try:
+                    delivery_last_daily_number = Delivery.objects.filter(
+                        creation_timepoint__contains=datetime.date.today()).aggregate(Max('daily_number'))
+                except EmptyResultSet:
+                    data = {
+                        'success': False,
+                        'message': 'Empty set of deliveries returned!'
+                    }
+                    client.captureException()
+                    return JsonResponse(data)
+                except:
+                    data = {
+                        'success': False,
+                        'message': 'Something wrong happened while getting set of deliveries!'
+                    }
+                    client.captureException()
+                    return JsonResponse(data)
+
+                if delivery_last_daily_number:
+                    if delivery_last_daily_number['daily_number__max'] is not None:
+                        delivery_next_number = delivery_last_daily_number['daily_number__max'] + 1
+                    else:
+                        delivery_next_number = 1
+                delivery.daily_number = delivery_next_number
+                delivery.creation_timepoint = timezone.now()
+                delivery.save()
+                context = {
+                    'object_pk': delivery.pk,
+                    'form': form
+                }
+                for field in context['form'].fields:
+                    context['form'].fields[field].widget.attrs['class'] = 'form-control'
+                    errors = context['form'].errors.get(field, None)
+                    if errors is not None:
+                        context['form'].fields[field].widget.attrs['class'] += ' is-invalid'
+                    else:
+                        context['form'].fields[field].widget.attrs['class'] += ' is-valid'
+
+                    print(context['form'].fields[field].widget.attrs)
+                data = {
+                    'success': True,
+                    'html': self.template.render(context, request)
+                }
+                return JsonResponse(data)
+            else:
+
+                context = {
+                    'object_pk': None,
+                    'form': form
+                }
+                for field in context['form'].fields:
+                    context['form'].fields[field].widget.attrs['class'] = 'form-control'
+                    errors = context['form'].errors.get(field, None)
+                    if errors is not None:
+                        context['form'].fields[field].widget.attrs['class'] += ' is-invalid'
+                    else:
+                        context['form'].fields[field].widget.attrs['class'] += ' is-valid'
+
+                    print(context['form'].fields[field].widget.attrs)
+                data = {
+                    'success': False,
+                    'html': self.template.render(context, request)
+                }
+                return JsonResponse(data)
+
+
+def ats_listner(request):
+    tel = request.GET.get('queue_id', None)
+    caller_id = request.GET.get('caller_id', None)
+    call_uid = request.GET.get('uid', None)
+    operator_id = request.GET.get('operator_id', None)
+    event_code = request.GET.get('event_code', None)  # 1 - from_queue, 2 - call_manager_chose, 3 - accept, 4 - discarb
+    print("{} {} {} {} {}".format(tel, caller_id, call_uid, operator_id, event_code))
+    if event_code is not None:
+        try:
+            event_code = int(event_code)
+        except ValueError:
+            logger.error('Неправильный код события {}!'.format(event_code))
+            return HttpResponse('Wrong event code provided.')
+        except:
+            logger.error('Неправильный код события {}!'.format(event_code))
+            client.captureException()
+            return HttpResponse('Wrong event code provided.')
+
+    if 1 > event_code > 4:
+        return HttpResponse('Wrong event code provided.')
+
+    if caller_id is not None and call_uid is not None and operator_id is not None and event_code is not None:
+        call_data = None
+        if event_code == 1:
+            try:
+                customer = Customer.objects.get(phone_number="+{}".format(caller_id))
+                print("Choosing customer {}".format("+{}".format(caller_id)))
+            except Customer.DoesNotExist:
+                customer = Customer(phone_number="+{}".format(caller_id))
+                print("Creating customer {}".format("+{}".format(caller_id)))
+                customer.save()
+
+            try:
+                call_manager = Staff.objects.get(phone_number=operator_id)
+                print("Choosing manager {}".format(operator_id))
+            except Staff.DoesNotExist:
+                print("Failed to find manager {}".format(operator_id))
+                return HttpResponse('Failed to find call manager.')
+            call_data = CallData(ats_id=call_uid, timepoint=timezone.now(), customer=customer,
+                                 call_manager=call_manager)
+            print("Created {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,
+                                               call_data.call_manager))
+
+        if event_code == 3 or event_code == 4:
+            try:
+                call_data = CallData.objects.get(ats_id=call_uid)
+            except CallData.DoesNotExist:
+                if not (event_code == 4 and tel == "s"):
+                    logger.error('Failed to find call data for uid {}!'.format(call_uid))
+                    return HttpResponse('Failed to find call data.')
+            except CallData.MultipleObjectsReturned:
+                client.captureException()
+                logger.error('Multiple call records returned for uid {}!'.format(call_uid))
+                return HttpResponse('Multiple call records returned.')
+            except:
+                client.captureException()
+                logger.error('Something wrong happened while searching call data for uid {}!'.format(call_uid))
+                return HttpResponse('Something wrong happened while searching call data.')
+            if call_data is not None:
+                call_data.accepted = True
+                print("Accepted {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,
+                                                    call_data.call_manager))
+
+        if call_data is not None:
+            try:
+                call_data.full_clean()
+            except ValidationError as e:
+                client.captureException()
+                exception_messages = ""
+                for message in e.messages:
+                    exception_messages += message
+                    logger.error('Call data has not pass validation: {}'.format(message))
+                return HttpResponse('Call data has not pass validation: {}'.format(exception_messages))
+            call_data.save()
+            print("Saving {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,
+                                              call_data.call_manager))
+            return HttpResponse('Success')
+        else:
+            return HttpResponse('Fail')
+    else:
+        return HttpResponse('Fail')
+
+
+@login_required()
+def check_incoming_calls(request):
+    call_manager = Staff.objects.get(user=request.user)
+    last_call = CallData.objects.filter(call_manager=call_manager, accepted=False).order_by(
+        '-timepoint').last()  # , accepted=False, timepoint__contains=datetime.date.today()
+    print(last_call)
+
+    if last_call is not None:
+        data = {
+            'success': True,
+            'caller_pk': last_call.customer.pk
+        }
+        return JsonResponse(data)
+    else:
+        data = {
+            'success': False
+        }
+        return JsonResponse(data)
+
+
 @login_required()
 def redirection(request):
     staff_category = StaffCategory.objects.get(staff__user=request.user)
@@ -378,6 +634,8 @@ def redirection(request):
         return HttpResponseRedirect('menu')
     if staff_category.title == 'Operator':
         return HttpResponseRedirect('current_queue')
+        # if staff_category.title == 'Administration':
+        #     return HttpResponseRedirect('statistics')
 
 
 def cook_pause(request):
@@ -385,6 +643,7 @@ def cook_pause(request):
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
     user = request.user
+
     try:
         staff = Staff.objects.get(user=user)
     except MultipleObjectsReturned:
@@ -408,6 +667,8 @@ def cook_pause(request):
         staff.available = False
         staff.service_point = None
         staff.save()
+
+        mail_subject = str(staff) + ' ушел на перерыв'
     else:
         try:
             last_pause = PauseTracker.objects.filter(staff=staff,
@@ -431,6 +692,11 @@ def cook_pause(request):
             staff.save()
         else:
             return JsonResponse(result)
+
+        mail_subject = str(staff) + ' начал работать'
+
+    Thread(target=send_email, args=(mail_subject, staff, device_ip)).start()
+    # send_email(mail_subject, staff, device_ip)
 
     data = {
         'success': True
@@ -480,7 +746,7 @@ def welcomer(request):
 
 @login_required()
 def menu(request):
-    delivery_order_pk = request.GET.get('delivery_order_pk', None)
+    delivery_mode = json.loads(request.GET.get('delivery_mode', 'false'))
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
@@ -493,10 +759,10 @@ def menu(request):
         }
         client.captureException()
         return JsonResponse(data)
-    if delivery_order_pk is None:
-        template = loader.get_template('shaw_queue/menu_page.html')
-    else:
+    if delivery_mode:
         template = loader.get_template('shaw_queue/modal_menu_page.html')
+    else:
+        template = loader.get_template('shaw_queue/menu_page.html')
     result = define_service_point(device_ip)
     if result['success']:
         try:
@@ -506,7 +772,8 @@ def menu(request):
                                                           service_point=result['service_point']),
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
                 'menu_items': menu_items,
-                'menu_categories': MenuCategory.objects.order_by('weight')
+                'menu_categories': MenuCategory.objects.order_by('weight'),
+                'delivery_mode': delivery_mode
             }
         except:
             data = {
@@ -518,7 +785,7 @@ def menu(request):
     else:
         return JsonResponse(result)
 
-    if delivery_order_pk is None:
+    if delivery_mode == False:
         context['is_modal'] = False
         return HttpResponse(template.render(context, request))
     else:
@@ -2099,42 +2366,80 @@ def long_poll_handler(request):
 
 @login_required()
 def delivery_interface(request):
+    utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_main.html')
     print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
+    staff = Staff.objects.get(user=request.user)
+    print("staff_id = {}".format(staff.id))
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
+    deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today()).order_by(
+        'departure_timepoint')
+
+    delivery_info = [
+        {
+            'delivery': delivery,
+            'departure_time': (DeliveryOrder.objects.filter(delivery=delivery).annotate(
+                suggested_depature_time=ExpressionWrapper(F('delivered_timepoint') - F('delivery_duration'),
+                                                          output_field=DateTimeField())).order_by(
+                'suggested_depature_time'))[0].suggested_depature_time.time() if len(DeliveryOrder.objects.filter(
+                delivery=delivery)) else "--:--",
+            'delivery_orders': DeliveryOrder.objects.filter(delivery=delivery),
+            'delivery_orders_number': len(DeliveryOrder.objects.filter(delivery=delivery))
+        } for delivery in deliveries
+        ]
+    processed_d_orders = [
+        {
+            'order': delivery_order,
+            'enlight_warning': True if delivery_order.delivered_timepoint - (
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < utc.localize(
+                datetime.datetime.now() - datetime.timedelta(
+                    minutes=5)) and delivery_order.prep_start_timepoint is None else False,
+            'enlight_alert': True if delivery_order.delivered_timepoint - (
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < utc.localize(
+                datetime.datetime.now())
+                                     and delivery_order.prep_start_timepoint is None else False,
+            'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                                    service_point=delivery_order.order.servery.service_point)
+        } for delivery_order in delivery_orders
+        ]
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'delivery_order_form': DeliveryOrderForm,
-        'delivery_orders': delivery_orders
+        'delivery_orders': processed_d_orders,  # delivery_orders,
+        'delivery_info': delivery_info
     }
     return HttpResponse(template.render(context, request))
 
 
 @login_required()
 def delivery_workspace_update(request):
+    utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_workspace.html')
     print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
-    # tzinfo = datetime.tzinfo(tzname=TIME_ZONE)
-    # processed_d_orders = [
-    #     {
-    #         'order': order,
-    #         'enlight_warning': True if (order.delivered_timepoint - (
-    #             order.delivery_duration + order.preparation_duration)).replace(tzinfo=tzinfo) > datetime.datetime.now() - datetime.timedelta(
-    #             minutes=5) and order.prep_start_timepoint is None else False,
-    #         'enlight_alert': True if (order.delivered_timepoint - (
-    #             order.delivery_duration + order.preparation_duration)).replace(tzinfo=tzinfo) > datetime.datetime.now()
-    #             and order.prep_start_timepoint is None else False
-    #     } for order in delivery_orders
-    #     ]
-    # context = {
-    #     'delivery_orders': processed_d_orders
-    # }
+    processed_d_orders = [
+        {
+            'order': delivery_order,
+            'enlight_warning': True if delivery_order.delivered_timepoint - (
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < utc.localize(
+                datetime.datetime.now() - datetime.timedelta(
+                    minutes=5)) and delivery_order.prep_start_timepoint is None else False,
+            'enlight_alert': True if delivery_order.delivered_timepoint - (
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < utc.localize(
+                datetime.datetime.now())
+                                     and delivery_order.prep_start_timepoint is None else False,
+            'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                                    service_point=delivery_order.order.servery.service_point)
+        } for delivery_order in delivery_orders
+        ]
     context = {
-        'delivery_orders': delivery_orders
+        'delivery_orders': processed_d_orders
     }
+    # context = {
+    #     'delivery_orders': delivery_orders
+    # }
     data = {
         'success': True,
         'html': template.render(context, request)
@@ -2262,6 +2567,79 @@ def select_order(request):
             'success': True,
             'html': template.render(context, request)
         }
+
+    return JsonResponse(data=data)
+
+
+@login_required()
+def select_cook(request):
+    cook_pk = request.POST.get('cook_pk', None)
+    delivery_order_pk = request.POST.get('delivery_order_pk', None)
+    cook = None
+    order = None
+    try:
+        cook = Staff.objects.get(pk=cook_pk)
+    except Staff.DoesNotExist:
+        data = {
+            'success': False,
+            'message': 'Указанный повар не найден!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except Staff.MultipleObjectsReturned:
+        data = {
+            'success': False,
+            'message': 'Множество поваров найдено!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+
+    try:
+        order = Order.objects.get(deliveryorder__pk=delivery_order_pk)
+    except Order.DoesNotExist:
+        data = {
+            'success': False,
+            'message': 'Указанный заказ не найден!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except Order.MultipleObjectsReturned:
+        data = {
+            'success': False,
+            'message': 'Множество заказов найдено для данного заказа доставки!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске заказа!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+
+    try:
+        order.prepared_by = cook
+        order.save()
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при назначении заказа №{} повару {}!'.format(order.daily_number, cook)
+        }
+        client.captureException()
+        return JsonResponse(data)
+
+    data = {
+        'success': True,
+        'message': 'Заказ №{} назначен в готовку повару {}.'.format(order.daily_number, cook)
+    }
 
     return JsonResponse(data=data)
 
@@ -2441,7 +2819,7 @@ def make_order(request):
         if menu_item.can_be_prepared_by.title == 'Cook':
             has_cook_content = True
 
-    if has_cook_content:
+    if has_cook_content and cook_choose != 'delivery':
         if cook_choose == 'auto':
             min_index = 0
             min_count = 100
@@ -3289,6 +3667,7 @@ def statistic_page(request):
                                                 is_canceled=False).values(
         'open_time', 'close_time').aggregate(preparation_time=Max(F('close_time') - F('open_time')))
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_orders': len(Order.objects.filter(open_time__contains=datetime.date.today())),
         'canceled_orders': len(
             Order.objects.filter(open_time__contains=datetime.date.today(), is_canceled__isnull=True)),
@@ -3369,6 +3748,7 @@ def statistic_page_ajax(request):
 
     try:
         context = {
+            'staff_category': StaffCategory.objects.get(staff__user=request.user),
             'total_orders': len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv)),
             'canceled_orders': len(
                 Order.objects.filter(open_time__contains=datetime.date.today(), is_canceled__isnull=True)),
@@ -3428,6 +3808,7 @@ def opinion_statistics(request):
     max_mark = OrderOpinion.objects.filter(post_time__contains=datetime.date.today()).values('mark').aggregate(
         max_mark=Max('mark'))
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_orders': len(OrderOpinion.objects.filter(post_time__contains=datetime.date.today())),
         'avg_mark': avg_mark['avg_mark'],
         'min_mark': min_mark['min_mark'],
@@ -3483,6 +3864,7 @@ def opinion_statistics_ajax(request):
 
     try:
         context = {
+            'staff_category': StaffCategory.objects.get(staff__user=request.user),
             'total_orders': len(
                 OrderOpinion.objects.filter(post_time__gte=start_date_conv, post_time__lte=end_date_conv)),
             'avg_mark': avg_mark['avg_mark'],
@@ -3521,6 +3903,7 @@ def pause_statistic_page(request):
                                                     end_timestamp__contains=datetime.date.today()).values(
         'start_timestamp', 'end_timestamp').aggregate(duration=Max(F('end_timestamp') - F('start_timestamp')))
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_pauses': len(PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
                                                         end_timestamp__contains=datetime.date.today())),
         'avg_duration': str(avg_duration_time['duration']).split('.', 2)[0],
@@ -3598,6 +3981,7 @@ def pause_statistic_page_ajax(request):
 
     # try:
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_pauses': len(PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
                                                         end_timestamp__lte=end_date_conv)),
         'avg_duration': str(avg_duration_time['duration']).split('.', 2)[0],
@@ -3636,6 +4020,195 @@ def pause_statistic_page_ajax(request):
     #     }
     #     client.captureException()
     #     return JsonResponse(data)
+    data = {
+        'html': template.render(context, request)
+    }
+    return JsonResponse(data=data)
+
+
+@login_required()
+@permission_required('shaw_queue.view_statistics')
+def call_record_page(request):
+    template = loader.get_template('shaw_queue/call_records.html')
+    try:
+        avg_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'duration').aggregate(duration_avg=Avg('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении средней продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        min_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'duration').aggregate(
+            duration_min=Min('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении минимальной продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        max_duration_time = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'duration').aggregate(
+            duration_max=Max('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении максимальной продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        call_managers = CallData.objects.filter(timepoint__contains=datetime.date.today()).values(
+            'call_manager__user').distinct('call_manager__user')
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        return JsonResponse(data)
+
+    try:
+        engaged_staff = Staff.objects.filter(user__in=call_managers)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        return JsonResponse(data)
+
+    context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'total_records': len(CallData.objects.filter(timepoint__contains=datetime.date.today())),
+        'avg_duration': str(avg_duration_time['duration_avg']).split('.', 2)[0],
+        'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
+        'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
+        'records_info': [{
+                             'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                       call_manager=staff).aggregate(
+                                 duration=Sum('duration')),
+                             'call_manager': staff,
+                             'records': [{
+                                             'call_manager': record.call_manager,
+                                             'customer': record.customer,
+                                             'timepoint': record.timepoint,
+                                             'duration': str(record.duration).split('.', 2)[0],
+                                             'record_url': record.record
+                                         }
+                                         for record in
+                                         CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                 call_manager=staff).order_by('timepoint')]
+                         } for staff in engaged_staff]
+    }
+    for index, info in enumerate(context['records_info']):
+        if len(info['records']) == 0:
+            print("To remove {}".format(info['call_manager']))
+            context['records_info'].remove(info)
+            print("after removal {}".format(len(context['records_info'])))
+    return HttpResponse(template.render(context, request))
+
+
+@login_required()
+@permission_required('shaw_queue.view_statistics')
+def call_record_page_ajax(request):
+    start_date = request.POST.get('start_date', None)
+    if start_date is None or start_date == '':
+        start_date_conv = datetime.datetime.today()
+    else:
+        start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+
+    end_date = request.POST.get('end_date', None)
+    if end_date is None or end_date == '':
+        end_date_conv = datetime.datetime.today()
+    else:
+        end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+    template = loader.get_template('shaw_queue/call_records_ajax.html')
+    try:
+        avg_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                    timepoint__lte=end_date_conv).values(
+            'duration').aggregate(duration_avg=Avg('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении средней продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        min_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                    timepoint__lte=end_date_conv).values('duration').aggregate(
+            duration_min=Min('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении минимальной продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        max_duration_time = CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                    timepoint__lte=end_date_conv).values('duration').aggregate(
+            duration_max=Max('duration'))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении максимальной продолжительности записей!'
+        }
+        return JsonResponse(data)
+
+    try:
+        call_managers = CallData.objects.filter(timepoint__gte=start_date_conv, timepoint__lte=end_date_conv).values(
+            'call_manager__user').distinct('call_manager__user')
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        return JsonResponse(data)
+
+    try:
+        engaged_staff = Staff.objects.filter(user__in=call_managers)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске персонала!'
+        }
+        return JsonResponse(data)
+
+    context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'total_records': len(CallData.objects.filter(timepoint__gte=start_date_conv, timepoint__lte=end_date_conv)),
+        'avg_duration': str(avg_duration_time['duration_avg']).split('.', 2)[0],
+        'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
+        'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
+        'records_info': [{
+                             'total_duration': CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                                       timepoint__lte=end_date_conv,
+                                                                       call_manager=staff).aggregate(
+                                 duration=Sum('duration')),
+                             'call_manager': staff,
+                             'records': [{
+                                             'call_manager': record.call_manager,
+                                             'customer': record.customer,
+                                             'timepoint': record.timepoint,
+                                             'duration': str(record.duration).split('.', 2)[0],
+                                             'record_url': record.record
+                                         }
+                                         for record in CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                                               timepoint__lte=end_date_conv,
+                                                                               call_manager=staff).order_by(
+                                     'timepoint')]
+                         } for staff in engaged_staff]
+    }
+    for index, info in enumerate(context['records_info']):
+        if len(info['records']) == 0:
+            print("To remove {}".format(info['call_manager']))
+            del context['records_info'][index]
+            print("after removal {}".format(len(context['records_info'])))
     data = {
         'html': template.render(context, request)
     }
@@ -4017,6 +4590,7 @@ def recive_1c_order_status(request):
     result = json.loads(request.body.decode('utf-8'))
     order_guid = result['GUID']
     status = result['Order_status']
+    # print("{0} {1}".format(order_guid, status))
     if order_guid is not None and status is not None:
         try:
             order = Order.objects.get(guid_1c=order_guid)
@@ -4049,6 +4623,9 @@ def recive_1c_order_status(request):
                 # Print Failed
                 if status == 396:
                     order.status_1c = 396
+                    order.save()
+                else:
+                    order.status_1c = status
                     order.save()
     return HttpResponse()
 
@@ -4096,7 +4673,7 @@ def status_refresher(request):
                 if order.status_1c == 397:
                     data = {
                         'success': True,
-                        'message': 'Произошла ошибка при оплате! Заказ удалён! Вы можете повторить попытку!',
+                        'message': '397: Нет соединеня с терминалом! Заказ удалён! Вы можете повторить попытку!',
                         'daily_number': order.daily_number,
                         'status': order.status_1c,
                         'guid': order.guid_1c
@@ -4107,7 +4684,7 @@ def status_refresher(request):
                     if order.status_1c == 396:
                         data = {
                             'success': True,
-                            'message': 'Произошла ошибка при печати чека! Заказ удалён! Вы можете повторить попытку!',
+                            'message': '396: Экваеринговая операция не проведена! Заказ удалён! Вы можете повторить попытку!',
                             'daily_number': order.daily_number,
                             'status': order.status_1c,
                             'guid': order.guid_1c
@@ -4115,16 +4692,84 @@ def status_refresher(request):
                         order.delete()
                         return JsonResponse(data)
                     else:
-                        data = {
-                            'success': True,
-                            'message': '1С вернула статус {}! Заказ удалён! Вы можете повторить попытку!'.format(
-                                order.status_1c),
-                            'daily_number': order.daily_number,
-                            'status': order.status_1c,
-                            'guid': order.guid_1c
-                        }
-                        order.delete()
-                        return JsonResponse(data)
+                        if order.status_1c == 395:
+                            data = {
+                                'success': True,
+                                'message': '395: Чек безналичного расчёта не распечатан! Отмена оплаты прошла успешно! '
+                                           'Заказ удалён! Вы можете повторить попытку!',
+                                'daily_number': order.daily_number,
+                                'status': order.status_1c,
+                                'guid': order.guid_1c
+                            }
+                            order.delete()
+                            return JsonResponse(data)
+                        else:
+                            if order.status_1c == 394:
+                                data = {
+                                    'success': True,
+                                    'message': '394: Чек безнличного расчёта не распечатан! Отмена оплаты прошла неудачно! '
+                                               'Заказ удалён! Вы можете повторить попытку!',
+                                    'daily_number': order.daily_number,
+                                    'status': order.status_1c,
+                                    'guid': order.guid_1c
+                                }
+                                order.delete()
+                                return JsonResponse(data)
+                            else:
+                                if order.status_1c == 393:
+                                    data = {
+                                        'success': True,
+                                        'message': '393: Чек не распечатан, но оплата прошла успешно!',
+                                        'daily_number': order.daily_number,
+                                        'status': order.status_1c,
+                                        'guid': order.guid_1c
+                                    }
+                                    return JsonResponse(data)
+                                else:
+                                    if order.status_1c == 392:
+                                        data = {
+                                            'success': True,
+                                            'message': '392: Чек не записан в 1С!',
+                                            'daily_number': order.daily_number,
+                                            'status': order.status_1c,
+                                            'guid': order.guid_1c
+                                        }
+                                        return JsonResponse(data)
+                                    else:
+                                        if order.status_1c == 391:
+                                            data = {
+                                                'success': True,
+                                                'message': '391: На карте нет средств! Заказ удалён! '
+                                                           'Вы можете повторить попытку!',
+                                                'daily_number': order.daily_number,
+                                                'status': order.status_1c,
+                                                'guid': order.guid_1c
+                                            }
+                                            order.delete()
+                                            return JsonResponse(data)
+                                        else:
+                                            if order.status_1c == 390:
+                                                data = {
+                                                    'success': True,
+                                                    'message': '390: Проблемы с картой клиента! Заказ удалён! Вы можете '
+                                                               'повторить попытку!',
+                                                    'daily_number': order.daily_number,
+                                                    'status': order.status_1c,
+                                                    'guid': order.guid_1c
+                                                }
+                                                order.delete()
+                                                return JsonResponse(data)
+                                            else:
+                                                data = {
+                                                    'success': True,
+                                                    'message': '1С вернула статус {}! Заказ удалён! Вы можете '
+                                                               'повторить попытку!'.format(order.status_1c),
+                                                    'daily_number': order.daily_number,
+                                                    'status': order.status_1c,
+                                                    'guid': order.guid_1c
+                                                }
+                                                order.delete()
+                                                return JsonResponse(data)
     else:
         data = {
             'success': False,
@@ -4185,3 +4830,47 @@ def define_service_point(ip):
         client.captureException()
         return data
     return {'success': True, 'service_point': service_point}
+
+
+def get_queue_info(staff, device_ip):
+    result = define_service_point(device_ip)
+    if result['success']:
+        service_point = result['service_point']
+
+    text = 'Время события: ' + str(datetime.datetime.now())[:-7] + '\r\n' + \
+           'Место события: ' + str(service_point) + '\r\n\r\n'
+
+    cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                 service_point=service_point)
+    if len(cooks) == 0:
+        text += 'НЕТ АКТИВНЫХ ПОВАРОВ!'
+    else:
+        text += '|\t\t\t Повар \t\t\t|\t Заказов \t|\t Шаурмы \t|\r\n'
+
+    for cook in cooks:
+        cooks_order = Order.objects.filter(prepared_by=cook,
+                                           open_time__contains=datetime.date.today(),
+                                           is_canceled=False,
+                                           close_time__isnull=True,
+                                           is_ready=False).count()
+
+        cooks_order_content = OrderContent.objects.filter(order__prepared_by=cook,
+                                                          order__open_time__contains=datetime.date.today(),
+                                                          order__is_canceled=False,
+                                                          order__close_time__isnull=True,
+                                                          order__is_ready=False,
+                                                          menu_item__can_be_prepared_by__title__iexact='Cook').count()
+
+        text += '\t' + str(cook) + '\t\t\t\t\t' + str(cooks_order) + '\t\t\t\t\t' + str(cooks_order_content) + '\r\n'
+
+    return text
+
+
+def send_email(subject, staff, device_ip):
+    message = get_queue_info(staff, device_ip)
+
+    try:
+        send_mail(subject, message, SMTP_FROM_ADDR, [SMTP_TO_ADDR], fail_silently=False, auth_user=SMTP_LOGIN,
+                  auth_password=SMTP_PASSWORD)
+    except:
+        print('failed to send mail')
