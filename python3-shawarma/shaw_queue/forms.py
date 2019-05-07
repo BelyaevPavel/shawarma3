@@ -65,8 +65,9 @@ class CustomerForm(forms.ModelForm):
 
 
 class DeliveryOrderForm(forms.ModelForm):
-    order = forms.ModelChoiceField(queryset=Order.objects.filter(open_time__contains=datetime.date.today),
-                                   widget=forms.HiddenInput())
+    # order = forms.ModelChoiceField(queryset=Order.objects.filter(open_time__contains=datetime.date.today),
+    #                                widget=forms.HiddenInput())
+
     #  delivery = forms.ModelChoiceField(queryset=Delivery.objects.filter(creation_timepoint__contains=datetime.date.today))
     class Meta:
         model = DeliveryOrder
@@ -79,26 +80,56 @@ class DeliveryOrderForm(forms.ModelForm):
             }),
             'obtain_timepoint': forms.DateTimeInput(attrs={
                 'required': True,
-                'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ:СС',
-                'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
-                'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ:СС',
+                'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ',
+                'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]",
+                'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ',
             }),
             'delivered_timepoint': forms.DateTimeInput(attrs={
                 'required': True,
-                'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ:СС',
-                'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
-                'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ:СС',
+                'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ',
+                'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]",
+                'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ',
             }),
             'preparation_duration': forms.TimeInput(attrs={
                 'required': True,
-                'placeholder': 'Формат: ЧЧ:ММ:СС',
-                'pattern': "[[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
-                'title': 'Введите время ЧЧ:ММ:СС',
+                'placeholder': 'Формат: ЧЧ:ММ',
+                'pattern': "[[0-2][0-9]:[0-6][0-9]",
+                'title': 'Введите время ЧЧ:ММ',
             }),
             'delivery_duration': forms.TimeInput(attrs={
                 'required': True,
-                'placeholder': 'Формат: ЧЧ:ММ:СС',
-                'pattern': "[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
-                'title': 'Введите время в формате ЧЧ:ММ:СС',
-            })
+                'placeholder': 'Формат: ЧЧ:ММ',
+                'pattern': "[0-2][0-9]:[0-6][0-9]",
+                'title': 'Введите время в формате ЧЧ:ММ',
+            }),
+            'order': forms.HiddenInput(attrs={
+                'required': True
+            }),
+            'customer': forms.HiddenInput(attrs={
+                'required': True
+            }),
+            # 'obtain_timepoint': forms.DateTimeInput(attrs={
+            #     'required': True,
+            #     'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ:СС',
+            #     'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
+            #     'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ:СС',
+            # }),
+            # 'delivered_timepoint': forms.DateTimeInput(attrs={
+            #     'required': True,
+            #     'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ:СС',
+            #     'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
+            #     'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ:СС',
+            # }),
+            # 'preparation_duration': forms.TimeInput(attrs={
+            #     'required': True,
+            #     'placeholder': 'Формат: ЧЧ:ММ:СС',
+            #     'pattern': "[[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
+            #     'title': 'Введите время ЧЧ:ММ:СС',
+            # }),
+            # 'delivery_duration': forms.TimeInput(attrs={
+            #     'required': True,
+            #     'placeholder': 'Формат: ЧЧ:ММ:СС',
+            #     'pattern': "[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
+            #     'title': 'Введите время в формате ЧЧ:ММ:СС',
+            # })
         }

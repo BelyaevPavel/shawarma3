@@ -198,13 +198,19 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
             }
         else:
             initial_data['obtain_timepoint'] = timezone.datetime.now()
+            customer_display = ""
             if customer_pk is not None:
-                initial_data['customer'] = Customer.objects.get(pk=customer_pk)
+                found_customer = Customer.objects.get(pk=customer_pk)
+                initial_data['customer'] = found_customer
+                customer_display = found_customer.phone_number
+                if found_customer.name != (Customer._meta.get_field("name")).default:
+                    customer_display += " "+found_customer.name
             if delivery_pk is not None:
                 initial_data['delivery'] = Delivery.objects.get(pk=delivery_pk)
             if order_pk is not None:
                 initial_data['order'] = Order.objects.get(pk=order_pk)
             context = {
+                "customer_display": customer_display,
                 'form': DeliveryOrderForm(initial=initial_data)
             }
 

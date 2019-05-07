@@ -2,6 +2,8 @@
 {% block aditional_static %}
     {% load static %}
     <script type="text/javascript" src="{% static 'js/delivery_handlers.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.datetimepicker.full.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href={% static 'queue/jquery.datetimepicker.min.css' %}>
 {% endblock %}
 {% block content %}
     <input id="delivery-urls" hidden data-close-delivery-order-url="" order-specifics-url=""
@@ -10,9 +12,9 @@
            menu-url="{% url 'menu' %}" delivery-url="{% url 'delivery' %}" select-cook-url="{% url 'select_cook' %}"
            workspace-update="{% url 'delivery-workspace-update' %}">
     <input hidden id="current-order-data" customer-pk="-1">
-    <div class="modal" id="modal-menu">
+    <div class="modal" id="modal-menu" {% comment %}onclick="HideMenu()"{% endcomment %}>
     </div>
-    <div class="modal" id="modal-delivery-order">
+    <div class="modal" id="modal-delivery-order" {% comment %}onclick="HideDeliveryOrder()"{% endcomment %}>
     </div>
     {#    <button id="show-left-column" class="btn info" onclick="ShowSidebar('delivery-left-column', 'show-left-column')"#}
     {#            style="height: 100%; float: left; width: 0px" hidden>#}
@@ -32,6 +34,10 @@
             </button>
         </div>
     </div>
+    <button id="show-left-column" class="btn info" onclick="ShowSidebar('delivery-left-column', 'show-left-column')"
+            style="height: 100%; float: left; width: 0px" hidden>
+        &raquo;
+    </button>
     <div id="delivery-workspace">
         {% include 'shaw_queue/delivery_workspace.html' with delivery_orders=delivery_orders %}
     </div>

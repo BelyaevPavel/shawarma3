@@ -12,7 +12,10 @@
 
 var workspace_update_timeout = 10000; // ms
 var call_check_timeout = 10000; // ms
-var modal_is_opened = false;
+var modal_delivery_order_is_opened = false;
+var modal_menu_is_opened = false;
+var modal_menu_container = $('#modal-menu');
+var modal_delivery_order_container = $('#modal-delivery-order');
 
 $(document).ready(function () {
     UpdateWorkspace();
@@ -24,6 +27,23 @@ $(window).resize(function () {
     CalculateGrid();
     console.log("Handler for .resize() called.");
 });
+
+function Hide(elementId) {
+    $("#" + elementId).hide();
+}
+
+function HideMenu() {
+    Hide("modal-menu");
+    modal_menu_is_opened = false;
+    if (modal_delivery_order_is_opened)
+        modal_delivery_order_container.show();
+}
+
+function HideDeliveryOrder() {
+    Hide("modal-delivery-order");
+    modal_delivery_order_is_opened = false;
+}
+
 
 function OverrideDeliveryOrderSubmition() {
     $('#delivery-order-form').on('submit', function (event) {
@@ -72,9 +92,11 @@ function HideSidebar(SidebarID, ShowButtonID) {
     $('#' + ShowButtonID).show();
     $('#' + ShowButtonID).css('width', '68px');
     var workspace = $('#delivery-workspace');
-    var sidebars_width = $('#delivery-left-column').width() + $('#delivery-right-column').width();
-    console.log('calc(100% - ' + sidebars_width + 'px - ' + $('#show-left-column').css('width') + ' - ' + $('#show-right-column').css('width') + ')');
-    workspace.css('width', 'calc(100% - ' + sidebars_width + 'px - ' + $('#show-left-column').css('width') + ' - ' + $('#show-right-column').css('width') + ')');
+    var sidebars_width = $('#delivery-left-column').outerWidth() + $('#delivery-right-column').outerWidth();
+    var showLeftColumnWidth = $('#show-left-column').is(":hidden") ? 0 : $('#show-left-column').outerWidth();
+    var showRightColumnWidth = $('#show-right-column').is(":hidden") ? 0 : $('#show-right-column').outerWidth();
+    console.log('calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
+    workspace.css('width', 'calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
     CalculateGrid();
 }
 
@@ -84,14 +106,15 @@ function ShowSidebar(SidebarID, ShowButtonID) {
     $('#' + ShowButtonID).hide();
     $('#' + ShowButtonID).css('width', '0px');
     var workspace = $('#delivery-workspace');
-    var sidebars_width = $('#delivery-left-column').width() + $('#delivery-right-column').width();
-    console.log('calc(100% - ' + sidebars_width + 'px - ' + $('#show-left-column').css('width') + ' - ' + $('#show-right-column').css('width') + ')');
-    workspace.css('width', 'calc(100% - ' + sidebars_width + 'px - ' + $('#show-left-column').css('width') + ' - ' + $('#show-right-column').css('width') + ')');
+    var sidebars_width = $('#delivery-left-column').outerWidth() + $('#delivery-right-column').outerWidth();
+    var showLeftColumnWidth = $('#show-left-column').is(":hidden") ? 0 : $('#show-left-column').outerWidth();
+    var showRightColumnWidth = $('#show-right-column').is(":hidden") ? 0 : $('#show-right-column').outerWidth();
+    console.log('calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
+    workspace.css('width', 'calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
     CalculateGrid();
 }
 
 function ShowMenu() {
-    var modal_window = $('#modal-menu');
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
@@ -104,9 +127,10 @@ function ShowMenu() {
             dataType: 'json',
             success: function (data) {
                 if (data['success']) {
-                    modal_window.html(data['html']);
-                    modal_window.css("display", "block");
-                    modal_is_opened = true;
+                    //modal_delivery_order_container.hide();
+                    modal_menu_container.html(data['html']);
+                    modal_menu_container.css("display", "block");
+                    modal_menu_is_opened = true;
                 }
                 else {
                     alert(data['message']);
@@ -137,7 +161,6 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
         pk_data['delivery_pk'] = DeliveryPK;
     if (OrderPK != -1)
         pk_data['order_pk'] = OrderPK;
-    var modal_window = $('#modal-delivery-order');
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
@@ -150,9 +173,41 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
             data: pk_data,
             success: function (data) {
                 if (data['success']) {
-                    modal_window.html(data['html']);
-                    modal_window.css("display", "block");
-                    modal_is_opened = true;
+                    modal_delivery_order_container.html(data['html']);
+                    modal_delivery_order_container.css("display", "block");
+                    modal_delivery_order_is_opened = true;
+                    jQuery.datetimepicker.setLocale('ru');
+                    // $('#id_obtain_timepoint').datetimepicker({
+                    //     format: "d.m.Y H:i",
+                    //     mask: true,
+                    //     minDate: 0,
+                    //     lang: "ru"
+                    // });
+                    $('#id_obtain_timepoint').prop('disabled',true);
+                    $('#id_delivered_timepoint').datetimepicker({
+                        format: "d.m.Y H:i",
+                        mask: true,
+                        minDate: 0,
+                        step: 5,
+                        lang: "ru"
+                    });
+                    $('#id_preparation_duration').datetimepicker({
+                        datepicker: false,
+                        mask: true,
+                        format: "H:i",
+                        step: 5,
+                        lang: "ru"
+                    });
+                    $('#id_delivery_duration').datetimepicker({
+                        datepicker: false,
+                        mask: true,
+                        format: "H:i",
+                        step: 5,
+                        lang: "ru"
+                    });
+                    $('#btn_show_menu').on('click', function (event) {
+                        event.preventDefault();
+                    });
                     OverrideDeliveryOrderSubmition();
                 }
                 else {
@@ -170,7 +225,6 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
 
 function SendDeliveryOrder() {
     var pk = $('#delivery-order-form').attr('object-pk');
-    var modal_window = $('#modal-delivery-order');
     var form_data = {
         'delivery': $('#id_delivery').val(),
         'order': $('#id_order').val(),
@@ -200,7 +254,7 @@ function SendDeliveryOrder() {
                     location.reload();
                 }
                 else {
-                    modal_window.html(data['html']);
+                    modal_delivery_order_container.html(data['html']);
                     OverrideDeliveryOrderSubmition();
                 }
             },
@@ -219,7 +273,6 @@ function SendDeliveryOrder() {
 
 
 function CreateIncomingCall() {
-    var modal_window = $('#modal-delivery-order');
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
@@ -231,9 +284,9 @@ function CreateIncomingCall() {
             dataType: 'json',
             success: function (data) {
                 if (data['success']) {
-                    modal_window.html(data['html']);
-                    modal_window.css("display", "block");
-                    modal_is_opened = true;
+                    modal_delivery_order_container.html(data['html']);
+                    modal_delivery_order_container.css("display", "block");
+                    modal_delivery_order_is_opened = true;
                     OverrideIncomingCallSubmition();
                 }
                 else {
@@ -252,7 +305,6 @@ function CreateIncomingCall() {
 function SendIncomingCall(CustomerPK = null) {
     var pk = $('#delivery-order-form').attr('object-pk');
     var customer_pk = $('#incoming-call-form').attr('customer-pk');
-    var modal_window = $('#modal-delivery-order');
     var form_data = {
         'name': $('#id_name').val(),
         'phone_number': $('#id_phone_number').val(),
@@ -273,10 +325,13 @@ function SendIncomingCall(CustomerPK = null) {
             data: form_data,
             dataType: 'json',
             success: function (data) {
-                modal_window.html(data['html']);
-                modal_window.css("display", "block");
-                modal_is_opened = true;
+                modal_delivery_order_container.html(data['html']);
+                modal_delivery_order_container.css("display", "block");
+                modal_delivery_order_is_opened = true;
                 $('#current-order-data').attr('customer-pk', $('#incoming-call-form').attr('customer-pk'));
+                $('#btn_create_delivery_order').on('click', function (event) {
+                    event.preventDefault();
+                });
                 OverrideIncomingCallSubmition();
             },
             complete: function () {
@@ -299,7 +354,6 @@ function CreateCustomer(PhoneNumber, Name) {
 
 
 function CreateDelivery() {
-    var modal_window = $('#modal-delivery-order');
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
@@ -311,9 +365,9 @@ function CreateDelivery() {
             dataType: 'json',
             success: function (data) {
                 if (data['success']) {
-                    modal_window.html(data['html']);
-                    modal_window.css("display", "block");
-                    modal_is_opened = true;
+                    modal_delivery_order_container.html(data['html']);
+                    modal_delivery_order_container.css("display", "block");
+                    modal_delivery_order_is_opened = true;
                     OverrideDeliverySubmition();
                 }
                 else {
@@ -331,7 +385,6 @@ function CreateDelivery() {
 
 function SendDelivery() {
     var pk = $('#delivery-form').attr('object-pk');
-    var modal_window = $('#modal-delivery-order');
     var form_data = {
         'car_driver': $('#id_car_driver').val()
     };
@@ -352,7 +405,7 @@ function SendDelivery() {
                     location.reload();
                 }
                 else {
-                    modal_window.html(data['html']);
+                    modal_delivery_order_container.html(data['html']);
                     OverrideDeliverySubmition();
                 }
             },
@@ -411,7 +464,7 @@ function CheckCalls() {
             dataType: 'json',
             success: function (data) {
                 if (data['success']) {
-                    if (!modal_is_opened)
+                    if (!(modal_delivery_order_is_opened || modal_menu_is_opened))
                         SendIncomingCall(data['caller_pk']);
                     else
                         console.log('There is a call but some modal window seams to be opened.');
