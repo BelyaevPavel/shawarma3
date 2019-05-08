@@ -65,13 +65,13 @@ class CustomerForm(forms.ModelForm):
 
 
 class DeliveryOrderForm(forms.ModelForm):
-    order = forms.ModelChoiceField(queryset=Order.objects.filter(open_time__contains=datetime.date.today),
-                                   widget=forms.HiddenInput())
+    #order = forms.ModelChoiceField(widget=forms.HiddenInput())# queryset=Order.objects.filter(open_time__contains=datetime.date.today)
     #  delivery = forms.ModelChoiceField(queryset=Delivery.objects.filter(creation_timepoint__contains=datetime.date.today))
     class Meta:
         model = DeliveryOrder
         exclude = ['prep_start_timepoint']
         widgets = {
+            'order': forms.HiddenInput(),
             'address': forms.TextInput(attrs={
                 'class': 'test-class',
                 'required': True,

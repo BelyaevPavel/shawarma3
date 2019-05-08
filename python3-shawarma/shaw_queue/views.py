@@ -219,12 +219,18 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
 
     def post(self, request):
         delivery_order_pk = request.POST.get('delivery_order_pk', None)
+        print("delivery_order_pk = {}".format(delivery_order_pk))
+        print("request.POST = {}".format(request.POST))
+        order = Order.objects.get(id=request.POST.get('order'))
+        print("order  = {}".format(order))
         if delivery_order_pk is not None:
             form = DeliveryOrderForm(request.POST, instance=DeliveryOrder.objects.get(pk=delivery_order_pk))
         else:
-            form = DeliveryOrderForm(request.POST)
+            form = DeliveryOrderForm(request.POST)        
+        print("form.is_valid() = {}".format(form.is_valid()))
         if form.is_valid():
             cleaned_data = form.cleaned_data
+            print("Cleaned data: {}".format(cleaned_data))
             form.save()
             print("Is valid.")
             data = {
@@ -232,6 +238,7 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
             }
             return JsonResponse(data)
         else:
+            print("Form errors: {}".format(form.errors))
             template = loader.get_template('shaw_queue/deliveryorder_form.html')
 
             context = {
@@ -4773,17 +4780,28 @@ def status_refresher(request):
                                                 order.delete()
                                                 return JsonResponse(data)
                                             else:
-                                                data = {
-                                                    'success': True,
-                                                    'message': '1С вернула статус {}! Заказ удалён! Вы можете '
-                                                               'повторить попытку!'.format(order.status_1c),
-                                                    'daily_number': order.daily_number,
-                                                    'status': order.status_1c,
-                                                    'guid': order.guid_1c
-                                                }
-                                                log_deleted_order(order)
-                                                order.delete()
-                                                return JsonResponse(data)
+                                                if order.status_1c == 389:
+                                                    data = {
+                                                        'success': True,
+                                                        'message': '389: Ошибка печати заказа!',
+                                                        'daily_number': order.daily_number,
+                                                        'status': order.status_1c,
+                                                        'guid': order.guid_1c
+                                                    }
+
+                                                    return JsonResponse(data)
+                                                else:
+                                                    data = {
+                                                        'success': True,
+                                                        'message': '1С вернула статус {}! Заказ удалён! Вы можете '
+                                                                   'повторить попытку!'.format(order.status_1c),
+                                                        'daily_number': order.daily_number,
+                                                        'status': order.status_1c,
+                                                        'guid': order.guid_1c
+                                                    }
+                                                    log_deleted_order(order)
+                                                    order.delete()
+                                                    return JsonResponse(data)
     else:
         data = {
             'success': False,
