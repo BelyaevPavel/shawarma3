@@ -204,7 +204,7 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
                 initial_data['customer'] = found_customer
                 customer_display = found_customer.phone_number
                 if found_customer.name != (Customer._meta.get_field("name")).default:
-                    customer_display += " "+found_customer.name
+                    customer_display += " " + found_customer.name
             if delivery_pk is not None:
                 initial_data['delivery'] = Delivery.objects.get(pk=delivery_pk)
             if order_pk is not None:
@@ -301,7 +301,9 @@ class IncomingCall(View):
                 pass
 
             if customer is not None:
-                form = CustomerForm(instance=customer)
+                form = CustomerForm(request.POST, instance=customer)
+                if form.is_valid():
+                    form.save()
             else:
                 form = CustomerForm(request.POST)
         else:
@@ -1709,9 +1711,9 @@ def cook_interface(request):
         taken_order_content = None
         new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
                                          open_time__contains=datetime.date.today(), is_canceled=False,
-                                         content_completed=False, is_grilling=False,
+                                         content_completed=False, is_grilling=False, start_shawarma_cooking=True,
                                          close_time__isnull=True).order_by('open_time')
-        other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+        other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_cooking=True,
                                             open_time__contains=datetime.date.today(), is_canceled=False,
                                             close_time__isnull=True).order_by('open_time')
         has_order = False
@@ -1840,11 +1842,11 @@ def c_i_a(request):
         #     staff.save()
         context = None
         taken_order_content = None
-        other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+        other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_cooking=True,
                                             open_time__contains=datetime.date.today(), is_canceled=False,
                                             close_time__isnull=True).order_by('open_time')
         try:
-            new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+            new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_cooking=True,
                                              open_time__contains=datetime.date.today(), is_canceled=False,
                                              content_completed=False, is_grilling=False,
                                              close_time__isnull=True).order_by('open_time')
@@ -2016,7 +2018,7 @@ def s_i_a(request):
         #     staff.save()
         context = None
         taken_order_content = None
-        new_order = Order.objects.filter(open_time__isnull=False,
+        new_order = Order.objects.filter(open_time__isnull=False, start_shashlyk_cooking=True,
                                          open_time__contains=datetime.date.today(), is_canceled=False,
                                          shashlyk_completed=False, is_grilling_shash=False,
                                          close_time__isnull=True).order_by('open_time')
@@ -2061,9 +2063,9 @@ def s_i_a(request):
         result = define_service_point(device_ip)
         if result['success']:
             open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                               with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
-                                               is_ready=False, servery__service_point=result['service_point']).order_by(
-                'open_time')
+                                               with_shashlyk=True, is_canceled=False,
+                                               is_grilling_shash=True, is_ready=False,
+                                               servery__service_point=result['service_point']).order_by('open_time')
             context = {
                 'open_orders': [{'order': open_order,
                                  'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
@@ -2406,7 +2408,10 @@ def delivery_interface(request):
                 datetime.datetime.now())
                                      and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
-                                                    service_point=delivery_order.order.servery.service_point)
+                                                    service_point=delivery_order.order.servery.service_point),
+            'available_shashlychniks': Staff.objects.filter(available=True,
+                                                            staff_category__title__iexact='Shashlychnik',
+                                                            service_point=delivery_order.order.servery.service_point)
         } for delivery_order in delivery_orders
         ]
     context = {
@@ -2578,6 +2583,7 @@ def select_order(request):
 
 
 @login_required()
+# Sets order prepared_by equal to provided cook_pk and start_shawarma_cooking to False. Used in delivery interface.
 def select_cook(request):
     cook_pk = request.POST.get('cook_pk', None)
     delivery_order_pk = request.POST.get('delivery_order_pk', None)
@@ -2633,6 +2639,7 @@ def select_cook(request):
 
     try:
         order.prepared_by = cook
+        order.start_shawarma_cooking = False
         order.save()
     except:
         data = {
@@ -2648,6 +2655,99 @@ def select_cook(request):
     }
 
     return JsonResponse(data=data)
+
+
+def start_shawarma_cooking(request):
+    user = request.user
+    staff = Staff.objects.get(user=user)
+    order_pk = request.POST.get('order_pk', None)
+    if order_pk:
+        order = Order.objects.get(pk=order_pk)
+        order.start_shawarma_cooking = True
+        order.save()
+        data = {
+            'success': True
+        }
+    else:
+        data = {
+            'success': False
+        }
+
+    return JsonResponse(data)
+
+
+def start_shashlyk_cooking(request):
+    user = request.user
+    staff = Staff.objects.get(user=user)
+    order_pk = request.POST.get('order_pk', None)
+    if order_pk:
+        order = Order.objects.get(id=order_pk)
+        shashlychnik_products = OrderContent.objects.filter(order=order,
+                                                            menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
+        products = shashlychnik_products
+
+        for product in products:
+            product.start_timestamp = datetime.datetime.now()
+            product.grill_timestamp = datetime.datetime.now()
+            product.is_in_grill = True
+            product.staff_maker = Staff.objects.get(user=user)
+            product.save()
+
+        # Check if all shashlyk is frying.
+        all_is_grilling = True
+        for product in shashlychnik_products:
+            if not product.is_in_grill:
+                all_is_grilling = False
+
+        order.is_grilling_shash = all_is_grilling
+        order.save()
+        data = {
+            'success': True
+        }
+    else:
+        data = {
+            'success': False
+        }
+
+    return JsonResponse(data)
+
+
+def finish_shashlyk_cooking(request):
+    user = request.user
+    staff = Staff.objects.get(user=user)
+    order_pk = request.POST.get('order_pk', None)
+    if order_pk:
+        order = Order.objects.get(id=order_pk)
+        shashlychnik_products = OrderContent.objects.filter(order=order,
+                                                            menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
+        products = shashlychnik_products
+        for product in products:
+            product.is_in_grill = False
+            product.finish_timestamp = datetime.datetime.now()
+            if product.start_timestamp is None:
+                product.start_timestamp = datetime.datetime.now()
+            if product.staff_maker is None:
+                product.staff_maker = Staff.objects.get(user=request.user)
+            product.save()
+
+        # Check if all shashlyk is frying.
+        shashlyk_is_finished = True
+        for product in shashlychnik_products:
+            if product.finish_timestamp is None:
+                shashlyk_is_finished = False
+
+        order.shashlyk_completed = shashlyk_is_finished
+        order.is_grilling_shash = False
+        order.save()
+        data = {
+            'success': True
+        }
+    else:
+        data = {
+            'success': False
+        }
+
+    return JsonResponse(data)
 
 
 def shashlychnik_select_order(request):
@@ -3420,7 +3520,7 @@ def grill_all_content(request):
             product.start_timestamp = datetime.datetime.now()
             product.grill_timestamp = datetime.datetime.now()
             product.is_in_grill = True
-            product.staff_maker = Staff.objects.get(user=request.user)
+            product.staff_maker = Staff.objects.get(user=user)
             product.save()
 
         # Check if all shashlyk is frying.

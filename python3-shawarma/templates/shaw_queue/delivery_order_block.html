@@ -11,7 +11,7 @@
             &#10003;
         </button>
         <div class="dropdown">
-            {% if delivery_order.order.order.prepared_by %}
+            {% if delivery_order.order.order.prepared_by and delivery_order.order.order.content_completed and delivery_order.order.order.shashlyk_completed and delivery_order.order.order.supplement_completed %}
                 <button class="small-btn warning"
                         {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
                         disabled
@@ -23,11 +23,33 @@
                     Готовить
                 </button>
                 <div class="dropdown-content">
+                    <p>Повара:</p>
                     {% for available_cook in delivery_order.available_cooks %}
                         <a onclick="SelectCook({{ available_cook.pk }}, {{ delivery_order.order.pk }})">
                             {{ available_cook }}
                         </a>
+                    {% empty %}
+                        Нет доступных поваров.
                     {% endfor %}
+                    {% if delivery_order.order.order.with_shawarma %}
+                        <p>Шаурма:</p>
+                        <a onclick="StartShawarmaCooking({{ delivery_order.order.order.pk }})">
+                            Начать готовить шаурму
+                        </a>
+                    {% endif %}
+                    {% if delivery_order.order.order.with_shashlyk %}
+                        {% if not delivery_order.order.order.is_grilling_shash %}
+                            <p>Шашлык:</p>
+                            <a onclick="StartShashlykCooking({{ delivery_order.order.order.pk }})">
+                                Начать готовить шашлык
+                            </a>
+                        {% else %}
+                            <p>Шашлык:</p>
+                            <a onclick="FinishShashlykCooking({{ delivery_order.order.order.pk }})">
+                                Закончить готовить шашлык
+                            </a>
+                        {% endif %}
+                    {% endif %}
                 </div>
             {% endif %}
         </div>
