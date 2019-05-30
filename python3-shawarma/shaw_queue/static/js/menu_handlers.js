@@ -265,7 +265,8 @@ function OKHandeler() {
 function DeliveryOKHandeler(order_pk) {
     var modal_window = $('#modal-menu');
     var customer_pk = $('#current-order-data').attr('customer-pk');
-    CreateDeliveryOrder(-1, customer_pk, -1, order_pk);
+    //CreateDeliveryOrder(-1, customer_pk, -1, order_pk);
+    $("#id_order").val(order_pk);
     currOrder = [];
     DrawOrderTable();
     CalculateTotal();

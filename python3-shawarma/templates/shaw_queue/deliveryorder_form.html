@@ -1,14 +1,15 @@
 {% block content %}
-{#    <head>#}
-{#        <meta charset="utf-8">#}
-{#        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">#}
-{#        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css"#}
-{#              integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"#}
-{#              crossorigin="anonymous">#}
-{#        <title>Simple is Better Than Complex</title>#}
-{#    </head>#}
+    {#    <head>#}
+    {#        <meta charset="utf-8">#}
+    {#        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">#}
+    {#        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css"#}
+    {#              integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"#}
+    {#              crossorigin="anonymous">#}
+    {#        <title>Simple is Better Than Complex</title>#}
+    {#    </head>#}
     <div class="modal-content" id="modal-delivery-order-create">
-        <form id="delivery-order-form" method="post" action="{% url 'delivery-order-ajax' %}" object-pk="{{ object_pk }}">
+        <form id="delivery-order-form" method="post" action="{% url 'delivery-order-ajax' %}"
+              object-pk="{{ object_pk }}">
             {% csrf_token %}
 
             {% for hidden_field in form.hidden_fields %}
@@ -22,6 +23,11 @@
                     {% endfor %}
                 </div>
             {% endif %}
+
+            <div class="form-group">
+                <label for="customer_display">Клиент:</label>
+                <input id="customer_display" class="form-control" type="text" value="{{ customer_display }}" disabled>
+            </div>
 
             {% for field in form.visible_fields %}
                 <div class="form-group">
@@ -48,8 +54,10 @@
                 </div>
             {% endfor %}
 
-{#            <button type="submit" class="btn btn-primary">Submit</button>#}
-            <button type="submit" class="btn info">Подтвердить</button>
+            {#            <button type="submit" class="btn btn-primary">Submit</button>#}
+            <button type="submit" class="btn info">Сохранить</button>
+            <button id="btn_show_menu" class="btn info" onclick="ShowMenu()">Создать заказ
+            </button>
         </form>
     </div>
 {% endblock %}

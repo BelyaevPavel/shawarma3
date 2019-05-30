@@ -50,9 +50,9 @@
                     </div>
                 {% endfor %}
 
-                <button type="submit" class="btn info">Подтвердить</button>
+                <button type="submit" class="btn info">Сохранить</button>
                 {% if customer_pk %}
-                    <button class="btn info" onclick="ShowMenu()">Создать заказ
+                    <button id="btn_create_delivery_order" class="btn info" onclick="CreateDeliveryOrder(-1, {{ customer_pk }}, -1, -1);">Создать заказ
                     </button>
                 {% endif %}
             </form>
@@ -70,6 +70,7 @@
                 {% for customer_order in customer_orders %}
                     <div class="order-preview-container">
                         <h4>Заказ: {{ customer_order.delivery_order.obtain_timepoint }}</h4>
+                        <p>Адрес: {{ customer_order.delivery_order.address }}</p>
                         <ul>
                             {% for item in customer_order.content %}
                                 <li>
