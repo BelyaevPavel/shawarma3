@@ -7,10 +7,13 @@
 {% endblock %}
 {% block content %}
     <input id="delivery-urls" hidden data-close-delivery-order-url="" order-specifics-url=""
-           incoming-call-url="{% url 'incoming-call' %}" check-calls-url = "{% url 'check_calls' %}"
+           incoming-call-url="{% url 'incoming-call' %}" check-calls-url="{% url 'check_calls' %}"
            data-cancel-delivery-order-url="" create-order-url="{% url 'delivery-order-ajax' %}"
            menu-url="{% url 'menu' %}" delivery-url="{% url 'delivery' %}" select-cook-url="{% url 'select_cook' %}"
-           workspace-update="{% url 'delivery-workspace-update' %}">
+           workspace-update="{% url 'delivery-workspace-update' %}"
+           start-shawarma-cooking-url="{% url 'start_shawarma_cooking' %}"
+           start-shashlyk-cooking-url="{% url 'start_shashlyk_cooking' %}"
+           finish-shashlyk-cooking-url="{% url 'finish_shashlyk_cooking' %}">
     <input hidden id="current-order-data" customer-pk="-1">
     <div class="modal" id="modal-menu" {% comment %}onclick="HideMenu()"{% endcomment %}>
     </div>
@@ -25,7 +28,7 @@
             {% for delivery in delivery_info %}
                 {% include 'shaw_queue/delivery_info_block.html' with delivery_info=delivery %}
             {% endfor %}
-    <button class="btn success" onclick="CreateDelivery()">&plus;</button>
+            <button class="btn success" onclick="CreateDelivery()">&plus;</button>
         </div>
         <div>
             <button class="btn info" onclick="HideSidebar('delivery-left-column', 'show-left-column')"

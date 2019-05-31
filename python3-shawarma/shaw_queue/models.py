@@ -97,6 +97,8 @@ class Order(models.Model):
     content_completed = models.BooleanField(verbose_name="Content Completed", default=False)
     shashlyk_completed = models.BooleanField(verbose_name="Shashlyk Completed", default=False)
     supplement_completed = models.BooleanField(verbose_name="Supplement Completed", default=False)
+    start_shawarma_cooking = models.BooleanField(verbose_name="Start Shawarma Cooking", default=True)
+    # start_shashlyk_cooking = models.BooleanField(verbose_name="Start Shashlyk Cooking", default=True)
     total = models.FloatField(default=0, validators=[MinValueValidator(0, "Total can't be negative!")])
     is_canceled = models.BooleanField(verbose_name="Is canceled", default=False)
     closed_by = models.ForeignKey(Staff, related_name="closer", verbose_name="Closed By", null=True)
