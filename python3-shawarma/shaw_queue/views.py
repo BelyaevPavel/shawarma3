@@ -189,11 +189,19 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
         delivery_pk = request.GET.get('delivery_pk', None)
         order_pk = request.GET.get('order_pk', None)
         customers = Customer.objects.all()
+        device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if DEBUG_SERVERY:
+            device_ip = '127.0.0.1'
+        result = define_service_point(device_ip)
+        sellpointAddress = ''
+        if result['success']:
+            sellpointAddress = result['service_point'].title
         initial_data = {}
         template = loader.get_template('shaw_queue/deliveryorder_form.html')
         if delivery_order_pk is not None:
             context = {
                 'object_pk': delivery_order_pk,
+                'sellpointAddress': sellpointAddress,
                 'form': DeliveryOrderForm(instance=DeliveryOrder.objects.get(pk=delivery_order_pk))
             }
         else:
@@ -211,9 +219,10 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
                 initial_data['order'] = Order.objects.get(pk=order_pk)
             context = {
                 "customer_display": customer_display,
+                'sellpointAddress': sellpointAddress,
                 'form': DeliveryOrderForm(initial=initial_data)
             }
-
+        # context['form'].fields['delivery'].queryset = Delivery.objects.filter(creation_timepoint__contains=timezone.datetime.today().date())
         for field in context['form'].fields:
             context['form'].fields[field].widget.attrs['class'] = 'form-control'
             print(context['form'].fields[field].widget.attrs)
@@ -2427,8 +2436,9 @@ def delivery_interface(request):
 def delivery_workspace_update(request):
     utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_workspace.html')
-    print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
-    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
+    print("{} {} {}".format(timezone.datetime.now(), datetime.datetime.now(), utc.localize(datetime.datetime.now())))
+    delivery_orders = DeliveryOrder.objects.filter(
+        obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
     processed_d_orders = [
         {
@@ -4914,7 +4924,7 @@ def order_1c_payment(request):
     return HttpResponse()
 
 
-def define_service_point(ip):
+def define_service_point(ip: str) -> dict:
     ip_blocks = ip.split('.')
     subnet_number = ip_blocks[2]
     try:

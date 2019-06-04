@@ -21,7 +21,7 @@ class OrderForm(forms.ModelForm):
 
 
 class DeliveryForm(forms.ModelForm):
-    car_driver = forms.ModelChoiceField(queryset=Staff.objects.filter(staff_category__title__iexact='Driver'))
+    car_driver = forms.ModelChoiceField(queryset=Staff.objects.filter(staff_category__title__iexact='Cook'))
 
     class Meta:
         model = Delivery
@@ -67,8 +67,15 @@ class CustomerForm(forms.ModelForm):
 class DeliveryOrderForm(forms.ModelForm):
     # order = forms.ModelChoiceField(queryset=Order.objects.filter(open_time__contains=datetime.date.today),
     #                                widget=forms.HiddenInput())
+    delivery = forms.ModelChoiceField(
+        queryset=Delivery.objects.filter(creation_timepoint__contains=timezone.datetime.today),
+        empty_label="Без доставки.")
 
-    #  delivery = forms.ModelChoiceField(queryset=Delivery.objects.filter(creation_timepoint__contains=datetime.date.today))
+    def __init__(self, *args, **kwargs):
+        super(DeliveryOrderForm, self).__init__(*args, **kwargs)
+        self.fields['delivery'].queryset = Delivery.objects.filter(
+            creation_timepoint__contains=timezone.datetime.today().date())
+
     class Meta:
         model = DeliveryOrder
         exclude = ['prep_start_timepoint']
