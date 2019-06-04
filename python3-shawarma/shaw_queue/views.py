@@ -2803,6 +2803,84 @@ def voice_all(request):
 
 @login_required()
 @permission_required('shaw_queue.add_order')
+def cooks_content_info(request):
+    servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        servery_ip = '127.0.0.1'
+    result = define_service_point(servery_ip)
+
+    if result['success']:
+        cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                         service_point=result['service_point']).order_by('user__first_name')
+
+    if len(cooks) == 0:
+        data = {
+            'success': False,
+            'message': 'Нет доступных поваров!'
+        }
+        return JsonResponse(data)
+
+    template = loader.get_template('shaw_queue/cooks_content_info.html')
+    context = {
+        'items': [{
+            'cook_name': cook.user.first_name,
+            'content_count': OrderContent.objects.filter(order__prepared_by=cook,
+                                                          order__open_time__contains=datetime.date.today(),
+                                                          order__is_canceled=False,
+                                                          order__close_time__isnull=True,
+                                                          order__is_ready=False,
+                                                          menu_item__can_be_prepared_by__title__iexact='Cook'
+                                                        ).aggregate(count=Count('id')),
+        } for cook in cooks],
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+    }
+
+    return HttpResponse(template.render(context, request))
+
+
+@login_required()
+@permission_required('shaw_queue.add_order')
+def cooks_content_info_ajax(request):
+    servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        servery_ip = '127.0.0.1'
+    result = define_service_point(servery_ip)
+
+    if result['success']:
+        cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                         service_point=result['service_point']).order_by('user__first_name')
+
+    if len(cooks) == 0:
+        data = {
+            'success': False,
+            'message': 'Нет доступных поваров!'
+        }
+        return JsonResponse(data)
+
+    template = loader.get_template('shaw_queue/cooks_content_info_ajax.html')
+    context = {
+        'items': [{
+            'cook_name': cook.user.first_name,
+            'content_count': OrderContent.objects.filter(order__prepared_by=cook,
+                                                          order__open_time__contains=datetime.date.today(),
+                                                          order__is_canceled=False,
+                                                          order__close_time__isnull=True,
+                                                          order__is_ready=False,
+                                                          menu_item__can_be_prepared_by__title__iexact='Cook'
+                                                        ).aggregate(count=Count('id')),
+        } for cook in cooks],
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+    }
+
+    data = {
+        'html': template.render(context, request),
+    }
+
+    return JsonResponse(data)
+
+
+@login_required()
+@permission_required('shaw_queue.add_order')
 def make_order(request):
     delivery_order_pk = request.POST.get('delivery_order_pk', None)
     file = open('log/cook_choose.log', 'a')

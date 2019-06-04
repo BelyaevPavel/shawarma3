@@ -1,0 +1,38 @@
+{% extends 'shaw_queue/base.html' %}
+{% include 'shaw_queue/header.html' %}
+<title>Загрузка поваров</title>
+{% block aditional_static %}
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'queue/loader.css' %}">
+    <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/cooks_content_info_handlers.js' %}"></script>
+    <input hidden id="urls" data-refresh-url="{% url 'cooks_content_info_ajax' %}">
+{% endblock %}
+{% block content %}
+    <div id="cooks-info-content">
+        <div class="stat-sect-container">
+            <div class="stat-cook-table-header">
+                <div class="stat-opinion-order-datetime">
+                    Повар
+                </div>
+                <div class="stat-opinion-order-datetime">
+                    Количество шаурмы
+                </div>
+            </div>
+            {% for item in items %}
+                <div class="stat-view-container">
+                    <div class="stat-view" id="call-{{ forloop.counter }}">
+                        <div class="stat-opinion-order-datetime">
+                            {{ item.cook_name }}
+                        </div>
+                        <div class="stat-opinion-order-datetime">
+                            {{ item.content_count.count }}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                Нет доступных поваров.
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
