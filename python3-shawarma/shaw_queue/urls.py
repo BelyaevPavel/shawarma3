@@ -2,9 +2,9 @@ from django.conf.urls import url
 from . import views
 
 urlpatterns = [
-    url(r'^$', views.welcomer, name='welcomer'),    
+    url(r'^$', views.welcomer, name='welcomer'),
     url(r'^reload_menu', views.get_1c_menu, name='reload_menu'),
-    url(r'^order_status', views.recive_1c_order_status, name='order_status'),       
+    url(r'^order_status', views.recive_1c_order_status, name='order_status'),
     url(r'^menu', views.menu, name='menu'),
     url(r'^delivery_interface', views.delivery_interface, name='delivery_interface'),
     url(r'^ats_listner', views.ats_listner, name='ats_listner'),
@@ -53,6 +53,7 @@ urlpatterns = [
     url(r'^ajax/pause_statistics', views.pause_statistic_page_ajax, name="update_pause_statistics"),
     url(r'^ajax/records_statistics', views.call_record_page_ajax, name="update_records_statistics"),
     url(r'^ajax/s_order_shashlychnik', views.shashlychnik_select_order, name="select_order_shashlychnik"),
+    url(r'^ajax/cooks_content_info', views.cooks_content_info_ajax, name="cooks_content_info_ajax"),
     url(r'^current_queue', views.current_queue, name="current_queue"),
     url(r'^production_queue', views.production_queue, name="production_queue"),
     url(r'^order_history', views.order_history, name="order_history"),
@@ -87,4 +88,5 @@ urlpatterns = [
     url(r'delivery_order/(?P<pk>[0-9]+)/delete/$', views.DeliveryOrderDelete.as_view(), name='delivery-order-delete'),
     url(r'incoming_call/$', views.IncomingCall.as_view(), name='incoming-call'),
     url(r'delivery/$', views.DeliveryView.as_view(), name='delivery'),
+    url(r'^cooks_content_info', views.cooks_content_info, name='cooks_content_info'),
 ]

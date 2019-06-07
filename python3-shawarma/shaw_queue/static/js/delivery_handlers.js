@@ -535,6 +535,11 @@ function StartShawarmaCooking(OrderPK) {
 }
 
 
+function SetAddressFieldValue(AddressString) {
+    $('#id_address').val(AddressString);
+}
+
+
 function StartShashlykCooking(OrderPK) {
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
