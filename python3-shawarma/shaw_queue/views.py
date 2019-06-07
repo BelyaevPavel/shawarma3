@@ -2025,7 +2025,7 @@ def s_i_a(request):
         #     staff.save()
         context = None
         taken_order_content = None
-        new_order = Order.objects.filter(open_time__isnull=False, start_shashlyk_cooking=True,
+        new_order = Order.objects.filter(open_time__isnull=False,
                                          open_time__contains=datetime.date.today(), is_canceled=False,
                                          shashlyk_completed=False, is_grilling_shash=False,
                                          close_time__isnull=True).order_by('open_time')
