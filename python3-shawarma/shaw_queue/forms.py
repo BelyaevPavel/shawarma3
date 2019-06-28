@@ -69,7 +69,7 @@ class DeliveryOrderForm(forms.ModelForm):
     #                                widget=forms.HiddenInput())
     delivery = forms.ModelChoiceField(
         queryset=Delivery.objects.filter(creation_timepoint__contains=timezone.datetime.today),
-        empty_label="Без доставки.")
+        empty_label="Без доставки.", required=False)
 
     def __init__(self, *args, **kwargs):
         super(DeliveryOrderForm, self).__init__(*args, **kwargs)
