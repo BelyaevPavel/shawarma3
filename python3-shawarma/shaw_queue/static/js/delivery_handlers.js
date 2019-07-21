@@ -591,6 +591,53 @@ function FinishShashlykCooking(OrderPK) {
     });
 }
 
-function CancelDeliveryOrder(DeliveryOrderPK) {
 
+function FinishDeliveryOrder(DeliveryOrderPK) {
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('finish-delivery-order-url'),
+            data: {"delivery_order_pk": DeliveryOrderPK},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                    alert(data['message']);
+                }
+                else {
+                    alert(data['message']);
+                }
+            }
+        }
+    ).fail(function () {
+        console.log('Failed ' + aux);
+    });
+}
+
+function CancelDeliveryOrder(DeliveryOrderPK) {
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('cancel-delivery-order-url'),
+            data: {"delivery_order_pk": DeliveryOrderPK},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                    alert(data['message']);
+                }
+                else {
+                    alert(data['message']);
+                }
+            }
+        }
+    ).fail(function () {
+        console.log('Failed ' + aux);
+    });
 }

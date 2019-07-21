@@ -13,7 +13,9 @@
            workspace-update="{% url 'delivery-workspace-update' %}"
            start-shawarma-cooking-url="{% url 'start_shawarma_cooking' %}"
            start-shashlyk-cooking-url="{% url 'start_shashlyk_cooking' %}"
-           finish-shashlyk-cooking-url="{% url 'finish_shashlyk_cooking' %}">
+           finish-shashlyk-cooking-url="{% url 'finish_shashlyk_cooking' %}"
+           finish-delivery-order-url="{% url 'finish_delivery_order' %}"
+           cancel-delivery-order-url="{% url 'cancel_delivery_order' %}">
     <input hidden id="current-order-data" customer-pk="-1">
     <div class="modal" id="modal-menu" {% comment %}onclick="HideMenu()"{% endcomment %}>
     </div>

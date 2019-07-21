@@ -2438,8 +2438,8 @@ def delivery_workspace_update(request):
     template = loader.get_template('shaw_queue/delivery_workspace.html')
     print("{} {} {}".format(timezone.datetime.now(), datetime.datetime.now(), utc.localize(datetime.datetime.now())))
     delivery_orders = DeliveryOrder.objects.filter(
-        obtain_timepoint__contains=datetime.date.today()).order_by(
-        'delivered_timepoint')
+        obtain_timepoint__contains=datetime.date.today(), order__close_time__isnull=True,
+        order__is_canceled=False).order_by('delivered_timepoint')
     processed_d_orders = [
         {
             'order': delivery_order,
@@ -2676,11 +2676,13 @@ def start_shawarma_cooking(request):
         order.start_shawarma_cooking = True
         order.save()
         data = {
-            'success': True
+            'success': True,
+            'message': "Шаурма из заказа отправлена в готовку!"
         }
     else:
         data = {
-            'success': False
+            'success': False,
+            'message': "Ошибка! Отсутствует ID заказа!"
         }
 
     return JsonResponse(data)
@@ -2821,7 +2823,7 @@ def cooks_content_info(request):
 
     if result['success']:
         cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
-                                         service_point=result['service_point']).order_by('user__first_name')
+                                     service_point=result['service_point']).order_by('user__first_name')
 
     if len(cooks) == 0:
         data = {
@@ -2833,15 +2835,15 @@ def cooks_content_info(request):
     template = loader.get_template('shaw_queue/cooks_content_info.html')
     context = {
         'items': [{
-            'cook_name': cook.user.first_name,
-            'content_count': OrderContent.objects.filter(order__prepared_by=cook,
-                                                          order__open_time__contains=datetime.date.today(),
-                                                          order__is_canceled=False,
-                                                          order__close_time__isnull=True,
-                                                          order__is_ready=False,
-                                                          menu_item__can_be_prepared_by__title__iexact='Cook'
-                                                        ).aggregate(count=Count('id')),
-        } for cook in cooks],
+                      'cook_name': cook.user.first_name,
+                      'content_count': OrderContent.objects.filter(order__prepared_by=cook,
+                                                                   order__open_time__contains=datetime.date.today(),
+                                                                   order__is_canceled=False,
+                                                                   order__close_time__isnull=True,
+                                                                   order__is_ready=False,
+                                                                   menu_item__can_be_prepared_by__title__iexact='Cook'
+                                                                   ).aggregate(count=Count('id')),
+                  } for cook in cooks],
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
     }
 
@@ -2858,7 +2860,7 @@ def cooks_content_info_ajax(request):
 
     if result['success']:
         cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
-                                         service_point=result['service_point']).order_by('user__first_name')
+                                     service_point=result['service_point']).order_by('user__first_name')
 
     if len(cooks) == 0:
         data = {
@@ -2870,15 +2872,15 @@ def cooks_content_info_ajax(request):
     template = loader.get_template('shaw_queue/cooks_content_info_ajax.html')
     context = {
         'items': [{
-            'cook_name': cook.user.first_name,
-            'content_count': OrderContent.objects.filter(order__prepared_by=cook,
-                                                          order__open_time__contains=datetime.date.today(),
-                                                          order__is_canceled=False,
-                                                          order__close_time__isnull=True,
-                                                          order__is_ready=False,
-                                                          menu_item__can_be_prepared_by__title__iexact='Cook'
-                                                        ).aggregate(count=Count('id')),
-        } for cook in cooks],
+                      'cook_name': cook.user.first_name,
+                      'content_count': OrderContent.objects.filter(order__prepared_by=cook,
+                                                                   order__open_time__contains=datetime.date.today(),
+                                                                   order__is_canceled=False,
+                                                                   order__close_time__isnull=True,
+                                                                   order__is_ready=False,
+                                                                   menu_item__can_be_prepared_by__title__iexact='Cook'
+                                                                   ).aggregate(count=Count('id')),
+                  } for cook in cooks],
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
     }
 
@@ -3159,24 +3161,60 @@ def make_order(request):
 
 @login_required()
 @permission_required('shaw_queue.change_order')
-def close_order(request):
+def close_order_view(request):
     order_id = json.loads(request.POST.get('order_id', None))
+    return JsonResponse(close_order_method(order_id))
+
+
+def close_order_method(order_id: int) -> dict:
+    """
+    Closes the order with provided ID.
+    :rtype: dict
+    :param order_id: ID of order, that will be closed.
+    :return: Data about order close.
+    """
+    if order_id is not None:
+        try:
+            order = Order.objects.get(id=order_id)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске заказа!'
+            }
+            client.captureException()
+            return data
+        order.close_time = datetime.datetime.now()
+        order.is_ready = True
+        order.save()
+        data = {
+            'success': True,
+            'message': 'Заказ №{} закрыт!'.format(order.daily_number)
+        }
+    else:
+        raise TypeError("Order ID is None!")
+    return data
+
+
+@login_required()
+#@permission_required('shaw_queue.change_order')
+def finish_delivery_order(request) -> JsonResponse:
+    """
+    Finishes delivery order by closing nested order.
+    :param request:
+    :return:
+    """
+    delivery_order_pk = json.loads(request.POST.get('delivery_order_pk', None))
     try:
-        order = Order.objects.get(id=order_id)
+        delivery_order = DeliveryOrder.objects.get(id=delivery_order_pk)
     except:
         data = {
             'success': False,
-            'message': 'Что-то пошло не так при поиске заказа!'
+            'message': 'Что-то пошло не так при поиске заказа доставки!'
         }
         client.captureException()
         return JsonResponse(data)
-    order.close_time = datetime.datetime.now()
-    order.is_ready = True
-    order.save()
-    data = {
-        'success': True,
-        'received': 'Order №{} is closed.'.format(order.daily_number)
-    }
+
+    data = close_order_method(delivery_order.order.id)
 
     return JsonResponse(data)
 
@@ -3250,9 +3288,19 @@ def close_all(request):
 
 @login_required()
 @permission_required('shaw_queue.change_order')
-def cancel_order(request):
+def cancel_order_view(request):
     order_id = request.POST.get('id', None)
-    if order_id:
+    return JsonResponse(cancel_order_method(request, order_id))
+
+
+def cancel_order_method(request, order_id: int) -> dict:
+    """
+    Cancels order with provided id.
+    :param request: HTTP request.
+    :param order_id: Determines order, that will be canceled.
+    :return: Data for JsonResponse.
+    """
+    if order_id is not None:
         try:
             order = Order.objects.get(id=order_id)
         except:
@@ -3273,14 +3321,15 @@ def cancel_order(request):
                         'message': 'Что-то пошло не так при поиске персонала!'
                     }
                     client.captureException()
-                    return JsonResponse(data)
+                    return data
                 order.is_canceled = True
                 order.save()
                 data = {
-                    'success': True
+                    'success': True,
+                    'message': 'Заказ №{} отменён!'
                 }
             else:
-                return JsonResponse(result)
+                return result
         else:
             try:
                 order.canceled_by = Staff.objects.get(user=request.user)
@@ -3290,18 +3339,41 @@ def cancel_order(request):
                     'message': 'Что-то пошло не так при поиске персонала!'
                 }
                 client.captureException()
-                return JsonResponse(data)
+                return data
             order.is_canceled = True
             order.save()
             data = {
-                'success': True
+                'success': True,
+                'message': 'Заказ №{} отменён!'
             }
+    else:
+        raise TypeError("Order ID is NoneType!")
+    return data
+
+
+@login_required()
+@permission_required('shaw_queue.change_order')
+def cancel_delivery_order(request):
+    delivery_order_pk = request.POST.get('delivery_order_pk', None)
+    if delivery_order_pk:
+        try:
+            delivery_order = DeliveryOrder.objects.get(pk=delivery_order_pk)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске заказа!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        order_cancelation_data = cancel_order_method(request, delivery_order.order.id)
+        return JsonResponse(order_cancelation_data)
+
     else:
         data = {
             'success': False
         }
+        return JsonResponse(data)
 
-    return JsonResponse(data)
 
 
 @login_required()
