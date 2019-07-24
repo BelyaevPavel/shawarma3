@@ -16,6 +16,7 @@ var modal_delivery_order_is_opened = false;
 var modal_menu_is_opened = false;
 var modal_menu_container = $('#modal-menu');
 var modal_delivery_order_container = $('#modal-delivery-order');
+var modal_delivery_order_content;
 
 $(document).ready(function () {
     UpdateWorkspace();
@@ -130,7 +131,22 @@ function ShowMenu() {
                     //modal_delivery_order_container.hide();
                     modal_menu_container.html(data['html']);
                     modal_menu_container.css("display", "block");
-                    modal_menu_is_opened = true;
+                    modal_menu_is_opened = true;// Get the modal
+
+                    // Get the <span> element that closes the modal
+                    var closeMenuSpan = document.getElementById("close-modal-menu");
+
+                    // When the user clicks on <span> (x), close the modal
+                    closeMenuSpan.onclick = function () {
+                        HideMenu();
+                    };
+
+                    // When the user clicks anywhere outside of the modal, close it
+                    window.onclick = function (event) {
+                        if (event.target == modal_menu_container) {
+                            HideMenu();
+                        }
+                    }
                 }
                 else {
                     alert(data['message']);
@@ -175,7 +191,24 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                 if (data['success']) {
                     modal_delivery_order_container.html(data['html']);
                     modal_delivery_order_container.css("display", "block");
+                    modal_delivery_order_content = document.getElementById("close-modal-delivery-order");
                     modal_delivery_order_is_opened = true;
+
+                    // Get the <span> element that closes the modal
+                    var closeMenuSpan = document.getElementById("close-modal-delivery-order");
+
+                    // When the user clicks on <span> (x), close the modal
+                    closeMenuSpan.onclick = function () {
+                        HideDeliveryOrder();
+                    };
+
+                    // When the user clicks anywhere outside of the modal, close it
+                    window.onclick = function (event) {
+                        if (event.target == modal_delivery_order_content) {
+                            HideDeliveryOrder();
+                        }
+                    };
+
                     jQuery.datetimepicker.setLocale('ru');
                     // $('#id_obtain_timepoint').datetimepicker({
                     //     format: "d.m.Y H:i",
@@ -183,7 +216,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                     //     minDate: 0,
                     //     lang: "ru"
                     // });
-                    $('#id_obtain_timepoint').prop('disabled',true);
+                    $('#id_obtain_timepoint').prop('disabled', true);
                     $('#id_delivered_timepoint').datetimepicker({
                         format: "d.m.Y H:i",
                         mask: true,
@@ -327,7 +360,28 @@ function SendIncomingCall(CustomerPK = null) {
             success: function (data) {
                 modal_delivery_order_container.html(data['html']);
                 modal_delivery_order_container.css("display", "block");
+                modal_delivery_order_content = document.getElementById("close-modal-delivery-order");
                 modal_delivery_order_is_opened = true;
+
+                // Get the <span> element that closes the modal
+                var closeMenuSpan = document.getElementById("close-modal-delivery-order");
+
+                // When the user clicks on <span> (x), close the modal
+                closeMenuSpan.onclick = function () {
+                    HideDeliveryOrder();
+                };
+
+                // When the user clicks anywhere outside of the modal, close it
+                window.onclick = function (event) {
+                    if (event.target == modal_delivery_order_content) {
+                        console.log("Inside");
+                        HideDeliveryOrder();
+                    }
+                    else {
+                        console.log("Outside");
+                    }
+                };
+
                 $('#current-order-data').attr('customer-pk', $('#incoming-call-form').attr('customer-pk'));
                 $('#btn_create_delivery_order').on('click', function (event) {
                     event.preventDefault();

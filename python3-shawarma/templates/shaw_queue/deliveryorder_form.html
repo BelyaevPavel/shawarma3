@@ -8,6 +8,7 @@
     {#        <title>Simple is Better Than Complex</title>#}
     {#    </head>#}
     <div class="modal-content" id="modal-delivery-order-create">
+        <span class="close" id="close-modal-delivery-order">&times;</span>
         <form id="delivery-order-form" method="post" action="{% url 'delivery-order-ajax' %}"
               object-pk="{{ object_pk }}">
             {% csrf_token %}

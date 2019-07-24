@@ -8,6 +8,7 @@
     {#        <title>Simple is Better Than Complex</title>#}
     {#    </head>#}
     <div class="modal-content" id="modal-delivery-order-create">
+        <span class="close" id="close-modal-delivery-order">&times;</span>
         <div class="customer-form-container">
             <form id="incoming-call-form" method="post" action="{% url 'incoming-call' %}"
                   customer-pk="{{ customer_pk }}">
