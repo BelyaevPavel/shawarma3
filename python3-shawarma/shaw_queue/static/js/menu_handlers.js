@@ -182,7 +182,6 @@ function StatusRefresher(guid) {
                             case 396:
                             case 395:
                             case 394:
-                            case 393:
                             case 391:
                             case 390:
                                 OK.prop('disabled', true);
@@ -196,6 +195,7 @@ function StatusRefresher(guid) {
                             //     cancel.prop('disabled', false);
                             //     retry.prop('disabled', false);
                             //     break;
+                            case 393:
                             case 392:
                                 if (payment_choose == "paid_with_cash")
                                     status.text('Заказ №' + data.daily_number + '. ' + data['message']+ ' Введите полученную сумму, отдайте клиенту сдачу и нажмите ОК');
@@ -462,6 +462,12 @@ function ShowModalEdit(index) {
     var plus = $('#plus-button');
     var minus = $('#minus-button');
 
+    var cheese = $('#cheese-button');
+    var greens = $('#greens-button');
+    var spicy = $('#spicy-button');
+    var yellow = $('#yellow-button');
+    var noOnion = $('#noOnion-button');
+
     title.text(currOrder[index]['title']);
     quantity.val(currOrder[index]['quantity']);
     quantity.blur(
@@ -503,6 +509,66 @@ function ShowModalEdit(index) {
             MinusOneItem(index);
         }
     );
+    cheese.click(
+        function () {
+            var str = ' Сыр';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    greens.click(
+        function () {
+            var str = ' Зелень';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    spicy.click(
+        function () {
+            var str = ' Острая';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    yellow.click(
+        function () {
+            var str = ' Ж';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    noOnion.click(
+        function () {
+            var str = ' Без лука';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
 
     // Get the modal
     var modal = document.getElementById('modal-edit');
@@ -517,6 +583,13 @@ function CloseModalEdit() {
     var note = $('#item-note');
     var plus = $('#plus-button');
     var minus = $('#minus-button');
+
+    var cheese = $('#cheese-button');
+    var greens = $('#greens-button');
+    var spicy = $('#spicy-button');
+    var yellow = $('#yellow-button');
+    var noOnion = $('#noOnion-button');
+
     var modal = document.getElementById('modal-edit');
 
     quantity.off("blur");
@@ -525,6 +598,12 @@ function CloseModalEdit() {
     note.off("blur");
     plus.off("click");
     minus.off("click");
+
+    cheese.off("click");
+    greens.off("click");
+    spicy.off("click");
+    yellow.off("click");
+    noOnion.off("click");
 
     modal.style.display = "none";
 }

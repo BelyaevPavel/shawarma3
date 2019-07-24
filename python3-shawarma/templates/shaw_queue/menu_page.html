@@ -17,6 +17,13 @@
                 <input type="text" value="" class="modal-quantity-input" id="item-quantity" onclick="this.setSelectionRange(0, this.value.length)">
                 <button class="btn info" id="plus-button">+</button>
                 <button class="btn info" id="minus-button">-</button>
+                <div class="quick-comment-container">
+                    <button class="btn img-btn" id="cheese-button"><img alt="" src="{% static 'img/btns/cheese.png' %}"></button>
+                    <button class="btn img-btn" id="greens-button"><img alt="" src="{% static 'img/btns/greens.png' %}"></button>
+                    <button class="btn img-btn" id="spicy-button"><img alt="" src="{% static 'img/btns/spicy.png' %}"></button>
+                    <button class="btn img-btn" id="yellow-button"><img alt="" src="{% static 'img/btns/yellow.png' %}"></button>
+                    <button class="btn img-btn" id="noOnion-button"><img alt="" src="{% static 'img/btns/noOnion.png' %}"></button>
+                </div>
             </p>
             <p>
                 <label for="item-note" class="modal-label">Комментарий</label>

@@ -234,12 +234,18 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
 
     def post(self, request):
         delivery_order_pk = request.POST.get('delivery_order_pk', None)
+        print("delivery_order_pk = {}".format(delivery_order_pk))
+        print("request.POST = {}".format(request.POST))
+        order = Order.objects.get(id=request.POST.get('order'))
+        print("order  = {}".format(order))
         if delivery_order_pk is not None:
             form = DeliveryOrderForm(request.POST, instance=DeliveryOrder.objects.get(pk=delivery_order_pk))
         else:
-            form = DeliveryOrderForm(request.POST)
+            form = DeliveryOrderForm(request.POST)        
+        print("form.is_valid() = {}".format(form.is_valid()))
         if form.is_valid():
             cleaned_data = form.cleaned_data
+            print("Cleaned data: {}".format(cleaned_data))
             form.save()
             print("Is valid.")
             data = {
@@ -247,6 +253,7 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
             }
             return JsonResponse(data)
         else:
+            print("Form errors: {}".format(form.errors))
             template = loader.get_template('shaw_queue/deliveryorder_form.html')
 
             context = {
@@ -2027,7 +2034,7 @@ def s_i_a(request):
         #     staff.save()
         context = None
         taken_order_content = None
-        new_order = Order.objects.filter(open_time__isnull=False, start_shashlyk_cooking=True,
+        new_order = Order.objects.filter(open_time__isnull=False,
                                          open_time__contains=datetime.date.today(), is_canceled=False,
                                          shashlyk_completed=False, is_grilling_shash=False,
                                          close_time__isnull=True).order_by('open_time')
@@ -4896,6 +4903,11 @@ def recive_1c_order_status(request):
     return HttpResponse()
 
 
+def log_deleted_order(order):
+    file = open('log/deleted_orders.log', 'a')
+    file.write("Заказ №{}\tВремя создания: {}\nКасса {}\n1C GUID {}\nStatus {}\n\n".format(order.daily_number, order.open_time, order.servery, order.guid_1c, order.status_1c))
+
+
 def status_refresher(request):
     order_guid = request.POST.get('order_guid', None)
     if order_guid is not None:
@@ -4944,6 +4956,7 @@ def status_refresher(request):
                         'status': order.status_1c,
                         'guid': order.guid_1c
                     }
+                    log_deleted_order(order)
                     order.delete()
                     return JsonResponse(data)
                 else:
@@ -4955,6 +4968,7 @@ def status_refresher(request):
                             'status': order.status_1c,
                             'guid': order.guid_1c
                         }
+                        log_deleted_order(order)
                         order.delete()
                         return JsonResponse(data)
                     else:
@@ -4967,6 +4981,7 @@ def status_refresher(request):
                                 'status': order.status_1c,
                                 'guid': order.guid_1c
                             }
+                            log_deleted_order(order)
                             order.delete()
                             return JsonResponse(data)
                         else:
@@ -4979,6 +4994,7 @@ def status_refresher(request):
                                     'status': order.status_1c,
                                     'guid': order.guid_1c
                                 }
+                                log_deleted_order(order)
                                 order.delete()
                                 return JsonResponse(data)
                             else:
@@ -4990,6 +5006,7 @@ def status_refresher(request):
                                         'status': order.status_1c,
                                         'guid': order.guid_1c
                                     }
+
                                     return JsonResponse(data)
                                 else:
                                     if order.status_1c == 392:
@@ -5000,6 +5017,7 @@ def status_refresher(request):
                                             'status': order.status_1c,
                                             'guid': order.guid_1c
                                         }
+
                                         return JsonResponse(data)
                                     else:
                                         if order.status_1c == 391:
@@ -5011,6 +5029,7 @@ def status_refresher(request):
                                                 'status': order.status_1c,
                                                 'guid': order.guid_1c
                                             }
+                                            log_deleted_order(order)
                                             order.delete()
                                             return JsonResponse(data)
                                         else:
@@ -5023,19 +5042,32 @@ def status_refresher(request):
                                                     'status': order.status_1c,
                                                     'guid': order.guid_1c
                                                 }
+                                                log_deleted_order(order)
                                                 order.delete()
                                                 return JsonResponse(data)
                                             else:
-                                                data = {
-                                                    'success': True,
-                                                    'message': '1С вернула статус {}! Заказ удалён! Вы можете '
-                                                               'повторить попытку!'.format(order.status_1c),
-                                                    'daily_number': order.daily_number,
-                                                    'status': order.status_1c,
-                                                    'guid': order.guid_1c
-                                                }
-                                                order.delete()
-                                                return JsonResponse(data)
+                                                if order.status_1c == 389:
+                                                    data = {
+                                                        'success': True,
+                                                        'message': '389: Ошибка печати заказа!',
+                                                        'daily_number': order.daily_number,
+                                                        'status': order.status_1c,
+                                                        'guid': order.guid_1c
+                                                    }
+
+                                                    return JsonResponse(data)
+                                                else:
+                                                    data = {
+                                                        'success': True,
+                                                        'message': '1С вернула статус {}! Заказ удалён! Вы можете '
+                                                                   'повторить попытку!'.format(order.status_1c),
+                                                        'daily_number': order.daily_number,
+                                                        'status': order.status_1c,
+                                                        'guid': order.guid_1c
+                                                    }
+                                                    log_deleted_order(order)
+                                                    order.delete()
+                                                    return JsonResponse(data)
     else:
         data = {
             'success': False,
