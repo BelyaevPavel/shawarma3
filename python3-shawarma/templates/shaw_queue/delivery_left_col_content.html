@@ -1,0 +1,3 @@
+{% for delivery in delivery_info %}
+    {% include 'shaw_queue/delivery_info_block.html' with delivery_info=delivery index=forloop.counter %}
+{% endfor %}

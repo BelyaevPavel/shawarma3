@@ -19,6 +19,7 @@ var modal_delivery_order_container = $('#modal-delivery-order');
 var modal_delivery_order_content;
 
 $(document).ready(function () {
+    HideSidebar('delivery-right-column', 'show-right-column');
     UpdateWorkspace();
     CheckCalls();
 });
@@ -45,6 +46,16 @@ function HideDeliveryOrder() {
     modal_delivery_order_is_opened = false;
 }
 
+function ToggleCollapsible(collapsibleId, contentId) {
+    var collapsible = document.getElementById(collapsibleId);//$('#'+collapsibleId);
+    collapsible.classList.toggle("collapsible-active");
+    var content = document.getElementById(contentId);
+    if (content.style.display === "block") {
+        content.style.display = "none";
+    } else {
+        content.style.display = "block";
+    }
+}
 
 function OverrideDeliveryOrderSubmition() {
     $('#delivery-order-form').on('submit', function (event) {
@@ -218,7 +229,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                     // });
                     $('#id_obtain_timepoint').prop('disabled', true);
                     $('#id_delivered_timepoint').datetimepicker({
-                        format: "d.m.Y H:i",
+                        format: "d.m.Y H:i:s",
                         mask: true,
                         minDate: 0,
                         step: 5,
@@ -227,14 +238,14 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                     $('#id_preparation_duration').datetimepicker({
                         datepicker: false,
                         mask: true,
-                        format: "H:i",
+                        format: "H:i:s",
                         step: 5,
                         lang: "ru"
                     });
                     $('#id_delivery_duration').datetimepicker({
                         datepicker: false,
                         mask: true,
-                        format: "H:i",
+                        format: "H:i:s",
                         step: 5,
                         lang: "ru"
                     });
@@ -258,6 +269,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
 
 function SendDeliveryOrder() {
     var pk = $('#delivery-order-form').attr('object-pk');
+    var daily_number=$('#id_daily_number').val();
     var form_data = {
         'delivery': $('#id_delivery').val(),
         'order': $('#id_order').val(),
@@ -266,12 +278,16 @@ function SendDeliveryOrder() {
         'obtain_timepoint': $('#id_obtain_timepoint').val(),
         'delivered_timepoint': $('#id_delivered_timepoint').val(),
         'prep_start_timepoint': $('#id_prep_start_timepoint').val(),
-        'preparation_duration': $('#id_preparation_duration').val(),
-        'delivery_duration': $('#id_delivery_duration').val(),
+        'preparation_duration': $('#id_preparation_duration').val() ,
+        'delivery_duration': $('#id_delivery_duration').val() ,
         'note': $('#id_note').val(),
     };
     if (pk)
         form_data['delivery_order_pk'] = pk;
+    if (daily_number)
+        form_data['daily_number'] = pk;
+    else
+        form_data['daily_number'] = -1;
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)

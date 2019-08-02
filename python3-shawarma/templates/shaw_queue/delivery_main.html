@@ -15,7 +15,7 @@
            start-shashlyk-cooking-url="{% url 'start_shashlyk_cooking' %}"
            finish-shashlyk-cooking-url="{% url 'finish_shashlyk_cooking' %}"
            finish-delivery-order-url="{% url 'finish_delivery_order' %}"
-           cancel-delivery-order-url="{% url 'cancel_delivery_order' %}">
+           finish-delivery-order-url="{% url 'finish_delivery_order' %}">
     <input hidden id="current-order-data" customer-pk="-1">
     <div class="modal" id="modal-menu" {% comment %}onclick="HideMenu()"{% endcomment %}>
     </div>
@@ -27,9 +27,9 @@
     {#    </button>#}
     <div id="delivery-left-column" class="shadowed">
         <div class="delivery-sidebar-content">
-            {% for delivery in delivery_info %}
-                {% include 'shaw_queue/delivery_info_block.html' with delivery_info=delivery %}
-            {% endfor %}
+            <div id="delivery-left-column-content">
+                {% include 'shaw_queue/delivery_left_col_content.html' with delivery_info=delivery_info %}
+            </div>
             <button class="btn success" onclick="CreateDelivery()">&plus;</button>
         </div>
         <div>
@@ -89,8 +89,8 @@
             </button>
         </div>
     </div>
-    <button id="show-right-column" class="btn info" onclick="ShowSidebar('delivery-right-column', 'show-right-column')"
-            style="height: 100%; float: left; width: 0px" hidden>
+    <button id="show-right-column" class="btn info" onclick=""
+            style="height: 100%; float: left; width: 0px" hidden disabled>
         &laquo;
     </button>
 {% endblock %}

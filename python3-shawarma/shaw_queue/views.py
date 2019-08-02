@@ -234,19 +234,53 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
 
     def post(self, request):
         delivery_order_pk = request.POST.get('delivery_order_pk', None)
+        daily_number = request.POST.get('daily_number', 0)
         print("delivery_order_pk = {}".format(delivery_order_pk))
         print("request.POST = {}".format(request.POST))
         order = Order.objects.get(id=request.POST.get('order'))
         print("order  = {}".format(order))
+        servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if DEBUG_SERVERY:
+            servery_ip = '127.0.0.1'
+        result = define_service_point(servery_ip)
+        sellpointAddress = ''
+        if result['success']:
+            sellpointAddress = result['service_point'].title
         if delivery_order_pk is not None:
             form = DeliveryOrderForm(request.POST, instance=DeliveryOrder.objects.get(pk=delivery_order_pk))
         else:
-            form = DeliveryOrderForm(request.POST)        
-        print("form.is_valid() = {}".format(form.is_valid()))
+            form = DeliveryOrderForm(request.POST)
+
+            #order_last_daily_number=0
+
+            if result['success']:
+                try:
+                    order_last_daily_number = DeliveryOrder.objects.filter(
+                        obtain_timepoint__contains=timezone.datetime.today(),
+                        order__servery__service_point=result['service_point']).aggregate(Max('daily_number'))
+                except EmptyResultSet:
+                    data = {
+                        'success': False,
+                        'message': 'Empty set of orders returned!'
+                    }
+                    client.captureException()
+                    return JsonResponse(data)
+            else:
+                return JsonResponse(result)
+
+            if order_last_daily_number:
+                if order_last_daily_number['daily_number__max'] is not None:
+                    daily_number = order_last_daily_number['daily_number__max']+1
+                else:
+                    daily_number = 1
+            # print("form.is_valid() = {}".format(form.is_valid()))
         if form.is_valid():
             cleaned_data = form.cleaned_data
             print("Cleaned data: {}".format(cleaned_data))
-            form.save()
+            delivery_order = form.save(commit=False)
+            delivery_order.daily_number = daily_number
+            delivery_order.save()
+
             print("Is valid.")
             data = {
                 'success': True
@@ -256,7 +290,15 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
             print("Form errors: {}".format(form.errors))
             template = loader.get_template('shaw_queue/deliveryorder_form.html')
 
+            customer_display = ""
+            if form.data['customer'] is not None:
+                found_customer = Customer.objects.get(pk=form.data['customer'])
+                customer_display = found_customer.phone_number
+                if found_customer.name != (Customer._meta.get_field("name")).default:
+                    customer_display += " " + found_customer.name
             context = {
+                "customer_display": customer_display,
+                'sellpointAddress': sellpointAddress,
                 'form': form
             }
             for field in context['form'].fields:
@@ -2397,8 +2439,12 @@ def delivery_interface(request):
     print("staff_id = {}".format(staff.id))
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
-    deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today()).order_by(
+    deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
+                                         departure_timepoint__isnull=True).order_by(
         'departure_timepoint')
+
+    # deliveries = Delivery.objects.filter(departure_timepoint__isnull=True).order_by(
+    #     'departure_timepoint')
 
     delivery_info = [
         {
@@ -3203,7 +3249,7 @@ def close_order_method(order_id: int) -> dict:
 
 
 @login_required()
-#@permission_required('shaw_queue.change_order')
+# @permission_required('shaw_queue.change_order')
 def finish_delivery_order(request) -> JsonResponse:
     """
     Finishes delivery order by closing nested order.
@@ -3380,7 +3426,6 @@ def cancel_delivery_order(request):
             'success': False
         }
         return JsonResponse(data)
-
 
 
 @login_required()
@@ -4905,7 +4950,10 @@ def recive_1c_order_status(request):
 
 def log_deleted_order(order):
     file = open('log/deleted_orders.log', 'a')
-    file.write("Заказ №{}\tВремя создания: {}\nКасса {}\n1C GUID {}\nStatus {}\n\n".format(order.daily_number, order.open_time, order.servery, order.guid_1c, order.status_1c))
+    file.write(
+        "Заказ №{}\tВремя создания: {}\nКасса {}\n1C GUID {}\nStatus {}\n\n".format(order.daily_number, order.open_time,
+                                                                                    order.servery, order.guid_1c,
+                                                                                    order.status_1c))
 
 
 def status_refresher(request):

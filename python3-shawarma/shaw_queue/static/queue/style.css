@@ -29,6 +29,11 @@ ul {
     border-bottom-left-radius: 4px;
 }
 
+
+/* Dropdown description*/
+
+/* Style The Dropdown Button */
+
 .badge {
     display: inline-block;
     min-width: 10px;
@@ -44,9 +49,6 @@ ul {
     border-radius: 10px;
 }
 
-
-/* Dropdown description*/
-/* Style The Dropdown Button */
 .dropbtn {
     /*background-color: #4CAF50;*/
     background-color: #f9f9f9;
@@ -106,6 +108,65 @@ ul {
 }
 
 /* Dropdowns description ended */
+
+/* Collapsible description start */
+
+.collapsible-btn {
+    /*background-color: #4CAF50;*/
+    background-color: #f9f9f9;
+    /*color: white;*/
+    color: black;
+    padding: 16px;
+    font-size: 16px;
+  text-align: left;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.5);
+    width: 100%;
+}
+
+.collapsible-btn > .badge {
+    float: right;
+}
+
+.collapsible-btn:before {
+  content: '\02795'; /* Unicode character for "plus" sign (+) */
+  font-size: 13px;
+  color: white;
+  float: right;
+  margin-left: 5px;
+}
+
+.collapsible-active:before {
+  content: "\2796"; /* Unicode character for "minus" sign (-) */
+}
+
+/* Collapsible Content (Hidden by Default) */
+.collapsible-content {
+    display: none;
+    /*position: absolute;*/
+    background-color: #f9f9f9;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    overflow-y: auto;
+    max-height: 250px;
+}
+
+/* Links inside the collapsible */
+.collapsible-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+/* Change color of collapsible links on hover */
+.collapsible-content a:hover {
+    background-color: #f1f1f1
+}
+
+/* Collapsible description end */
+
 
 /* Auras description start */
 .success-aura {

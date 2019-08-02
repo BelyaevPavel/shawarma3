@@ -1,7 +1,7 @@
 <div class="delivery-block-container shadowed {% if delivery_order.enlight_alert %} alert-aura {% elif delivery_order.enlight_warning %} warning-aura {% endif %}"
      draggable="true" title="Advise text.">
     <div class="delivery-block-header" onclick="CreateDeliveryOrder({{ delivery_order.order.pk }})">Заказ
-        №{{ delivery_order.order.order.daily_number }} {{ delivery_order.order.obtain_timepoint }}
+        №{{ delivery_order.order.daily_number }} {{ delivery_order.order.obtain_timepoint }}
         - {{ delivery_order.order.delivered_timepoint }}</div>
     <div class="delivery-block-content">Delivery: {{ delivery_order.order.delivery }}</div>
     <div class="delivery-block-content">Driver: {{ delivery_order.order.delivery.car_driver }}</div>

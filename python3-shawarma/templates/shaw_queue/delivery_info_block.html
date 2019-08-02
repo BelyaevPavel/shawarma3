@@ -9,12 +9,27 @@
 {#    </ul>#}
 {#</div>#}
 <div class="dropdown">
-    <button class="dropbtn"><span>{{ delivery_info.delivery }} {{ delivery_info.departure_time }}</span> <span class="badge">{{ delivery_info.delivery_orders_number }}</span> </button>
+    <button id="clps-btn-{{ index }}" class="collapsible-btn" onclick="ToggleCollapsible('clps-btn-{{ index }}', 'clps-content-{{ index }}')">
+        <span>№{{ delivery_info.delivery.daily_number }} {{ delivery_info.delivery.car_driver.user.first_name }} {{ delivery_info.departure_time }}</span>
+        <span class="badge">{{ delivery_info.delivery_orders_number }}</span>
+    </button>
     <div class="dropdown-content">
+        <button class="small-btn success" title="Отправить"
+                {% if not delivery_order.order.order.content_completed %}
+                disabled {% endif %} onclick="FinishDeliveryOrder({{ delivery_order.order.pk }})">
+            &#10003;
+        </button>
+        <button class="small-btn danger" title="Отменить рейс"
+                onclick="CancelDeliveryOrder({{ delivery_order.order.pk }})">
+            &times;
+        </button>
+
+    </div>
+</div>
+    <div id="clps-content-{{ index }}" class="collapsible-content">
         {% for delivery_order in delivery_info.delivery_orders %}
-            <a onclick="CreateDeliveryOrder({{ delivery_order.pk }})" >
+            <a onclick="CreateDeliveryOrder({{ delivery_order.pk }})">
                 {{ delivery_order }}
             </a>
         {% endfor %}
     </div>
-</div>

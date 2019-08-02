@@ -75,11 +75,14 @@ class DeliveryOrderForm(forms.ModelForm):
         super(DeliveryOrderForm, self).__init__(*args, **kwargs)
         self.fields['delivery'].queryset = Delivery.objects.filter(
             creation_timepoint__contains=timezone.datetime.today().date())
+
     class Meta:
         model = DeliveryOrder
-        exclude = ['prep_start_timepoint']
+        exclude = ['prep_start_timepoint', 'is_delivered', 'is_ready']
         widgets = {
-            'order': forms.HiddenInput(),
+            'daily_number': forms.HiddenInput(attrs={
+                'required': False
+            }),
             'address': forms.TextInput(attrs={
                 'class': 'test-class',
                 'required': True,
@@ -94,21 +97,21 @@ class DeliveryOrderForm(forms.ModelForm):
             'delivered_timepoint': forms.DateTimeInput(attrs={
                 'required': True,
                 'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ',
-                'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]",
+                'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
                 'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ',
-            }),
+            }, format="%m.%d.%Y %H:%M"),
             'preparation_duration': forms.TimeInput(attrs={
                 'required': True,
                 'placeholder': 'Формат: ЧЧ:ММ',
-                'pattern': "[[0-2][0-9]:[0-6][0-9]",
+                'pattern': "[[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
                 'title': 'Введите время ЧЧ:ММ',
-            }),
+            }, format="%H:%M"),
             'delivery_duration': forms.TimeInput(attrs={
                 'required': True,
                 'placeholder': 'Формат: ЧЧ:ММ',
-                'pattern': "[0-2][0-9]:[0-6][0-9]",
+                'pattern': "[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
                 'title': 'Введите время в формате ЧЧ:ММ',
-            }),
+            }, format="H:i"),
             'order': forms.HiddenInput(attrs={
                 'required': True
             }),

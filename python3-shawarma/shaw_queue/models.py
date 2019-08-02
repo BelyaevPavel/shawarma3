@@ -197,7 +197,7 @@ class Printer(models.Model):
 
 
 class Customer(models.Model):
-    name = models.CharField(max_length=30, default="Name not set", null=True, verbose_name="имя")
+    name = models.CharField(max_length=30, default="Имя не указано", null=True, verbose_name="имя")
     phone_number = models.CharField(max_length=20, verbose_name="телефон")
     email = models.EmailField(blank=True, verbose_name="email")
     note = models.CharField(max_length=200, blank=True, verbose_name="комментарий")
@@ -246,9 +246,12 @@ class Delivery(models.Model):
 
 class DeliveryOrder(models.Model):
     delivery = models.ForeignKey(Delivery, null=True, blank=True, verbose_name="доставка")
+    daily_number = models.IntegerField(verbose_name="номер за день")#, unique_for_date='obtain_timepoint'
+    is_ready = models.BooleanField(default=False, verbose_name="готов к отправке")
+    is_delivered = models.BooleanField(default=False, verbose_name="доставлен")
     order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="включеный заказ")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="клиент")
-    address = models.CharField(max_length=250, default="Address not set", verbose_name="адрес")
+    address = models.CharField(max_length=250, default="Не указан", verbose_name="адрес")
     obtain_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время получения заказа")
     delivered_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время доставки заказа")
     prep_start_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время начала готовки")
@@ -260,10 +263,10 @@ class DeliveryOrder(models.Model):
                             verbose_name="комментарий")
 
     def __str__(self):
-        return "{} {}".format(self.delivery, self.order)
+        return "№{} {} {}".format(self.daily_number, self.delivery, self.order)
 
     def __unicode__(self):
-        return "{} {}".format(self.delivery, self.order)
+        return "№{} {} {}".format(self.daily_number, self.delivery, self.order)
 
     def get_absolute_url(self):
         return reverse('delivery-order-list')  # , kwargs={'pk': self.pk}
@@ -277,6 +280,7 @@ class CallData(models.Model):
     duration = models.DurationField(null=True, blank=True, default=datetime.timedelta(seconds=0))
     record = models.CharField(max_length=256, default="Record path not set")
     accepted = models.BooleanField(default=False, verbose_name="Звонок принят")
+    missed = models.BooleanField(default=False, verbose_name="Звонок пропущен")
 
     def __str__(self):
         return "{} {}".format(self.customer, self.duration)
