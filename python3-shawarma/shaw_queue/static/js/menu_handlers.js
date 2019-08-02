@@ -465,6 +465,7 @@ function ShowModalEdit(index) {
     var cheese = $('#cheese-button');
     var greens = $('#greens-button');
     var spicy = $('#spicy-button');
+    var spicy30 = $('#spicy30-button');
     var yellow = $('#yellow-button');
     var noOnion = $('#noOnion-button');
 
@@ -545,6 +546,18 @@ function ShowModalEdit(index) {
             SelectSuggestion(index, note.val());
         }
     );
+    spicy30.click(
+        function () {
+            var str = ' Чуть-Острая';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
     yellow.click(
         function () {
             var str = ' Ж';
@@ -587,6 +600,7 @@ function CloseModalEdit() {
     var cheese = $('#cheese-button');
     var greens = $('#greens-button');
     var spicy = $('#spicy-button');
+    var spicy30 = $('#spicy30-button');
     var yellow = $('#yellow-button');
     var noOnion = $('#noOnion-button');
 
@@ -602,6 +616,7 @@ function CloseModalEdit() {
     cheese.off("click");
     greens.off("click");
     spicy.off("click");
+    spicy30.off("click");
     yellow.off("click");
     noOnion.off("click");
 
