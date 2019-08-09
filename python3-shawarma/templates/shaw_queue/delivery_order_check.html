@@ -1,0 +1,7 @@
+<div class="modal-content" id="modal-delivery-order-create">
+    <div>
+    <h3>Проверь состав заказа!</h3>
+    {% include 'shaw_queue/delivery_order_summary.html' with delivery_order=delivery_order order_info=order_info order_content=order_content %}
+    </div>
+    <button class="btn success">OK</button>
+</div>

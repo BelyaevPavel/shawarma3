@@ -452,6 +452,37 @@ function CreateDelivery() {
     });
 }
 
+function PrintDeliveryOrder(delivery_order_id) {
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('print-delivery-order-url'),
+            data: {'delivery_order_id': delivery_order_id},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                }
+                alert(data['message']);
+                    // modal_delivery_order_container.html(data['html']);
+                    // modal_delivery_order_container.css("display", "block");
+            },
+            complete: function () {
+            },
+            // handle a non-successful response
+            error: function (xhr, errmsg, err) {
+                alert("Oops! We have encountered an error: " + errmsg); // add the error to the dom
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+            }
+        }
+    ).fail(function () {
+        alert('Необработанное исключение!');
+    });
+}
+
 
 function SendDelivery() {
     var pk = $('#delivery-form').attr('object-pk');
@@ -687,6 +718,32 @@ function FinishDeliveryOrder(DeliveryOrderPK) {
     });
 }
 
+
+function DeliverDeliveryOrder(DeliveryOrderPK) {
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('deliver-delivery-order-url'),
+            data: {"delivery_order_pk": DeliveryOrderPK},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                    alert(data['message']);
+                }
+                else {
+                    alert(data['message']);
+                }
+            }
+        }
+    ).fail(function () {
+        console.log('Failed ' + aux);
+    });
+}
+
 function CancelDeliveryOrder(DeliveryOrderPK) {
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
@@ -697,6 +754,56 @@ function CancelDeliveryOrder(DeliveryOrderPK) {
             type: 'POST',
             url: $('#delivery-urls').attr('cancel-delivery-order-url'),
             data: {"delivery_order_pk": DeliveryOrderPK},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                    alert(data['message']);
+                }
+                else {
+                    alert(data['message']);
+                }
+            }
+        }
+    ).fail(function () {
+        console.log('Failed ' + aux);
+    });
+}
+
+function StartDelivery(DeliveryPk){
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('start-delivery-url'),
+            data: {"delivery_pk": DeliveryPk},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                    alert(data['message']);
+                }
+                else {
+                    alert(data['message']);
+                }
+            }
+        }
+    ).fail(function () {
+        console.log('Failed ' + aux);
+    });
+}
+
+function CancelDelivery(DeliveryPk){
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('cancel-delivery-url'),
+            data: {"delivery_pk": DeliveryPk},
             dataType: 'json',
             success: function (data) {
                 if (data['success']) {

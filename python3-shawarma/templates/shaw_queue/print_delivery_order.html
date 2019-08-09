@@ -1,0 +1,7 @@
+Заказ доставки №{{ delivery_order.daily_number }}
+Клиент: {{ delivery_order.customer.phone_number }}
+Адрес: {{ delivery_order.address }}
+Получен: {{ delivery_order.obtain_timepoint }}
+Доставить к: {{ delivery_order.delivered_timepoint }}
+Комментарий:{{ delivery_order.note }}
+{% include 'shaw_queue/print_order_wh.html' with order_info=order_info order_content=order_content %}

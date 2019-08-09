@@ -15,15 +15,14 @@
     </button>
     <div class="dropdown-content">
         <button class="small-btn success" title="Отправить"
-                {% if not delivery_order.order.order.content_completed %}
-                disabled {% endif %} onclick="FinishDeliveryOrder({{ delivery_order.order.pk }})">
+                {% if not delivery_info.can_be_started %}
+                disabled {% endif %} onclick="StartDelivery({{ delivery_info.delivery.pk }})">
             &#10003;
         </button>
         <button class="small-btn danger" title="Отменить рейс"
-                onclick="CancelDeliveryOrder({{ delivery_order.order.pk }})">
+                onclick="CancelDelivery({{ delivery_info.delivery.pk }})">
             &times;
         </button>
-
     </div>
 </div>
     <div id="clps-content-{{ index }}" class="collapsible-content">

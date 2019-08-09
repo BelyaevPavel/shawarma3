@@ -233,6 +233,8 @@ class Delivery(models.Model):
     departure_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время отправки")
     creation_timepoint = models.DateTimeField(verbose_name="время создания", default=timezone.now)
     daily_number = models.IntegerField(verbose_name="Daily Number", unique_for_date=datetime.date.today)
+    is_canceled = models.BooleanField(verbose_name="Is canceled", default=False)
+    is_finished = models.BooleanField(verbose_name="Is dinished", default=False)
 
     def __str__(self):
         return "№{} {}".format(self.id, self.car_driver)

@@ -1,0 +1,21 @@
+<p>
+    Заказ доставки №{{ delivery_order.daily_number }}
+</p>
+<p>
+    Клиент: {{ delivery_order.customer.phone_number }}
+</p>
+<p>
+    Адрес: {{ delivery_order.address }}
+</p>
+<p>
+    Получен: {{ delivery_order.obtain_timepoint }}
+</p>
+<p>
+    Доставить к: {{ delivery_order.delivered_timepoint }}
+</p>
+<p>
+    Комментарий:{{ delivery_order.note }}
+</p>
+<div style="overflow-y: auto;height: 210px;width: 250px;">
+    {% include 'shaw_queue/order_summary.html' with order_info=order_info order_content=order_content %}
+</div>

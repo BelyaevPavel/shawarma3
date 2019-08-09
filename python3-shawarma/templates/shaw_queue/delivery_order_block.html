@@ -1,21 +1,23 @@
 <div class="delivery-block-container shadowed {% if delivery_order.enlight_alert %} alert-aura {% elif delivery_order.enlight_warning %} warning-aura {% endif %}"
      draggable="true" title="Advise text.">
-    <div class="delivery-block-header" onclick="CreateDeliveryOrder({{ delivery_order.order.pk }})">Заказ
+    <div class="delivery-block-header" onclick="CreateDeliveryOrder({{ delivery_order.order.pk }},{{ delivery_order.order.customer.pk }})">Заказ
         №{{ delivery_order.order.daily_number }} {{ delivery_order.order.obtain_timepoint }}
         - {{ delivery_order.order.delivered_timepoint }}</div>
     <div class="delivery-block-content">Delivery: {{ delivery_order.order.delivery }}</div>
     <div class="delivery-block-content">Driver: {{ delivery_order.order.delivery.car_driver }}</div>
     <div class="delivery-block-actions">
-        <button class="small-btn success" title="Закончить заказ" {% if not delivery_order.order.order.content_completed %}
+        <button class="small-btn success" title="Закончить заказ"
+                {% if not delivery_order.order.order.content_completed %}
                 disabled {% endif %} onclick="FinishDeliveryOrder({{ delivery_order.order.pk }})">
             &#10003;
         </button>
         <div class="dropdown">
             {% if delivery_order.order.order.prepared_by and delivery_order.order.order.content_completed and delivery_order.order.order.shashlyk_completed and delivery_order.order.order.supplement_completed %}
-                <button class="small-btn warning" title="Начать доставку заказа."
+                <button class="small-btn warning" title="Пометить заказ, как готовый к отправке."
                         {% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed or not delivery_order.order.order.supplement_completed %}
                         disabled
-                        {% endif %}>
+                        {% endif %}
+                        onclick="DeliverDeliveryOrder({{ delivery_order.order.pk }})">
                     Отправить
                 </button>
             {% else %}
@@ -23,6 +25,9 @@
                     Готовить
                 </button>
                 <div class="dropdown-content">
+                    <a onclick="PrintDeliveryOrder({{ delivery_order.order.id }})">
+                        Печать
+                    </a>
                     <p>Повара:</p>
                     {% for available_cook in delivery_order.available_cooks %}
                         <a onclick="SelectCook({{ available_cook.pk }}, {{ delivery_order.order.pk }})">
@@ -53,7 +58,8 @@
                 </div>
             {% endif %}
         </div>
-        <button class="small-btn danger" title="Отменить заказ" onclick="CancelDeliveryOrder({{ delivery_order.order.pk }})">
+        <button class="small-btn danger" title="Отменить заказ"
+                onclick="CancelDeliveryOrder({{ delivery_order.order.pk }})">
             &times;
         </button>
     </div>

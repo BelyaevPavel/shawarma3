@@ -1,0 +1,18 @@
+<p>
+Заказ №: {{ order_info.daily_number }}
+</p>
+<p>
+Повар: {{ order_info.prepared_by.user.first_name }}
+</p>
+<p>
+{{ order_info.open_time }}
+</p>
+{% for item in order_content %}
+    <p>
+        {{ item.menu_item__title }} x{{ item.count_titles }} {{ item.menu_item__price }}
+    </p>
+    <p>
+        {{ item.note }}
+    </p>
+{% endfor %}
+Итого: {{ order_info.total }}

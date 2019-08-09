@@ -10,11 +10,12 @@ from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, Perm
 from django.core.paginator import Paginator
 from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404, HttpRequest
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout, login, views as auth_views
 from django.db.models import Max, Min, Count, Avg, F, Sum, Q, ExpressionWrapper, DateTimeField
+from django.utils.safestring import SafeText
 from django.utils import timezone
 from django.core.mail import send_mail
 from threading import Thread
@@ -33,6 +34,7 @@ import pytz
 import json
 import sys
 import os
+import re
 import subprocess
 
 logger = logging.getLogger(__name__)
@@ -199,10 +201,17 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
         initial_data = {}
         template = loader.get_template('shaw_queue/deliveryorder_form.html')
         if delivery_order_pk is not None:
+            delivery_order = DeliveryOrder.objects.get(pk=delivery_order_pk)
+            found_customer = delivery_order.customer
+            customer_display = ""
+            customer_display = found_customer.phone_number
+            if found_customer.name != (Customer._meta.get_field("name")).default:
+                customer_display += " " + found_customer.name
             context = {
                 'object_pk': delivery_order_pk,
+                "customer_display": customer_display,
                 'sellpointAddress': sellpointAddress,
-                'form': DeliveryOrderForm(instance=DeliveryOrder.objects.get(pk=delivery_order_pk))
+                'form': DeliveryOrderForm(instance=delivery_order)
             }
         else:
             initial_data['obtain_timepoint'] = timezone.datetime.now()
@@ -251,7 +260,7 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
         else:
             form = DeliveryOrderForm(request.POST)
 
-            #order_last_daily_number=0
+            # order_last_daily_number=0
 
             if result['success']:
                 try:
@@ -270,10 +279,10 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
 
             if order_last_daily_number:
                 if order_last_daily_number['daily_number__max'] is not None:
-                    daily_number = order_last_daily_number['daily_number__max']+1
+                    daily_number = order_last_daily_number['daily_number__max'] + 1
                 else:
                     daily_number = 1
-            # print("form.is_valid() = {}".format(form.is_valid()))
+                    # print("form.is_valid() = {}".format(form.is_valid()))
         if form.is_valid():
             cleaned_data = form.cleaned_data
             print("Cleaned data: {}".format(cleaned_data))
@@ -2455,7 +2464,9 @@ def delivery_interface(request):
                 'suggested_depature_time'))[0].suggested_depature_time.time() if len(DeliveryOrder.objects.filter(
                 delivery=delivery)) else "--:--",
             'delivery_orders': DeliveryOrder.objects.filter(delivery=delivery),
-            'delivery_orders_number': len(DeliveryOrder.objects.filter(delivery=delivery))
+            'delivery_orders_number': len(DeliveryOrder.objects.filter(delivery=delivery)),
+            'can_be_started': False if len(
+                DeliveryOrder.objects.filter(delivery=delivery, is_ready=False)) > 0 else True
         } for delivery in deliveries
         ]
     processed_d_orders = [
@@ -2521,6 +2532,43 @@ def delivery_workspace_update(request):
     return JsonResponse(data)
 
 
+def print_template(device_ip: str, rendered_template: SafeText, service_point: ServicePoint) -> bool:
+    """
+    Prints provided rendered template with printer from service point. If device with provided ip has it's own printer,
+    then this printer will be used, else another one from service point.
+    :param device_ip: IP address of device which requests print.
+    :param rendered_template: Template rendered to HTML.
+    :param service_point: Name of service point, from which print request has come.
+    :return: True, if printed successfully. False, if there is no printers associated with provided service point.
+    """
+
+    # Regexp string had been taken from https://www.oreilly.com/library/view/regular-expressions-cookbook
+    # /9780596802837/ch07s16.html
+    is_ip = re.match("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+                     device_ip)
+    if type(device_ip) != str:
+        raise TypeError('device_ip must be string!')
+    if is_ip is None:
+        raise ValueError('device_ip must contain accurate ip address!')
+    if type(rendered_template) != SafeText:
+        raise TypeError('rendered_template must be SafeText!')
+    if type(service_point) != ServicePoint:
+        raise TypeError('service_point must be ServicePoint!')
+    printers = Printer.objects.filter(service_point=service_point)
+    chosen_printer = None
+    for printer in printers:
+        if printer.ip_address == device_ip:
+            chosen_printer = printer
+    if chosen_printer is None and len(printers) > 0:
+        chosen_printer = printers[0]
+    else:
+        return False
+    cmd = 'echo "{}"'.format(rendered_template) + " | lp -h " + chosen_printer.ip_address
+    scmd = cmd.encode('utf-8')
+    os.system(scmd)
+    return True
+
+
 def print_order(request, order_id):
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
@@ -2541,22 +2589,55 @@ def print_order(request, order_id):
             'order_content': order_content
         }
 
-        printers = Printer.objects.filter(service_point=result['service_point'])
-        chosen_printer = None
-        for printer in printers:
-            if printer.ip_address == device_ip:
-                chosen_printer = printer
-
-        if chosen_printer is None and len(printers) > 0:
-            chosen_printer = printers[0]
-
-        cmd = 'echo "{}"'.format(template.render(context, request)) + " | lp -h " + chosen_printer.ip_address
-        scmd = cmd.encode('utf-8')
-        os.system(scmd)
+        service_point = result['service_point']
+        rendered_template = template.render(context, request)
+        print_template(device_ip, rendered_template, service_point)
     else:
         return JsonResponse(result)
 
     return HttpResponse(template.render(context, request))
+
+
+def print_delivery_order(request: HttpRequest) -> JsonResponse:
+    """
+
+    :param request: Request data
+    :return: Returns json response with data about operation result.
+    """
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    delivery_order_id = request.POST.get('delivery_order_id', None)
+    result = define_service_point(device_ip)
+
+    if result['success']:
+        delivery_order = DeliveryOrder.objects.get(id=delivery_order_id)
+        order_info = Order.objects.get(id=delivery_order.order.id)  # get_object_or_404(Order, id=order_id)
+        order_info.printed = True
+        order_info.save()
+        order_content = OrderContent.objects.filter(order_id=order_info.id).values('menu_item__title',
+                                                                                   'menu_item__price',
+                                                                                   'note').annotate(
+            count_titles=Count('menu_item__title')).annotate(count_notes=Count('note'))
+        template = loader.get_template('shaw_queue/delivery_order_check.html')
+        context = {
+            'order_info': order_info,
+            'order_content': order_content,
+            'delivery_order': delivery_order
+        }
+
+        success = print_template(device_ip, template.render(context, request), result['service_point'])
+        data = {
+            'success': success,
+            'message': "Отправлено на печать!" if success else "Для данной точки отстутствуют зарегистрированные "
+                                                               "принтеры! ",
+            'html': template.render(context, request)
+        }
+    else:
+        return JsonResponse(result)
+
+    return JsonResponse(data)
 
 
 def voice_order(request, order_id):
@@ -3236,6 +3317,9 @@ def close_order_method(order_id: int) -> dict:
             }
             client.captureException()
             return data
+        # TODO: Check following:
+        # if order.close_time is None:
+        #     order.close_time = datetime.datetime.now()
         order.close_time = datetime.datetime.now()
         order.is_ready = True
         order.save()
@@ -3267,7 +3351,32 @@ def finish_delivery_order(request) -> JsonResponse:
         client.captureException()
         return JsonResponse(data)
 
-    data = close_order_method(delivery_order.order.id)
+
+@login_required()
+# @permission_required('shaw_queue.change_order')
+def deliver_delivery_order(request) -> JsonResponse:
+    """
+    Marks that delivery order is ready to be delivered.
+    :param request:
+    :return:
+    """
+    delivery_order_pk = json.loads(request.POST.get('delivery_order_pk', None))
+    try:
+        delivery_order = DeliveryOrder.objects.get(id=delivery_order_pk)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске заказа доставки!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+
+    delivery_order.is_ready = True
+    delivery_order.save()
+    data = {
+        'success': True,
+        'message': 'Заказ готов к отправке!'
+    }
 
     return JsonResponse(data)
 
@@ -3424,6 +3533,78 @@ def cancel_delivery_order(request):
     else:
         data = {
             'success': False
+        }
+        return JsonResponse(data)
+
+
+@login_required()
+@permission_required('shaw_queue.change_order')
+def cancel_delivery(request):
+    delivery_pk = request.POST.get('delivery_pk', None)
+    if delivery_pk:
+        try:
+            delivery = Delivery.objects.get(pk=delivery_pk)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске заказа!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        # order_cancelation_data = cancel_order_method(request, delivery_order.order.id)
+        delivery_orders = DeliveryOrder.objects.filter(delivery=delivery)
+        for delivery_order in delivery_orders:
+            delivery_order.delivery = None
+            delivery_order.save()
+
+        delivery.is_canceled = True
+        delivery.save()
+        data = {
+            'success': True,
+            'message': 'Рейс доставки отменён!'
+        }
+        return JsonResponse(data)
+
+    else:
+        data = {
+            'success': False,
+            'message': 'Отсутствует ключ рейса доставки!'
+        }
+        return JsonResponse(data)
+
+
+@login_required()
+@permission_required('shaw_queue.change_order')
+def start_delivery(request):
+    delivery_pk = request.POST.get('delivery_pk', None)
+    if delivery_pk:
+        try:
+            delivery = Delivery.objects.get(pk=delivery_pk)
+        except:
+            data = {
+                'success': False,
+                'message': 'Что-то пошло не так при поиске заказа!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        delivery.is_finished = True
+        delivery.departure_timepoint = timezone.now()
+        delivery.save()
+
+        orders = Order.objects.filter(deliveryorder__delivery=delivery)
+        for order in orders:
+            close_order_method(order.id)
+        data = {
+            'success': True,
+            'message': 'Рейс доставки начат!'
+        }
+        return JsonResponse(data)
+
+    else:
+        data = {
+            'success': False,
+            'message': 'Отсутствует ключ рейса доставки!'
         }
         return JsonResponse(data)
 

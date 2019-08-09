@@ -15,7 +15,10 @@
            start-shashlyk-cooking-url="{% url 'start_shashlyk_cooking' %}"
            finish-shashlyk-cooking-url="{% url 'finish_shashlyk_cooking' %}"
            finish-delivery-order-url="{% url 'finish_delivery_order' %}"
-           finish-delivery-order-url="{% url 'finish_delivery_order' %}">
+           deliver-delivery-order-url="{% url 'deliver_delivery_order' %}"
+           print-delivery-order-url="{% url 'delivery_order_print' %}"
+           start-delivery-url="{% url 'start_delivery' %}"
+           cancel-delivery-url="{% url 'cancel_delivery' %}">
     <input hidden id="current-order-data" customer-pk="-1">
     <div class="modal" id="modal-menu" {% comment %}onclick="HideMenu()"{% endcomment %}>
     </div>
