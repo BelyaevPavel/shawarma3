@@ -2559,10 +2559,11 @@ def print_template(device_ip: str, rendered_template: SafeText, service_point: S
     for printer in printers:
         if printer.ip_address == device_ip:
             chosen_printer = printer
-    if chosen_printer is None and len(printers) > 0:
-        chosen_printer = printers[0]
-    else:
-        return False
+    if chosen_printer is None: 
+        if len(printers) > 0:
+            chosen_printer = printers[0]
+        else:
+            return False
     cmd = 'echo "{}"'.format(rendered_template) + " | lp -h " + chosen_printer.ip_address
     scmd = cmd.encode('utf-8')
     os.system(scmd)
