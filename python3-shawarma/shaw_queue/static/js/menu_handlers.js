@@ -468,6 +468,9 @@ function ShowModalEdit(index) {
     var spicy30 = $('#spicy30-button');
     var yellow = $('#yellow-button');
     var noOnion = $('#noOnion-button');
+    var saucePlus = $('#saucePlus-button');
+    var sauceMinus = $('#sauceMinus-button');
+    var noVegetables = $('#noVegetables-button');
 
     title.text(currOrder[index]['title']);
     quantity.val(currOrder[index]['quantity']);
@@ -582,6 +585,42 @@ function ShowModalEdit(index) {
             SelectSuggestion(index, note.val());
         }
     );
+    saucePlus.click(
+        function () {
+            var str = ' Больше соуса';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    sauceMinus.click(
+        function () {
+            var str = ' Меньше соуса';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    noVegetables.click(
+        function () {
+            var str = ' Без овощей';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str,''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
 
     // Get the modal
     var modal = document.getElementById('modal-edit');
@@ -603,6 +642,9 @@ function CloseModalEdit() {
     var spicy30 = $('#spicy30-button');
     var yellow = $('#yellow-button');
     var noOnion = $('#noOnion-button');
+    var saucePlus = $('#saucePlus-button');
+    var sauceMinus = $('#sauceMinus-button');
+    var noVegetables = $('#noVegetables-button');
 
     var modal = document.getElementById('modal-edit');
 
@@ -619,6 +661,9 @@ function CloseModalEdit() {
     spicy30.off("click");
     yellow.off("click");
     noOnion.off("click");
+    saucePlus.off("click");
+    sauceMinus.off("click");
+    noVegetables.off("click");
 
     modal.style.display = "none";
 }
