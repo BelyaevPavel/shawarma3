@@ -872,7 +872,13 @@ def menu(request):
         return JsonResponse(data)
 
 
-def search_comment(request):
+def search_comment(request: HttpRequest) -> JsonResponse:
+    """
+    Searches for comments, that contains provided comment_part through last month,
+    and returns five most frequently used.
+    :param request:
+    :return:
+    """
     content_id = request.POST.get('id', '')
     comment_part = request.POST.get('note', '')
     data = {
@@ -880,7 +886,9 @@ def search_comment(request):
     }
     if len(comment_part) > 0:
         try:
-            comments = OrderContent.objects.filter(note__icontains=comment_part).values('note').annotate(
+            past_month = timezone.now() - datetime.timedelta(days=30)
+            comments = OrderContent.objects.filter(note__icontains=comment_part,
+                                                   order__open_time__gt=past_month).values('note').annotate(
                 count=Count('note')).order_by('-count')[:5]
         except:
             data = {
@@ -2559,7 +2567,7 @@ def print_template(device_ip: str, rendered_template: SafeText, service_point: S
     for printer in printers:
         if printer.ip_address == device_ip:
             chosen_printer = printer
-    if chosen_printer is None: 
+    if chosen_printer is None:
         if len(printers) > 0:
             chosen_printer = printers[0]
         else:
