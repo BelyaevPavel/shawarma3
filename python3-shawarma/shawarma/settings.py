@@ -17,7 +17,8 @@ from .my_settings import login, password, db_name, allowed_hosts, debug_flag, li
     raven_dsn, secret_key, server_1c_ip, server_1c_port, getlist_url, server_1c_user, server_1c_pass, order_url, \
     force_to_listner, debug_servery, return_url, carousel_img_dir, carousel_img_url, \
     smtp_server, smtp_port, smtp_login, smtp_password, smtp_from_addr, smtp_to_addr, elastix_action, elastix_login, \
-    elastix_script, elastix_secret, elastix_server
+    elastix_script, elastix_secret, elastix_server, delivery_duration, packaging_duration, shashlyk_cooking_duration, \
+    shawarma_cooking_duration
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -224,6 +225,14 @@ PRINTER_URL = printer_url
 SERVER_1C_USER = server_1c_user
 
 SERVER_1C_PASS = server_1c_pass
+
+DELIVERY_DURATION = delivery_duration
+
+PACKAGING_DURATION = packaging_duration
+
+SHAWARMA_COOKING_DURATION = shawarma_cooking_duration
+
+SHASHLYK_COOKING_DURATION = shashlyk_cooking_duration
 
 EMAIL_HOST = smtp_server
 EMAIL_PORT = smtp_port
