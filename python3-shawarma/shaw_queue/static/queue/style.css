@@ -133,8 +133,9 @@ ul {
   content: '\02795'; /* Unicode character for "plus" sign (+) */
   font-size: 13px;
   color: white;
-  float: right;
-  margin-left: 5px;
+  float: left;
+  margin-right: 5px;
+  margin-top: 2px;
 }
 
 .collapsible-active:before {

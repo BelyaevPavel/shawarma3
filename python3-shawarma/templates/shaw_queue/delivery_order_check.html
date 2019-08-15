@@ -1,7 +1,8 @@
 <div class="modal-content" id="modal-delivery-order-create">
+    <span class="close" id="close-modal-delivery-order">&times;</span>
     <div>
-    <h3>Проверь состав заказа!</h3>
-    {% include 'shaw_queue/delivery_order_summary.html' with delivery_order=delivery_order order_info=order_info order_content=order_content %}
+        <h3>Проверь состав заказа!</h3>
+        {% include 'shaw_queue/delivery_order_summary.html' with delivery_order=delivery_order order_info=order_info order_content=order_content %}
     </div>
-    <button class="btn success">OK</button>
+    <button class="btn success" onclick="DeliverDeliveryOrder({{ delivery_order.pk }})">OK</button>
 </div>

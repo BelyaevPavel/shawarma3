@@ -48,13 +48,17 @@ function HideDeliveryOrder() {
 
 function ToggleCollapsible(collapsibleId, contentId) {
     var collapsible = document.getElementById(collapsibleId);//$('#'+collapsibleId);
-    collapsible.classList.toggle("collapsible-active");
+    if (collapsible != null)
+        collapsible.classList.toggle("collapsible-active");
     var content = document.getElementById(contentId);
-    if (content.style.display === "block") {
-        content.style.display = "none";
-    } else {
-        content.style.display = "block";
+    if (content != null) {
+        if (content.style.display === "block") {
+            content.style.display = "none";
+        } else {
+            content.style.display = "block";
+        }
     }
+
 }
 
 function OverrideDeliveryOrderSubmition() {
@@ -269,7 +273,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
 
 function SendDeliveryOrder() {
     var pk = $('#delivery-order-form').attr('object-pk');
-    var daily_number=$('#id_daily_number').val();
+    var daily_number = $('#id_daily_number').val();
     var form_data = {
         'delivery': $('#id_delivery').val(),
         'order': $('#id_order').val(),
@@ -278,8 +282,8 @@ function SendDeliveryOrder() {
         'obtain_timepoint': $('#id_obtain_timepoint').val(),
         'delivered_timepoint': $('#id_delivered_timepoint').val(),
         'prep_start_timepoint': $('#id_prep_start_timepoint').val(),
-        'preparation_duration': $('#id_preparation_duration').val() ,
-        'delivery_duration': $('#id_delivery_duration').val() ,
+        'preparation_duration': $('#id_preparation_duration').val(),
+        'delivery_duration': $('#id_delivery_duration').val(),
         'note': $('#id_note').val(),
     };
     if (pk)
@@ -467,8 +471,8 @@ function PrintDeliveryOrder(delivery_order_id) {
                 if (data['success']) {
                 }
                 alert(data['message']);
-                    // modal_delivery_order_container.html(data['html']);
-                    // modal_delivery_order_container.css("display", "block");
+                // modal_delivery_order_container.html(data['html']);
+                // modal_delivery_order_container.css("display", "block");
             },
             complete: function () {
             },
@@ -719,6 +723,54 @@ function FinishDeliveryOrder(DeliveryOrderPK) {
 }
 
 
+function CheckDeliveryOrder(DeliveryOrderPK) {
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('check-delivery-order-url'),
+            data: {"delivery_order_pk": DeliveryOrderPK},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                    modal_delivery_order_container.html(data['html']);
+                    modal_delivery_order_container.css("display", "block");
+                    modal_delivery_order_content = document.getElementById("close-modal-delivery-order");
+                    modal_delivery_order_is_opened = true;
+
+                    // Get the <span> element that closes the modal
+                    var closeMenuSpan = document.getElementById("close-modal-delivery-order");
+
+                    // When the user clicks on <span> (x), close the modal
+                    closeMenuSpan.onclick = function () {
+                        HideDeliveryOrder();
+                    };
+
+                    // When the user clicks anywhere outside of the modal, close it
+                    window.onclick = function (event) {
+                        if (event.target == modal_delivery_order_content) {
+                            console.log("Inside");
+                            HideDeliveryOrder();
+                        }
+                        else {
+                            console.log("Outside");
+                        }
+                    };
+                }
+                else {
+                    alert(data['message']);
+                }
+            }
+        }
+    ).fail(function () {
+        console.log('Failed ' + aux);
+    });
+}
+
+
 function DeliverDeliveryOrder(DeliveryOrderPK) {
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
@@ -769,7 +821,7 @@ function CancelDeliveryOrder(DeliveryOrderPK) {
     });
 }
 
-function StartDelivery(DeliveryPk){
+function StartDelivery(DeliveryPk) {
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
@@ -794,7 +846,7 @@ function StartDelivery(DeliveryPk){
     });
 }
 
-function CancelDelivery(DeliveryPk){
+function CancelDelivery(DeliveryPk) {
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)

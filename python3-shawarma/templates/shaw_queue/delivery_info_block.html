@@ -9,11 +9,26 @@
 {#    </ul>#}
 {#</div>#}
 <div class="dropdown">
-    <button id="clps-btn-{{ index }}" class="collapsible-btn" onclick="ToggleCollapsible('clps-btn-{{ index }}', 'clps-content-{{ index }}')">
+    <button id="clps-btn-{{ index }}" class="collapsible-btn"
+            onclick="ToggleCollapsible('clps-btn-{{ index }}', 'clps-content-{{ index }}')">
         <span>№{{ delivery_info.delivery.daily_number }} {{ delivery_info.delivery.car_driver.user.first_name }} {{ delivery_info.departure_time }}</span>
-        <span class="badge">{{ delivery_info.delivery_orders_number }}</span>
+        {#        <span class="badge">{{ delivery_info.delivery_orders_number }}</span>#}
+        <button style="position: absolute;right: 10px;background-color: Transparent;border: darkgreen;top: 13px;"
+                onclick="ToggleCollapsible('', 'delivery-controls-{{ index }}')">
+            <div style="width: 24px; height: 24px; float: right">
+                <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet"
+                     style="pointer-events: none; display: block; width: 100%; height: 100%;fill: slategrey;"
+                     focusable="false">
+                    <g>
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z">
+
+                        </path>
+                    </g>
+                </svg>
+            </div>
+        </button>
     </button>
-    <div class="dropdown-content">
+    <div id="delivery-controls-{{ index }}" class="collapsible-content">
         <button class="small-btn success" title="Отправить"
                 {% if not delivery_info.can_be_started %}
                 disabled {% endif %} onclick="StartDelivery({{ delivery_info.delivery.pk }})">
@@ -25,10 +40,10 @@
         </button>
     </div>
 </div>
-    <div id="clps-content-{{ index }}" class="collapsible-content">
-        {% for delivery_order in delivery_info.delivery_orders %}
-            <a onclick="CreateDeliveryOrder({{ delivery_order.pk }})">
-                {{ delivery_order }}
-            </a>
-        {% endfor %}
-    </div>
+<div id="clps-content-{{ index }}" class="collapsible-content">
+    {% for delivery_order in delivery_info.delivery_orders %}
+        <a onclick="CreateDeliveryOrder({{ delivery_order.pk }})">
+            {{ delivery_order }}
+        </a>
+    {% endfor %}
+</div>

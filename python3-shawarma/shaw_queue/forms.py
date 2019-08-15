@@ -99,7 +99,7 @@ class DeliveryOrderForm(forms.ModelForm):
                 'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ',
                 'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
                 'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ',
-            }, format="%m.%d.%Y %H:%M"),
+            }, format="%d.%m.%Y %H:%M:%S"),
             'preparation_duration': forms.TimeInput(attrs={
                 'required': True,
                 'placeholder': 'Формат: ЧЧ:ММ',
@@ -142,4 +142,59 @@ class DeliveryOrderForm(forms.ModelForm):
             #     'pattern': "[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
             #     'title': 'Введите время в формате ЧЧ:ММ:СС',
             # })
+        }
+
+
+class DeliveryNonModelForm(forms.Form):
+    delivery = forms.ModelChoiceField(
+        queryset=Delivery.objects.filter(creation_timepoint__contains=timezone.datetime.today),
+        empty_label="Без доставки.", required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(DeliveryNonModelForm, self).__init__(*args, **kwargs)
+        self.fields['delivery'].queryset = Delivery.objects.filter(
+            creation_timepoint__contains=timezone.datetime.today().date())
+
+    class Meta:
+        model = DeliveryOrder
+        exclude = ['prep_start_timepoint', 'is_delivered', 'is_ready']
+        widgets = {
+            'daily_number': forms.HiddenInput(attrs={
+                'required': False
+            }),
+            'address': forms.TextInput(attrs={
+                'class': 'test-class',
+                'required': True,
+                'placeholder': 'Введите адрес...'
+            }),
+            'obtain_timepoint': forms.DateTimeInput(attrs={
+                'required': True,
+                'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ',
+                'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]",
+                'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ',
+            }),
+            'delivered_timepoint': forms.DateTimeInput(attrs={
+                'required': True,
+                'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ',
+                'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]",
+                'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ',
+            }),
+            'preparation_duration': forms.TimeInput(attrs={
+                'required': True,
+                'placeholder': 'Формат: ЧЧ:ММ',
+                'pattern': "[[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
+                'title': 'Введите время ЧЧ:ММ',
+            }, format="%H:%M:%S"),
+            'delivery_duration': forms.TimeInput(attrs={
+                'required': True,
+                'placeholder': 'Формат: ЧЧ:ММ',
+                'pattern': "[0-2][0-9]:[0-6][0-9]:[0-6][0-9]",
+                'title': 'Введите время в формате ЧЧ:ММ',
+            }, format="%H:%M:%S"),
+            'order': forms.HiddenInput(attrs={
+                'required': True
+            }),
+            'customer': forms.HiddenInput(attrs={
+                'required': True
+            }),
         }

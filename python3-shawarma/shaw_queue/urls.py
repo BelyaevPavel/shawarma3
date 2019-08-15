@@ -29,6 +29,7 @@ urlpatterns = [
     url(r'^ajax/finish_shashlyk_cooking', views.finish_shashlyk_cooking, name="finish_shashlyk_cooking"),
     url(r'^ajax/finish_delivery_order', views.finish_delivery_order, name="finish_delivery_order"),
     url(r'^ajax/deliver_delivery_order', views.deliver_delivery_order, name="deliver_delivery_order"),
+    url(r'^ajax/check_delivery_order', views.check_delivery_order, name="check_delivery_order"),
     url(r'^ajax/cancel_delivery_order', views.cancel_delivery_order, name="cancel_delivery_order"),
     url(r'^ajax/start_delivery', views.start_delivery, name="start_delivery"),
     url(r'^ajax/cancel_delivery', views.cancel_delivery, name="cancel_delivery"),

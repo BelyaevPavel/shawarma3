@@ -1,6 +1,7 @@
 <div class="delivery-block-container shadowed {% if delivery_order.enlight_alert %} alert-aura {% elif delivery_order.enlight_warning %} warning-aura {% endif %}"
      draggable="true" title="Advise text.">
-    <div class="delivery-block-header" onclick="CreateDeliveryOrder({{ delivery_order.order.pk }},{{ delivery_order.order.customer.pk }})">Заказ
+    <div class="delivery-block-header"
+         onclick="CreateDeliveryOrder({{ delivery_order.order.pk }},{{ delivery_order.order.customer.pk }})">Заказ
         №{{ delivery_order.order.daily_number }} {{ delivery_order.order.obtain_timepoint }}
         - {{ delivery_order.order.delivered_timepoint }}</div>
     <div class="delivery-block-content">Delivery: {{ delivery_order.order.delivery }}</div>
@@ -13,13 +14,23 @@
         </button>
         <div class="dropdown">
             {% if delivery_order.order.order.prepared_by and delivery_order.order.order.content_completed and delivery_order.order.order.shashlyk_completed and delivery_order.order.order.supplement_completed %}
-                <button class="small-btn warning" title="Пометить заказ, как готовый к отправке."
-                        {% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed or not delivery_order.order.order.supplement_completed %}
-                        disabled
-                        {% endif %}
-                        onclick="DeliverDeliveryOrder({{ delivery_order.order.pk }})">
-                    Отправить
-                </button>
+                {% if delivery_order.order.is_ready %}
+                    <button class="small-btn warning" title="Пометить заказ, как готовый к отправке."
+                            {% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed or not delivery_order.order.order.supplement_completed %}
+                            disabled
+                            {% endif %}
+                            onclick="DeliverDeliveryOrder({{ delivery_order.order.pk }})">
+                        Не готов
+                    </button>
+                {% else %}
+                    <button class="small-btn warning" title="Пометить заказ, как готовый к отправке."
+                            {% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed or not delivery_order.order.order.supplement_completed %}
+                            disabled
+                            {% endif %}
+                            onclick="CheckDeliveryOrder({{ delivery_order.order.pk }})">
+                        Отправить
+                    </button>
+                {% endif %}
             {% else %}
                 <button class="small-btn warning" {% if not delivery_order.order.order %} disabled {% endif %}>
                     Готовить

@@ -2509,9 +2509,16 @@ def delivery_workspace_update(request):
     utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_workspace.html')
     print("{} {} {}".format(timezone.datetime.now(), datetime.datetime.now(), utc.localize(datetime.datetime.now())))
-    delivery_orders = DeliveryOrder.objects.filter(
-        obtain_timepoint__contains=datetime.date.today(), order__close_time__isnull=True,
-        order__is_canceled=False).order_by('delivered_timepoint')
+    timezone_datetime_now = timezone.datetime.now().date()
+    timezone_now = timezone.now().date()
+    datetime_datetime_now = datetime.datetime.now().date()
+    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone_datetime_now)
+    if len(delivery_orders):
+        delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone_now)
+        if len(delivery_orders):
+            delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime_datetime_now)
+    delivery_orders = delivery_orders.filter(order__close_time__isnull=True)
+    delivery_orders = delivery_orders.filter(order__is_canceled=False).order_by('delivered_timepoint')
     processed_d_orders = [
         {
             'order': delivery_order,
@@ -2629,7 +2636,7 @@ def print_delivery_order(request: HttpRequest) -> JsonResponse:
                                                                                    'menu_item__price',
                                                                                    'note').annotate(
             count_titles=Count('menu_item__title')).annotate(count_notes=Count('note'))
-        template = loader.get_template('shaw_queue/delivery_order_check.html')
+        template = loader.get_template('shaw_queue/print_delivery_order.html')
         context = {
             'order_info': order_info,
             'order_content': order_content,
@@ -2641,6 +2648,45 @@ def print_delivery_order(request: HttpRequest) -> JsonResponse:
             'success': success,
             'message': "Отправлено на печать!" if success else "Для данной точки отстутствуют зарегистрированные "
                                                                "принтеры! ",
+            'html': template.render(context, request)
+        }
+    else:
+        return JsonResponse(result)
+
+    return JsonResponse(data)
+
+
+def check_delivery_order(request: HttpRequest) -> JsonResponse:
+    """
+
+    :param request: Request data
+    :return: Returns json response with data about operation result.
+    """
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+
+    delivery_order_pk = request.POST.get('delivery_order_pk', None)
+    result = define_service_point(device_ip)
+
+    if result['success']:
+        delivery_order = DeliveryOrder.objects.get(pk=delivery_order_pk)
+        order_info = Order.objects.get(id=delivery_order.order.id)  # get_object_or_404(Order, id=order_id)
+        order_info.printed = True
+        order_info.save()
+        order_content = OrderContent.objects.filter(order_id=order_info.id).values('menu_item__title',
+                                                                                   'menu_item__price',
+                                                                                   'note').annotate(
+            count_titles=Count('menu_item__title')).annotate(count_notes=Count('note'))
+        template = loader.get_template('shaw_queue/delivery_order_check.html')
+        context = {
+            'order_info': order_info,
+            'order_content': order_content,
+            'delivery_order': delivery_order
+        }
+
+        data = {
+            'success': True,
             'html': template.render(context, request)
         }
     else:
@@ -3365,13 +3411,13 @@ def finish_delivery_order(request) -> JsonResponse:
 # @permission_required('shaw_queue.change_order')
 def deliver_delivery_order(request) -> JsonResponse:
     """
-    Marks that delivery order is ready to be delivered.
+    Changes readiness of delivery order to opposite.
     :param request:
     :return:
     """
     delivery_order_pk = json.loads(request.POST.get('delivery_order_pk', None))
     try:
-        delivery_order = DeliveryOrder.objects.get(id=delivery_order_pk)
+        delivery_order = DeliveryOrder.objects.get(pk=delivery_order_pk)
     except:
         data = {
             'success': False,
@@ -3380,7 +3426,7 @@ def deliver_delivery_order(request) -> JsonResponse:
         client.captureException()
         return JsonResponse(data)
 
-    delivery_order.is_ready = True
+    delivery_order.is_ready = not delivery_order.is_ready
     delivery_order.save()
     data = {
         'success': True,
