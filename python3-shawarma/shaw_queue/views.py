@@ -2457,7 +2457,7 @@ def delivery_interface(request):
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
     deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
-                                         departure_timepoint__isnull=True).order_by(
+                                         departure_timepoint__isnull=True,is_canceled=False).order_by(
         'departure_timepoint')
 
     # deliveries = Delivery.objects.filter(departure_timepoint__isnull=True).order_by(
