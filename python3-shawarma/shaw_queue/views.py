@@ -1288,6 +1288,7 @@ def current_queue(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def order_history(request):
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
