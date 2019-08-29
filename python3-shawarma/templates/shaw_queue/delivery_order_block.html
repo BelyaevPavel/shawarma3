@@ -2,8 +2,8 @@
      draggable="true" title="Advise text.">
     <div class="delivery-block-header"
          onclick="CreateDeliveryOrder({{ delivery_order.order.pk }},{{ delivery_order.order.customer.pk }})">Заказ
-        №{{ delivery_order.order.daily_number }} {{ delivery_order.order.obtain_timepoint }}
-        - {{ delivery_order.order.delivered_timepoint }}</div>
+        №{{ delivery_order.order.daily_number }} {{ delivery_order.order.obtain_timepoint|date:"SHORT_DATE_FORMAT" }}
+        - {{ delivery_order.order.delivered_timepoint|date:"SHORT_DATE_FORMAT" }}</div>
     <div class="delivery-block-content">Delivery: {{ delivery_order.order.delivery }}</div>
     <div class="delivery-block-content">Driver: {{ delivery_order.order.delivery.car_driver }}</div>
     <div class="delivery-block-actions">
@@ -15,10 +15,10 @@
         <div class="dropdown">
             {% if delivery_order.order.order.prepared_by and delivery_order.order.order.content_completed and delivery_order.order.order.shashlyk_completed and delivery_order.order.order.supplement_completed %}
                 {% if delivery_order.order.is_ready %}
-                    <button class="small-btn warning" title="Пометить заказ, как готовый к отправке."
-                            {% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed or not delivery_order.order.order.supplement_completed %}
+                    <button class="small-btn warning" title="Пометить заказ, как не готовый к отправке."
+                            {% comment %}{% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed or not delivery_order.order.order.supplement_completed %}
                             disabled
-                            {% endif %}
+                            {% endif %}{% endcomment %}
                             onclick="DeliverDeliveryOrder({{ delivery_order.order.pk }})">
                         Не готов
                     </button>
