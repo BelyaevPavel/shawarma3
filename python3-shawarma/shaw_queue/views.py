@@ -2540,9 +2540,34 @@ def delivery_workspace_update(request):
     # context = {
     #     'delivery_orders': delivery_orders
     # }
+
+
+    deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
+                                         departure_timepoint__isnull=True).order_by('departure_timepoint')
+
+    delivery_info = [
+        {
+            'delivery': delivery,
+            'departure_time': (DeliveryOrder.objects.filter(delivery=delivery).annotate(
+                suggested_depature_time=ExpressionWrapper(F('delivered_timepoint') - F('delivery_duration'),
+                                                          output_field=DateTimeField())).order_by(
+                'suggested_depature_time'))[0].suggested_depature_time.time() if len(DeliveryOrder.objects.filter(
+                delivery=delivery)) else "--:--",
+            'delivery_orders': DeliveryOrder.objects.filter(delivery=delivery),
+            'delivery_orders_number': len(DeliveryOrder.objects.filter(delivery=delivery)),
+            'can_be_started': False if len(
+                DeliveryOrder.objects.filter(delivery=delivery, is_ready=False)) > 0 else True
+        } for delivery in deliveries
+        ]
+
+    delivery_context = {
+        'delivery_info': delivery_info
+    }
+    delivery_template = loader.get_template('shaw_queue/delivery_left_col_content.html')
     data = {
         'success': True,
-        'html': template.render(context, request)
+        'html': template.render(context, request),
+        'delivery_html': delivery_template.render(delivery_context, request)
     }
     return JsonResponse(data)
 
