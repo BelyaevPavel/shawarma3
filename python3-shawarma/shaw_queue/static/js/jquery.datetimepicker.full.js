@@ -2050,7 +2050,8 @@ var datetimepickerFactory = function ($) {
 				position = "absolute";
 
 				windowWidth = $(options.contentWindow).width();
-				windowHeight = $(options.contentWindow).height();
+				// I've changed it from windowHeight = $(options.contentWindow).height(); to
+				windowHeight = options.contentWindow.innerHeight;
 				windowScrollTop = $(options.contentWindow).scrollTop();
 
 				if ((options.ownerDocument.documentElement.clientWidth - dateInputOffset.left) < datepicker.parent().outerWidth(true)) {
