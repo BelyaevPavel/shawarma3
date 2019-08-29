@@ -1288,6 +1288,7 @@ def current_queue(request):
 
 
 @login_required()
+@permission_required('shaw_queue.view_statistics')
 def order_history(request):
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
@@ -2457,7 +2458,7 @@ def delivery_interface(request):
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
     deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
-                                         departure_timepoint__isnull=True).order_by(
+                                         departure_timepoint__isnull=True,is_canceled=False).order_by(
         'departure_timepoint')
 
     # deliveries = Delivery.objects.filter(departure_timepoint__isnull=True).order_by(

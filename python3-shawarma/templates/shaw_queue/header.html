@@ -32,11 +32,6 @@
                         Производство
                 </div>
             </a>
-            <a href="{% url 'order_history' %}">
-                <div class="header-buttons" id="order-history">
-                        История заказов
-                </div>
-            </a>
         {% endif %}
         {% if staff_category.title == 'Cook' %}
             <a href="{% url 'cook_interface' %}">
@@ -63,6 +58,11 @@
             <a href="{% url 'statistics' %}">
                 <div class="header-buttons" id="statistics_interface">
                         Шаурма
+                </div>
+            </a>
+            <a href="{% url 'order_history' %}">
+                <div class="header-buttons" id="order-history">
+                        История заказов
                 </div>
             </a>
         {% endif %}
