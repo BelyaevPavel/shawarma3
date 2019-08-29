@@ -257,6 +257,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                         event.preventDefault();
                     });
                     OverrideDeliveryOrderSubmition();
+                    CheckOrderIdPresence();
                 }
                 else {
                     alert(data['message']);
@@ -680,7 +681,7 @@ function FinishShashlykCooking(OrderPK) {
     $.ajax({
             type: 'POST',
             url: $('#delivery-urls').attr('finish-shashlyk-cooking-url'),
-            data: {"order_pk": DeliveryOrderPK},
+            data: {"order_pk": OrderPK},
             dataType: 'json',
             success: function (data) {
                 if (data['success']) {
@@ -869,4 +870,17 @@ function CancelDelivery(DeliveryPk) {
     ).fail(function () {
         console.log('Failed ' + aux);
     });
+}
+
+function CheckOrderIdPresence() {
+    var value = $('#id_order').val();
+    if (value) {
+        $('#btn-save-delivery-order').show();
+        $('#btn_show_menu').hide();
+    }
+    else {
+        $('#btn-save-delivery-order').hide();
+        $('#btn_show_menu').show();
+
+    }
 }
