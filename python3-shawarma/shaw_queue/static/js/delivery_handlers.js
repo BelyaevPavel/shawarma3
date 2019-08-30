@@ -543,6 +543,7 @@ function UpdateWorkspace() {
             success: function (data) {
                 if (data['success']) {
                     workspace.html(data['html']);
+                    $('#delivery-left-column-content').html(data['delivery_html']);
                 }
                 else {
                     alert(data['message']);
