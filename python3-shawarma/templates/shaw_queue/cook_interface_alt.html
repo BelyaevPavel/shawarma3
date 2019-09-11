@@ -9,7 +9,7 @@
            data-next-url="{% url 'next_to_prepare' %}" data-ajax="{% url 'cook_interface_ajax' %}"
            data-finish-all-content-url="{% url 'finish_all_content' %}">
     <div id="inner-content">
-        <div class="cook-daily-number"> Заказ №{{ free_order.daily_number }} </div>
+        <div class="cook-daily-number"> Заказ №{{ display_number }} </div>
         {% for content_item in order_content %}
             <div class="cook-item-container">
                 <div class="cook-order-item

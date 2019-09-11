@@ -1234,6 +1234,7 @@ def current_queue(request):
     template = loader.get_template('shaw_queue/current_queue_grid.html')
     context = {
         'open_orders': [{'order': open_order,
+                         'display_number': open_order.daily_number % 100,
                          'printed': open_order.printed,
                          'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
                                                                               is_canceled=False).filter(
@@ -1254,6 +1255,7 @@ def current_queue(request):
                              count_titles=Count('menu_item__title'))
                          } for open_order in open_orders],
         'ready_orders': [{'order': open_order,
+                         'display_number': open_order.daily_number % 100,
                           'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
                                                                                is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='cook').filter(
@@ -1480,6 +1482,7 @@ def current_queue_ajax(request):
     try:
         context = {
             'open_orders': [{'order': open_order,
+                             'display_number': open_order.daily_number % 100,
                              'printed': open_order.printed,
                              'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
                                                                                   is_canceled=False).filter(
@@ -1501,6 +1504,7 @@ def current_queue_ajax(request):
                                  count_titles=Count('menu_item__title'))
                              } for open_order in open_orders],
             'ready_orders': [{'order': open_order,
+                              'display_number': open_order.daily_number % 100,
                               'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
                                                                                    is_canceled=False).filter(
                                   menu_item__can_be_prepared_by__title__iexact='cook').filter(
@@ -1655,6 +1659,7 @@ def cook_interface(request):
                     # print "Free orders prepared_by: {}".format(free_order.prepared_by)
                     context = {
                         'free_order': free_order,
+                        'display_number': free_order.daily_number % 100,
                         'order_content': [{'number': number,
                                            'item': item} for number, item in enumerate(taken_order_content, start=1)],
                         'in_grill_content': [{'number': number,
@@ -1674,6 +1679,7 @@ def cook_interface(request):
                 'id')
             context = {
                 'free_order': taken_orders[0][0],
+                'display_number': taken_orders[0][0].daily_number % 100,
                 'order_content': [{'number': number,
                                    'item': item} for number, item in enumerate(taken_order_content, start=1)],
                 'in_grill_content': [{'number': number,
@@ -1810,12 +1816,14 @@ def cook_interface(request):
             'id')
         context = {
             'free_order': new_order,
+            'display_number': new_order.daily_number % 100,
             'order_content': [{'number': number,
                                'item': item} for number, item in enumerate(taken_order_content, start=1)],
             'in_grill_content': [{'number': number,
                                   'item': item} for number, item in
                                  enumerate(taken_order_in_grill_content, start=1)],
             'cooks_orders': [{'order': cooks_order,
+                              'display_number': cooks_order.daily_number % 100,
                               'cook_content_count': len(OrderContent.objects.filter(order=cooks_order,
                                                                                     menu_item__can_be_prepared_by__title__iexact='cook'))}
                              for cooks_order in other_orders if len(OrderContent.objects.filter(order=cooks_order,
@@ -1879,6 +1887,7 @@ def c_i_a(request):
                     # print "Free orders prepared_by: {}".format(free_order.prepared_by)
                     context = {
                         'free_order': free_order,
+                        'display_number': free_order.daily_number % 100,
                         'order_content': [{'number': number,
                                            'item': item} for number, item in enumerate(taken_order_content, start=1)],
                         'staff_category': staff
@@ -1891,6 +1900,7 @@ def c_i_a(request):
                 'id')
             context = {
                 'free_order': taken_orders[0][0],
+                'display_number': taken_orders[0][0].daily_number % 100,
                 'order_content': [{'number': number,
                                    'item': item} for number, item in enumerate(taken_order_content, start=1)],
                 'staff_category': staff
@@ -1976,6 +1986,7 @@ def c_i_a(request):
             return JsonResponse(data)
         context = {
             'selected_order': new_order,
+            'display_number': new_order.daily_number % 100,
             'order_content': [{'number': number,
                                'item': item} for number, item in enumerate(taken_order_content, start=1)],
             'staff_category': staff.staff_category,
@@ -1984,6 +1995,7 @@ def c_i_a(request):
         template = loader.get_template('shaw_queue/selected_order_content.html')
         context_other = {
             'cooks_orders': [{'order': cooks_order,
+                              'display_number': cooks_order.daily_number % 100,
                               'cook_content_count': len(OrderContent.objects.filter(order=cooks_order,
                                                                                     menu_item__can_be_prepared_by__title__iexact='cook'))}
                              for cooks_order in other_orders if len(OrderContent.objects.filter(order=cooks_order,
@@ -2215,6 +2227,7 @@ def order_content(request, order_id):
         try:
             context = {
                 'order_info': order_info,
+                'display_number': order_info.daily_number % 100,
                 'maker': order_info.prepared_by,
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
                 'order_content': current_order_content,
@@ -2759,6 +2772,7 @@ def select_order(request):
         try:
             context = {
                 'selected_order': get_object_or_404(Order, id=order_id),
+                'display_number': get_object_or_404(Order, id=order_id).daily_number % 100,
                 'order_content': [{'number': number,
                                    'item': item} for number, item in
                                   enumerate(OrderContent.objects.filter(order__id=order_id,
@@ -3189,7 +3203,8 @@ def make_order(request):
     #                                                   order__is_canceled=False, order__close_time__isnull=True)
 
     data = {
-        "daily_number": order.daily_number
+        "daily_number": order.daily_number,
+        "display_number": order.daily_number % 100
     }
 
     if len(cooks) == 0:

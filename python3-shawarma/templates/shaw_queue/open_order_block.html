@@ -14,7 +14,7 @@
                                                 inGrill
                                             {% endif %}
                                         {% endif %}">
-                <a href="{% url 'order_content' open_order.order.id %}">№ {{ open_order.order.daily_number }}</a>
+                <a href="{% url 'order_content' open_order.order.id %}">№ {{ open_order.display_number }}</a>
             </div>
             <div class="order-cook-part {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
                                                 ready

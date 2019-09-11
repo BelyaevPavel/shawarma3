@@ -98,12 +98,12 @@ function SendOrder() {
                         if (data['success']) {
                             if (payment_choose.val() != "not_paid") {
                                 if (payment_choose.val() == "paid_with_cash") {
-                                    status.text('Заказ №' + data.daily_number + ' добавлен! Введите полученную сумму:');
+                                    status.text('Заказ №' + data.display_number + ' добавлен! Введите полученную сумму:');
                                     //var cash = prompt('Заказ №' + data.daily_number + ' добавлен!, Введите полученную сумму:', "");
                                     //alert("Сдача: " + (parseInt(cash) - total))
                                 }
                                 else {
-                                    status.text('Заказ №' + data.daily_number + ' добавлен! Активация платёжного терминала...');
+                                    status.text('Заказ №' + data.display_number + ' добавлен! Активация платёжного терминала...');
                                     //alert('Заказ №' + data.daily_number + ' добавлен!');
                                 }
                                 setTimeout(function () {
@@ -111,7 +111,7 @@ function SendOrder() {
                                 }, 1000);
                             }
                             else {
-                                status.text('Заказ №' + data.daily_number + ' добавлен!');
+                                status.text('Заказ №' + data.display_number + ' добавлен!');
                                 OK.prop('disabled', false);
                                 cancel.prop('disabled', true);
                                 retry.prop('disabled', true);

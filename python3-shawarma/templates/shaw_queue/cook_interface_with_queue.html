@@ -15,7 +15,7 @@
         Пауза
     </div>
     <div id="selected-order-content" class="selected-order-display">
-        {% include 'shaw_queue/selected_order_content.html' with selected_order=free_order %}
+        {% include 'shaw_queue/selected_order_content.html' with selected_order=free_order display_number=display_number %}
     </div>
     <div id="other-orders-queue" class="cook-order-queue-display">
         {% include 'shaw_queue/cooks_order_queue.html' with cooks_orders=cooks_orders %}
