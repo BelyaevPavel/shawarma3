@@ -275,6 +275,7 @@ function DeliveryOKHandeler(order_pk) {
     // location.reload();
     modal_window.html('');
     modal_window.hide();
+    CheckOrderIdPresence();
     console.log('DeliveryOKHandeler fired.');
 }
 

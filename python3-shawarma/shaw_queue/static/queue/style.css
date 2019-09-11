@@ -80,7 +80,7 @@ ul {
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
     z-index: 1;
     overflow-y: auto;
-    max-height: 250px;
+    /*max-height: 250px;*/
 }
 
 /* Links inside the dropdown */
@@ -1503,7 +1503,7 @@ div.filter-container {
 
 #modal-delivery-order-create {
     width: -moz-fit-content;
-    max-height: 400px;
+    max-height: 520px;
     overflow-y: auto;
     margin: 5% auto !important;
 }
