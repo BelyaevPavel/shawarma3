@@ -1814,9 +1814,13 @@ def cook_interface(request):
                                                                    grill_timestamp__isnull=False,
                                                                    menu_item__can_be_prepared_by__title__iexact='Cook').order_by(
             'id')
+        if len(new_order) > 0:
+            display_number = new_order.daily_number % 100
+        else:
+            display_number = ''
         context = {
             'free_order': new_order,
-            'display_number': new_order.daily_number % 100,
+            'display_number': display_number,
             'order_content': [{'number': number,
                                'item': item} for number, item in enumerate(taken_order_content, start=1)],
             'in_grill_content': [{'number': number,
@@ -1984,9 +1988,13 @@ def c_i_a(request):
             }
             client.captureException()
             return JsonResponse(data)
+        if len(new_order) > 0:
+            display_number = new_order.daily_number % 100
+        else:
+            display_number = ''
         context = {
             'selected_order': new_order,
-            'display_number': new_order.daily_number % 100,
+            'display_number': display_number,
             'order_content': [{'number': number,
                                'item': item} for number, item in enumerate(taken_order_content, start=1)],
             'staff_category': staff.staff_category,
