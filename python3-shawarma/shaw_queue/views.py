@@ -1799,8 +1799,10 @@ def cook_interface(request):
                                             open_time__contains=datetime.date.today(), is_canceled=False,
                                             close_time__isnull=True).order_by('open_time')
         has_order = False
+        display_number = ''
         if len(new_order) > 0:
             new_order = new_order[0]
+            display_number = new_order.daily_number % 100
             taken_order_content = OrderContent.objects.filter(order=new_order,
                                                               menu_item__can_be_prepared_by__title__iexact='Cook',
                                                               finish_timestamp__isnull=True).order_by('id')
@@ -1814,10 +1816,7 @@ def cook_interface(request):
                                                                    grill_timestamp__isnull=False,
                                                                    menu_item__can_be_prepared_by__title__iexact='Cook').order_by(
             'id')
-        if len(new_order) > 0:
-            display_number = new_order.daily_number % 100
-        else:
-            display_number = ''
+
         context = {
             'free_order': new_order,
             'display_number': display_number,
@@ -1949,8 +1948,10 @@ def c_i_a(request):
             return JsonResponse(data)
 
         has_order = False
+        display_number = ''
         if len(new_order) > 0:
             new_order = new_order[0]
+            display_number = new_order.daily_number % 100
             try:
                 taken_order_content = OrderContent.objects.filter(order=new_order,
                                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
@@ -1988,10 +1989,7 @@ def c_i_a(request):
             }
             client.captureException()
             return JsonResponse(data)
-        if len(new_order) > 0:
-            display_number = new_order.daily_number % 100
-        else:
-            display_number = ''
+
         context = {
             'selected_order': new_order,
             'display_number': display_number,
