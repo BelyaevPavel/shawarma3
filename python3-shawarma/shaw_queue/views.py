@@ -2647,7 +2647,8 @@ def print_order(request, order_id):
         template = loader.get_template('shaw_queue/print_order_wh.html')
         context = {
             'order_info': order_info,
-            'order_content': order_content
+            'order_content': order_content,
+            'display_number': order_info.daily_number % 100
         }
 
         service_point = result['service_point']
@@ -2685,7 +2686,8 @@ def print_delivery_order(request: HttpRequest) -> JsonResponse:
         context = {
             'order_info': order_info,
             'order_content': order_content,
-            'delivery_order': delivery_order
+            'delivery_order': delivery_order,
+            'display_number': order_info.daily_number % 100
         }
 
         success = print_template(device_ip, template.render(context, request), result['service_point'])
@@ -3381,7 +3383,7 @@ def make_order(request):
             data["total"] = order.total
             data["content"] = json.dumps(content_to_send)
             data["message"] = ''
-            data["daily_number"] = order.daily_number
+            data["daily_number"] = order.daily_number % 100
             data["guid"] = order.guid_1c
             data["pk"] = order.pk
     else:
@@ -3389,7 +3391,7 @@ def make_order(request):
         data["total"] = order.total
         data["content"] = json.dumps(content_to_send)
         data["message"] = ''
-        data["daily_number"] = order.daily_number
+        data["daily_number"] = order.daily_number % 100
         data["pk"] = order.pk
 
     return JsonResponse(data)
