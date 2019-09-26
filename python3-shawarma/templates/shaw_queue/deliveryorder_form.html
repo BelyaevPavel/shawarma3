@@ -34,9 +34,12 @@
                 <div class="form-group">
                     {{ field.label_tag }}
                     {% if field.auto_id == "id_address" %}
-                        <button type="button" class="small-btn info"
-                                onclick="SetAddressFieldValue('{{ sellpointAddress }}')">Самовывоз
-                        </button>
+                        <div>
+                            <button type="button" class="small-btn info"
+                                    onclick="SetAddressFieldValue('{{ sellpointAddress }}')">Самовывоз
+                            </button>
+                            <div id="coordinates" style="display: contents;"></div>
+                        </div>
                     {% endif %}
 
                     {% if form.is_bound %}

@@ -74,7 +74,8 @@ class DeliveryOrderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(DeliveryOrderForm, self).__init__(*args, **kwargs)
         self.fields['delivery'].queryset = Delivery.objects.filter(
-            creation_timepoint__contains=timezone.datetime.today().date())
+            creation_timepoint__contains=timezone.datetime.today().date(), departure_timepoint__isnull=True,
+            is_canceled=False)
 
     class Meta:
         model = DeliveryOrder

@@ -256,6 +256,62 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                     $('#btn_show_menu').on('click', function (event) {
                         event.preventDefault();
                     });
+
+                    $("#id_address").suggestions({
+                        token: data['token'],
+                        type: "ADDRESS",
+                        /* Вызывается, когда пользователь выбирает одну из подсказок */
+                        onSelect: function (suggestion) {
+                            console.log(suggestion);
+
+                            var lat = suggestion.data.geo_lat;
+                            var lon = suggestion.data.geo_lon;
+
+                            var R = 6371210;
+                            var base_lat = 55.1682388;
+                            var base_lon = 61.3864114;
+
+                            var distance = 6371 * 2 * Math.asin(Math.sqrt(
+                                    Math.pow(Math.sin((base_lat - Math.abs(lat)) * Math.PI / 180 / 2), 2) +
+                                    Math.cos(base_lat * Math.PI / 180) *
+                                    Math.cos(Math.abs(lat) * Math.PI / 180) *
+                                    Math.pow(Math.sin((base_lon - lon) * Math.PI / 180 / 2), 2)
+                                ));
+
+                            var content =
+                                '<a href="http://maps.yandex.ru/?text=' + lat + ',' + lon +
+                                '" data-ref="geo-link" target="_blank">Расстояние: ' + distance.toFixed(0) + ' км</a>';
+
+                            console.log(suggestion.data.qc_geo);
+                            // switch (suggestion.data.qc_geo) {
+                            //     case '0':
+                            //         content += ' (Точные координаты)';
+                            //         break;
+                            //     case '1':
+                            //         content += ' (Найен только ближайший дом)';
+                            //         break;
+                            //     case '2':
+                            //         content += ' (Найдена только улица)';
+                            //         break;
+                            //     case '3':
+                            //         content += ' (Найден только населенный пункт)';
+                            //         break;
+                            //     case '4':
+                            //         content += ' (Найден только город)';
+                            //         break;
+                            //     case '5':
+                            //         content += ' (Координаты не определены)';
+                            //         break;
+                            //     default:
+                            //         content = 'Что-то пошло не так!';
+                            // }
+
+                            document.getElementById('coordinates').innerHTML = content;
+                            //console.log("Geo "+content);
+
+                        }
+                    });
+
                     OverrideDeliveryOrderSubmition();
                     CheckOrderIdPresence();
                 }

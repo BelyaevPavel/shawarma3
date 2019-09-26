@@ -18,7 +18,7 @@ from .my_settings import login, password, db_name, allowed_hosts, debug_flag, li
     force_to_listner, debug_servery, return_url, carousel_img_dir, carousel_img_url, \
     smtp_server, smtp_port, smtp_login, smtp_password, smtp_from_addr, smtp_to_addr, elastix_action, elastix_login, \
     elastix_script, elastix_secret, elastix_server, delivery_duration, packaging_duration, shashlyk_cooking_duration, \
-    shawarma_cooking_duration
+    shawarma_cooking_duration, dadata_token
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -28,6 +28,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = secret_key
+
+# SECURITY WARNING: keep the secret key used in production secret!
+DADATA_TOKEN = dadata_token
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = debug_flag

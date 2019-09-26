@@ -22,7 +22,7 @@ from threading import Thread
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, \
-    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR, TIME_ZONE
+    CAROUSEL_IMG_DIR, CAROUSEL_IMG_URL, SMTP_LOGIN, SMTP_PASSWORD, SMTP_FROM_ADDR, SMTP_TO_ADDR, TIME_ZONE, DADATA_TOKEN
 from raven.contrib.django.raven_compat.models import client
 from random import sample
 from itertools import chain
@@ -237,7 +237,8 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
             print(context['form'].fields[field].widget.attrs)
         data = {
             'success': True,
-            'html': template.render(context, request)
+            'html': template.render(context, request),
+            'token': DADATA_TOKEN
         }
         return JsonResponse(data=data)
 
@@ -321,7 +322,8 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
                 print(context['form'].fields[field].widget.attrs)
             data = {
                 'success': False,
-                'html': template.render(context, request)
+                'html': template.render(context, request),
+                'token': DADATA_TOKEN
             }
             return JsonResponse(data)
             # return HttpResponseRedirect(redirect_to='/shaw_queue/delivery_interface/')
@@ -1255,7 +1257,7 @@ def current_queue(request):
                              count_titles=Count('menu_item__title'))
                          } for open_order in open_orders],
         'ready_orders': [{'order': open_order,
-                         'display_number': open_order.daily_number % 100,
+                          'display_number': open_order.daily_number % 100,
                           'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
                                                                                is_canceled=False).filter(
                               menu_item__can_be_prepared_by__title__iexact='cook').filter(
@@ -2477,7 +2479,7 @@ def delivery_interface(request):
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
         'delivered_timepoint')
     deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
-                                         departure_timepoint__isnull=True,is_canceled=False).order_by(
+                                         departure_timepoint__isnull=True, is_canceled=False).order_by(
         'departure_timepoint')
 
     # deliveries = Delivery.objects.filter(departure_timepoint__isnull=True).order_by(
@@ -2486,11 +2488,11 @@ def delivery_interface(request):
     delivery_info = [
         {
             'delivery': delivery,
-            'departure_time': (DeliveryOrder.objects.filter(delivery=delivery).annotate(
+            'departure_time': ((DeliveryOrder.objects.filter(delivery=delivery).annotate(
                 suggested_depature_time=ExpressionWrapper(F('delivered_timepoint') - F('delivery_duration'),
                                                           output_field=DateTimeField())).order_by(
-                'suggested_depature_time'))[0].suggested_depature_time.time() if len(DeliveryOrder.objects.filter(
-                delivery=delivery)) else "--:--",
+                'suggested_depature_time'))[0].suggested_depature_time + datetime.timedelta(hours=5)).time() if len(
+                DeliveryOrder.objects.filter(delivery=delivery)) else "--:--",
             'delivery_orders': DeliveryOrder.objects.filter(delivery=delivery),
             'delivery_orders_number': len(DeliveryOrder.objects.filter(delivery=delivery)),
             'can_be_started': False if len(
@@ -2563,16 +2565,17 @@ def delivery_workspace_update(request):
 
 
     deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
-                                         departure_timepoint__isnull=True).order_by('departure_timepoint')
+                                         departure_timepoint__isnull=True, is_canceled=False).order_by(
+        'departure_timepoint')
 
     delivery_info = [
         {
             'delivery': delivery,
-            'departure_time': (DeliveryOrder.objects.filter(delivery=delivery).annotate(
+            'departure_time': ((DeliveryOrder.objects.filter(delivery=delivery).annotate(
                 suggested_depature_time=ExpressionWrapper(F('delivered_timepoint') - F('delivery_duration'),
                                                           output_field=DateTimeField())).order_by(
-                'suggested_depature_time'))[0].suggested_depature_time.time() if len(DeliveryOrder.objects.filter(
-                delivery=delivery)) else "--:--",
+                'suggested_depature_time'))[0].suggested_depature_time + datetime.timedelta(hours=5)).time() if len(
+                DeliveryOrder.objects.filter(delivery=delivery)) else "--:--",
             'delivery_orders': DeliveryOrder.objects.filter(delivery=delivery),
             'delivery_orders_number': len(DeliveryOrder.objects.filter(delivery=delivery)),
             'can_be_started': False if len(
