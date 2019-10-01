@@ -1933,14 +1933,15 @@ def c_i_a(request):
         #     staff.save()
         context = None
         taken_order_content = None
-        other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_cooking=True,
-                                            open_time__contains=datetime.date.today(), is_canceled=False,
-                                            close_time__isnull=True).order_by('open_time')
+        other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_preparation=True,
+                                            open_time__contains=datetime.date.today(),
+                                            is_canceled=False, close_time__isnull=True).filter(
+            Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         try:
-            new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_cooking=True,
-                                             open_time__contains=datetime.date.today(), is_canceled=False,
-                                             content_completed=False, is_grilling=False,
-                                             close_time__isnull=True).order_by('open_time')
+            new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False, open_time__contains=datetime.date.today(),
+                                             is_canceled=False, content_completed=False, is_grilling=False,
+                                             close_time__isnull=True).filter(
+            Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         except:
             data = {
                 'success': False,
@@ -2476,8 +2477,8 @@ def delivery_interface(request):
     print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
     staff = Staff.objects.get(user=request.user)
     print("staff_id = {}".format(staff.id))
-    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today()).order_by(
-        'delivered_timepoint')
+    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today(),
+                                                   order__close_time__isnull=True).order_by('delivered_timepoint')
     deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
                                          departure_timepoint__isnull=True, is_canceled=False).order_by(
         'departure_timepoint')
@@ -2890,6 +2891,7 @@ def select_cook(request):
     try:
         order.prepared_by = cook
         order.start_shawarma_cooking = False
+        order.start_shawarma_preparation = False
         order.save()
     except:
         data = {
@@ -2907,6 +2909,58 @@ def select_cook(request):
     return JsonResponse(data=data)
 
 
+@login_required()
+# Sets order prepared_by equal to None. Used in delivery interface.
+def change_cook(request):
+    delivery_order_pk = request.POST.get('delivery_order_pk', None)
+    cook = None
+    order = None
+
+    try:
+        order = Order.objects.get(deliveryorder__pk=delivery_order_pk)
+    except Order.DoesNotExist:
+        data = {
+            'success': False,
+            'message': 'Указанный заказ не найден!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except Order.MultipleObjectsReturned:
+        data = {
+            'success': False,
+            'message': 'Множество заказов найдено для данного заказа доставки!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске заказа!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+
+    try:
+        order.prepared_by = None
+        order.start_shawarma_cooking = False
+        order.start_shawarma_preparation = False
+        order.save()
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при смене повара!'.format(order.daily_number, cook)
+        }
+        client.captureException()
+        return JsonResponse(data)
+
+    data = {
+        'success': True,
+        'message': 'Заказ №{} готов к смене повара.'.format(order.daily_number, cook)
+    }
+
+    return JsonResponse(data=data)
+
+
 def start_shawarma_cooking(request):
     user = request.user
     staff = Staff.objects.get(user=user)
@@ -2918,6 +2972,27 @@ def start_shawarma_cooking(request):
         data = {
             'success': True,
             'message': "Шаурма из заказа отправлена в готовку!"
+        }
+    else:
+        data = {
+            'success': False,
+            'message': "Ошибка! Отсутствует ID заказа!"
+        }
+
+    return JsonResponse(data)
+
+
+def start_shawarma_preparation(request):
+    user = request.user
+    staff = Staff.objects.get(user=user)
+    order_pk = request.POST.get('order_pk', None)
+    if order_pk:
+        order = Order.objects.get(pk=order_pk)
+        order.start_shawarma_preparation = True
+        order.save()
+        data = {
+            'success': True,
+            'message': "Шаурма из заказа отправлена на сборку!"
         }
     else:
         data = {
@@ -2954,11 +3029,13 @@ def start_shashlyk_cooking(request):
         order.is_grilling_shash = all_is_grilling
         order.save()
         data = {
-            'success': True
+            'success': True,
+            'message': "Шашлык из заказа отправлен в готовку!"
         }
     else:
         data = {
-            'success': False
+            'success': False,
+            'message': "Ошибка! Отсутствует ID заказа!"
         }
 
     return JsonResponse(data)
@@ -2992,11 +3069,13 @@ def finish_shashlyk_cooking(request):
         order.is_grilling_shash = False
         order.save()
         data = {
-            'success': True
+            'success': True,
+            'message': "Шашлык из заказа отмечен как готовый!"
         }
     else:
         data = {
-            'success': False
+            'success': False,
+            'message': "Ошибка! Отсутствует ID заказа!"
         }
 
     return JsonResponse(data)
@@ -3457,6 +3536,26 @@ def finish_delivery_order(request) -> JsonResponse:
         }
         client.captureException()
         return JsonResponse(data)
+
+    order = None
+    try:
+        order = Order.objects.get(deliveryorder=delivery_order)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске заказа доставки!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+
+    order.close_time = datetime.datetime.now()
+    order.is_ready = True
+    order.save()
+    data = {
+        'success': False,
+        'message': 'Заказ доставки закрыт!'
+    }
+    return JsonResponse(data)
 
 
 @login_required()

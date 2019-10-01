@@ -9,7 +9,7 @@
                 in-progress-item
             {% endif %}
         {% endif %}" id="product_id_{{ content_item.item.id }}" onclick="
-                {% if content_item.item.finish_timestamp is not None %}
+                {% if content_item.item.finish_timestamp is not None or not selected_order.start_shawarma_cooking %}
 
                 {% else %}
                     {% if content_item.item.start_timestamp is not None %}
@@ -18,7 +18,8 @@
                         ItemToGrill({{ content_item.item.id }})
                     {% endif %}
                 {% endif %}">
-            №{{ content_item.number }} {{ content_item.item.menu_item.title }} <p style="margin: 0px"><span class="cook-item-comment">{{ content_item.item.note }}</span></p>
+            №{{ content_item.number }} {{ content_item.item.menu_item.title }} <p style="margin: 0px"><span
+                class="cook-item-comment">{{ content_item.item.note }}</span></p>
         </div>
     </div>
 {% empty %}
@@ -34,26 +35,35 @@
                 {% else %}
                     GrillAllContent({{ selected_order.id }})
                 {% endif %}">
-                {% if selected_order.is_grilling_shash %}
-                    Завершить всё
-                {% else %}
-                    Жарить всё
-                {% endif %}
+            {% if selected_order.is_grilling_shash %}
+                Завершить всё
+            {% else %}
+                Жарить всё
+            {% endif %}
         </div>
-     {% endif %}
+    {% endif %}
 {% elif staff_category.title == 'Cook' %}
     {% if order_content and not selected_order.content_completed %}
-        <div class="cook-complete-all-button" onclick="
-                {% if selected_order.is_grilling %}
-                    FinishAllContent({{ selected_order.id }})
+        <div class="cook-complete-all-button"
+                {% if not selected_order.start_shawarma_cooking %}
+             style="background-color: #6e6e6e"
                 {% else %}
-                    GrillAllContent({{ selected_order.id }})
-                {% endif %}">
+             onclick="
+                     {% if selected_order.is_grilling %}
+                         FinishAllContent({{ selected_order.id }})
+                     {% else %}
+                         GrillAllContent({{ selected_order.id }})
+                     {% endif %}"
+                {% endif %}>
+            {% if selected_order.start_shawarma_cooking %}
                 {% if selected_order.is_grilling %}
                     Завершить всё
                 {% else %}
                     Жарить всё
                 {% endif %}
+            {% else %}
+                Соберите шаурму!
+            {% endif %}
         </div>
-     {% endif %}
+    {% endif %}
 {% endif %}

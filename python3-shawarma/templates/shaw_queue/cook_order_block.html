@@ -4,8 +4,12 @@
             <div class="cook-order-number
                 {% if cooks_order.order.content_completed %}
                     ready
-                {% elif cooks_order.order.is_grilling %}
-                    grilling
+                {% else %}
+                    {% if cooks_order.order.start_shawarma_preparation and not cooks_order.order.start_shawarma_cooking %}
+                        start_preparation
+                    {% elif cooks_order.order.is_grilling %}
+                        grilling
+                    {% endif %}
                 {% endif %}"
                  onclick="SelectOrder({{ cooks_order.order.id }})">
                 № {{ cooks_order.display_number }}
@@ -13,8 +17,12 @@
             <div class="cook-order-cook-part
                 {% if cooks_order.order.content_completed %}
                     ready
-                {% elif cooks_order.order.is_grilling %}
-                    grilling
+                {% else %}
+                    {% if cooks_order.order.start_shawarma_preparation and not cooks_order.order.start_shawarma_cooking %}
+                        start_preparation
+                    {% elif cooks_order.order.is_grilling %}
+                        grilling
+                    {% endif %}
                 {% endif %}"
                  onclick="SelectOrder({{ cooks_order.order.id }})">
                 ({{ cooks_order.cook_content_count }})

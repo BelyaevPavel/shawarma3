@@ -900,6 +900,10 @@ div.grilling {
     background-color: #901515;
 }
 
+div.start_preparation {
+    background-color: #ffd01b;
+}
+
 div.stat-sect-container {
     float: left;
     width: 100%;

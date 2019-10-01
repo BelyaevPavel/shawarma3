@@ -646,6 +646,32 @@ function CheckCalls() {
 }
 
 
+function ChangeCook(DeliveryOrderPK) {
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('change-cook-url'),
+            data: {"delivery_order_pk": DeliveryOrderPK},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                    alert(data['message']);
+                }
+                else {
+                    alert(data['message']);
+                }
+            }
+        }
+    ).fail(function () {
+        console.log('Failed ' + aux);
+    });
+}
+
+
 function SelectCook(CookPK, DeliveryOrderPK) {
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
@@ -681,6 +707,32 @@ function StartShawarmaCooking(OrderPK) {
     $.ajax({
             type: 'POST',
             url: $('#delivery-urls').attr('start-shawarma-cooking-url'),
+            data: {"order_pk": OrderPK},
+            dataType: 'json',
+            success: function (data) {
+                if (data['success']) {
+                    alert(data['message']);
+                }
+                else {
+                    alert(data['message']);
+                }
+            }
+        }
+    ).fail(function () {
+        console.log('Failed ' + aux);
+    });
+}
+
+
+function StartShawarmaPreparation(OrderPK) {
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+            type: 'POST',
+            url: $('#delivery-urls').attr('start-shawarma-preparation-url'),
             data: {"order_pk": OrderPK},
             dataType: 'json',
             success: function (data) {

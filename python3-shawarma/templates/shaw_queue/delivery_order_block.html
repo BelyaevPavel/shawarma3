@@ -28,7 +28,11 @@
                             disabled
                             {% endif %}
                             onclick="CheckDeliveryOrder({{ delivery_order.order.pk }})">
+                    {% if not delivery_order.order.delivery  %}
+                        Отдать
+                    {% else %}
                         Отправить
+                    {% endif %}
                     </button>
                 {% endif %}
             {% else %}
@@ -39,21 +43,38 @@
                     <a onclick="PrintDeliveryOrder({{ delivery_order.order.id }})">
                         Печать
                     </a>
-                    <p>Повара:</p>
-                    {% for available_cook in delivery_order.available_cooks %}
-                        <a onclick="SelectCook({{ available_cook.pk }}, {{ delivery_order.order.pk }})">
-                            {{ available_cook }}
-                        </a>
-                    {% empty %}
-                        Нет доступных поваров.
-                    {% endfor %}
-                    {% if delivery_order.order.order.with_shawarma %}
-                        <p>Шаурма:</p>
-                        <a onclick="StartShawarmaCooking({{ delivery_order.order.order.pk }})">
-                            Начать готовить шаурму
-                        </a>
+                    {% if delivery_order.order.order.prepared_by %}
+                        {% if not delivery_order.order.order.content_completed %}
+                            <a onclick="ChangeCook({{ delivery_order.order.pk }})"
+                               title="Отвязать заказ от текущего повара">
+                                Сменить повара
+                            </a>
+                            {% if delivery_order.order.order.with_shawarma %}
+                                {% if delivery_order.order.order.start_shawarma_preparation %}
+                                    <p>Шаурма:</p>
+                                    <a onclick="StartShawarmaCooking({{ delivery_order.order.order.pk }})">
+                                        Начать готовить шаурму
+                                    </a>
+                                {% else %}
+                                    <p>Шаурма:</p>
+                                    <a onclick="StartShawarmaPreparation({{ delivery_order.order.order.pk }})">
+                                        Начать собирать шаурму
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    {% else %}
+                        <p>Повара:</p>
+                        {% for available_cook in delivery_order.available_cooks %}
+                            <a onclick="SelectCook({{ available_cook.pk }}, {{ delivery_order.order.pk }})"
+                               title="Назначить заказ повару {{ available_cook }}">
+                                {{ available_cook }}
+                            </a>
+                        {% empty %}
+                            Нет доступных поваров.
+                        {% endfor %}
                     {% endif %}
-                    {% if delivery_order.order.order.with_shashlyk %}
+                    {% if delivery_order.order.order.with_shashlyk and not delivery_order.order.order.shashlyk_completed %}
                         {% if not delivery_order.order.order.is_grilling_shash %}
                             <p>Шашлык:</p>
                             <a onclick="StartShashlykCooking({{ delivery_order.order.order.pk }})">
