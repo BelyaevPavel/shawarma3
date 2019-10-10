@@ -789,6 +789,7 @@ input.item-note {
 
 .table-item-title {
     font-size: 16px;
+    font-weight: normal;
 }
 
 .quantity-multiplyer {

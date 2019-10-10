@@ -824,6 +824,7 @@ def welcomer(request):
 @login_required()
 def menu(request):
     delivery_mode = json.loads(request.GET.get('delivery_mode', 'false'))
+    order_id = int(request.GET.get('order_id', -1))
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
@@ -867,10 +868,26 @@ def menu(request):
         return HttpResponse(template.render(context, request))
     else:
         context['is_modal'] = True
+        if order_id != -1:
+            context['delivery_mode'] = False
+            context['order_id'] = order_id
         data = {
             'success': True,
             'html': template.render(context, request)
         }
+        if order_id != -1:
+            order = Order.objects.get(id=order_id)
+            content_selection = OrderContent.objects.filter(order=order).values('menu_item__id', 'menu_item__title',
+                                                                                'menu_item__price', 'note').annotate(
+                quantity_sum=Sum('quantity'))
+            order_content = [{'id': content_item['menu_item__id'],
+                              'title': content_item['menu_item__title'],
+                              'price': content_item['menu_item__price'],
+                              'quantity': content_item['quantity_sum'],
+                              'note': content_item['note']
+                              } for content_item in content_selection]
+            data['order_content'] = order_content
+
         return JsonResponse(data)
 
 
@@ -1938,10 +1955,11 @@ def c_i_a(request):
                                             is_canceled=False, close_time__isnull=True).filter(
             Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         try:
-            new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False, open_time__contains=datetime.date.today(),
+            new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+                                             open_time__contains=datetime.date.today(),
                                              is_canceled=False, content_completed=False, is_grilling=False,
                                              close_time__isnull=True).filter(
-            Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
+                Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         except:
             data = {
                 'success': False,
@@ -3213,6 +3231,7 @@ def cooks_content_info_ajax(request):
 @login_required()
 @permission_required('shaw_queue.add_order')
 def make_order(request):
+    order_id = request.POST.get('order_id', None)
     delivery_order_pk = request.POST.get('delivery_order_pk', None)
     file = open('log/cook_choose.log', 'a')
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
@@ -3286,8 +3305,14 @@ def make_order(request):
             is_paid = True
 
     try:
-        order = Order(open_time=datetime.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
-                      paid_with_cash=paid_with_cash, status_1c=0)
+        if order_id:
+            order = Order.objects.get(id=order_id)
+            OrderContent.objects.filter(order=order).delete()
+            order.is_paid = is_paid
+            order.paid_with_cash = paid_with_cash
+        else:
+            order = Order(open_time=datetime.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
+                          paid_with_cash=paid_with_cash, status_1c=0)
     except:
         data = {
             'success': False,
@@ -3457,8 +3482,11 @@ def make_order(request):
         else:
             data = send_order_to_1c(order, False)
             if not data["success"]:
-                print("Deleting order.")
-                order.delete()
+                if order_id:
+                    order.is_paid = False
+                else:
+                    print("Deleting order.")
+                    order.delete()
 
         print("Request sent.")
         if data["success"]:

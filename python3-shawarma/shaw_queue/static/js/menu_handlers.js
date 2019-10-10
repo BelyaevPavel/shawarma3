@@ -82,6 +82,9 @@ function SendOrder() {
                 "payment": $('[name=payment_choose]:checked').val(),
                 "cook_choose": $('[name=cook_choose]:checked').val()
             };
+            var order_id = $('#order_id').val();
+            if (order_id)
+                order_data["order_id"]=order_id;
 
             $('.subm').prop('disabled', true);
             $.ajaxSetup({
@@ -438,9 +441,9 @@ function FindItem(id, note) {
 // onclick="EditNote(' + currOrder[i]['id'] + ',\'' + currOrder[i]['note'] + '\')"
 // <div id="dropdown-list-container"></div>
 function DrawOrderTable() {
-    $('table.currentOrderTable tbody tr').remove();
+    $('#menu-order-display tbody tr').remove();
     for (var i = 0; i < currOrder.length; i++) {
-        $('table.currentOrderTable').append(
+        $('#menu-order-display').append(
             // '<tr class="currentOrderRow" index="' + i + '"><td class="currentOrderTitleCell" onclick="ShowModalEdit(' + i + ')">' +
             // '<div>' + currOrder[i]['title'] + '</div><div class="noteText">' + currOrder[i]['note'] + '</div>' +
             // '</td><td class="currentOrderActionCell">' + 'x' + currOrder[i]['quantity'] +

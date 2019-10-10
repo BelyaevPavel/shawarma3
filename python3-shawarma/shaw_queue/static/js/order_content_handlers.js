@@ -5,55 +5,82 @@ function ReadyOrder(id) {
     var url = $('#urls').attr('data-ready-url');
     //var confirmation = confirm("Заказ готов?");
     //if (confirmation) {
-        console.log(id + ' ' + url);
-        $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+    console.log(id + ' ' + url);
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: {
+            'id': id,
+            'servery_choose': $('[name=servery_choose]:checked').val()
+        },
+        dataType: 'json',
+        success: function (data) {
+            location.href = $('#current-queue').parent().attr('href');
+            //if (data['success']) {
+            //    alert('Success!');
+            //}
+        }
+    });
+    //}
+}
+function EditOrder(id) {
+    var url = $('#urls').attr('edit-order-url');
+    //var confirmation = confirm("Заказ готов?");
+    //if (confirmation) {
+    console.log(id + ' ' + url);
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+        type: 'GET',
+        url: url,
+        data: {
+            'order_id': id,
+            'delivery_mode': true
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data['success']) {
+                $('#modal-menu').html(data['html']);
+                    $('#modal-menu').css("display", "block");
+                currOrder = data['order_content'];
+                CalculateTotal();
+                DrawOrderTable();
             }
-        });
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: {
-                'id': id,
-                'servery_choose': $('[name=servery_choose]:checked').val()
-            },
-            dataType: 'json',
-            success: function (data) {
-                location.href = $('#current-queue').parent().attr('href');
-                //if (data['success']) {
-                //    alert('Success!');
-                //}
-            }
-        });
+        }
+    });
     //}
 }
 
 function PayOrderCash(id) {
     var url = $('#urls').attr('data-pay-url');
     var quantity_inputs_values = $('.quantityInput').map(
-        function()
-        {
+        function () {
             return parseFloat((this.value).replace(/,/g, '.'));
         }).get();
     var quantity_inputs_ids = $('.quantityInput').map(
-        function()
-        {
+        function () {
             return $(this).attr('item-id');
         }).get();
     var prices = $('.quantityInput').map(
-        function()
-        {
+        function () {
             return parseFloat($(this).attr('cost'));
         }).get();
     var total_cost = 0;
-    for(var i = 0; i<quantity_inputs_values.length; i++){
-        total_cost +=prices[i]*quantity_inputs_values[i];
+    for (var i = 0; i < quantity_inputs_values.length; i++) {
+        total_cost += prices[i] * quantity_inputs_values[i];
     }
     var confirmation = false;
     if (total_cost > 5000)
         confirmation = confirm("Сумма заказа превышает 5000 р. Вы уверены в корректности ввода?");
-    else   
+    else
         confirmation = confirm("Оплатить заказ?");
     if (confirmation) {
         console.log(id + ' ' + url);
@@ -74,13 +101,11 @@ function PayOrderCash(id) {
             },
             dataType: 'json',
             success: function (data) {
-                if (data['success'])
-                {
+                if (data['success']) {
                     alert("К оплате: " + data['total']);
                     location.href = $('#current-queue').parent().attr('href');
                 }
-                else
-                {
+                else {
                     alert(data['message']);
                 }
                 //if (data['success']) {
@@ -94,13 +119,11 @@ function PayOrderCash(id) {
 function PayOrderCard(id) {
     var url = $('#urls').attr('data-pay-url');
     var quantity_inputs_values = $('.quantityInput').map(
-        function()
-        {
+        function () {
             return parseFloat((this.value).replace(/,/g, '.'));
         }).get();
     var quantity_inputs_ids = $('.quantityInput').map(
-        function()
-        {
+        function () {
             return $(this).attr('item-id');
         }).get();
     var confirmation = confirm("Заказ оплачен?");
@@ -133,7 +156,7 @@ function PayOrderCard(id) {
 }
 
 function PrintOrder(order_id) {
-    $.get('/shaw_queue/order/print/'+order_id+'/');
+    $.get('/shaw_queue/order/print/' + order_id + '/');
 }
 
 function CancelItem(id) {
