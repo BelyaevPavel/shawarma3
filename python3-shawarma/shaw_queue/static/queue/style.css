@@ -519,11 +519,11 @@ div.menu-header-div {
 }
 
 div.menu-header-buttons {
-    min-width: 95px;
+    min-width: 50px;
     max-width: 33%;
     float: left;
-    padding-left: 1px;
-    padding-right: 1px;
+    padding-left: 5px;
+    padding-right: 5px;
     border-left: solid 1px #D8D8D8;
     border-right: solid 1px #D8D8D8;
     border-bottom: solid 1px #D8D8D8;
