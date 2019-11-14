@@ -266,7 +266,7 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
             if result['success']:
                 try:
                     order_last_daily_number = DeliveryOrder.objects.filter(
-                        obtain_timepoint__contains=timezone.datetime.today(),
+                        obtain_timepoint__contains=timezone.datetime.today().date(),
                         order__servery__service_point=result['service_point']).aggregate(Max('daily_number'))
                 except EmptyResultSet:
                     data = {
@@ -2522,13 +2522,10 @@ def delivery_interface(request):
         {
             'order': delivery_order,
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) < utc.localize(
-                datetime.datetime.now() - datetime.timedelta(
-                    minutes=5)) and delivery_order.prep_start_timepoint is None else False,
+                delivery_order.delivery_duration + delivery_order.preparation_duration)- datetime.timedelta(
+                minutes=5) < timezone.now()  and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) < utc.localize(
-                datetime.datetime.now())
-                                     and delivery_order.prep_start_timepoint is None else False,
+            delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point),
             'available_shashlychniks': Staff.objects.filter(available=True,
@@ -2564,17 +2561,27 @@ def delivery_workspace_update(request):
         {
             'order': delivery_order,
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) < utc.localize(
-                datetime.datetime.now() - datetime.timedelta(
-                    minutes=5)) and delivery_order.prep_start_timepoint is None else False,
+            delivery_order.delivery_duration + delivery_order.preparation_duration)- datetime.timedelta(
+                minutes=5) < timezone.now()  and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) < utc.localize(
-                datetime.datetime.now())
-                                     and delivery_order.prep_start_timepoint is None else False,
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point)
         } for delivery_order in delivery_orders
         ]
+
+    for delivery_order in delivery_orders:
+        diction = {
+            'order': delivery_order,
+            'enlight_warning': True if delivery_order.delivered_timepoint - (
+                delivery_order.delivery_duration + delivery_order.preparation_duration)- datetime.timedelta(
+                minutes=5) < timezone.now()  and delivery_order.prep_start_timepoint is None else False,
+            'enlight_alert': True if delivery_order.delivered_timepoint - (
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now()
+                                     and delivery_order.prep_start_timepoint is None else False,
+            'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                                    service_point=delivery_order.order.servery.service_point)
+        }
     context = {
         'delivery_orders': processed_d_orders
     }
@@ -2914,14 +2921,14 @@ def select_cook(request):
     except:
         data = {
             'success': False,
-            'message': 'Что-то пошло не так при назначении заказа №{} повару {}!'.format(order.daily_number, cook)
+            'message': 'Что-то пошло не так при назначении заказа №{} повару {}!'.format(order.daily_number%100, cook)
         }
         client.captureException()
         return JsonResponse(data)
 
     data = {
         'success': True,
-        'message': 'Заказ №{} назначен в готовку повару {}.'.format(order.daily_number, cook)
+        'message': 'Заказ №{} назначен в готовку повару {}.'.format(order.daily_number%100, cook)
     }
 
     return JsonResponse(data=data)
@@ -2966,14 +2973,14 @@ def change_cook(request):
     except:
         data = {
             'success': False,
-            'message': 'Что-то пошло не так при смене повара!'.format(order.daily_number, cook)
+            'message': 'Что-то пошло не так при смене повара!'.format(order.daily_number%100, cook)
         }
         client.captureException()
         return JsonResponse(data)
 
     data = {
         'success': True,
-        'message': 'Заказ №{} готов к смене повара.'.format(order.daily_number, cook)
+        'message': 'Заказ №{} готов к смене повара.'.format(order.daily_number%100, cook)
     }
 
     return JsonResponse(data=data)
@@ -3322,43 +3329,39 @@ def make_order(request):
         return JsonResponse(data)
 
     # cooks = Staff.objects.filter(user__last_login__contains=datetime.date.today(), staff_category__title__iexact='Cook')
-    try:
-        if result['success']:
-            cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
-                                         service_point=result['service_point'])
-            cooks = sample(list(cooks), len(cooks))
-        else:
-            return JsonResponse(result)
-    except:
-        data = {
-            'success': False,
-            'message': 'Something wrong happened while getting set of cooks!'
-        }
-        client.captureException()
-        return JsonResponse(data)
-    # reordering_flag = False
-    # while
-    # cooks_order_content = OrderContent.objects.filter(order__prepared_by=cooks,
-    #                                                   order__open_time__contains=datetime.date.today(),
-    #                                                   order__is_canceled=False, order__close_time__isnull=True)
-
     data = {
         "daily_number": order.daily_number,
         "display_number": order.daily_number % 100
     }
-
-    if len(cooks) == 0:
-        data = {
-            'success': False,
-            'message': 'Нет доступных поваров!'
-        }
-        return JsonResponse(data)
 
     has_cook_content = False
     for item in content:
         menu_item = Menu.objects.get(id=item['id'])
         if menu_item.can_be_prepared_by.title == 'Cook':
             has_cook_content = True
+
+    if has_cook_content and cook_choose != 'delivery':
+        try:
+            if result['success']:
+                cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                             service_point=result['service_point'])
+                cooks = sample(list(cooks), len(cooks))
+            else:
+                return JsonResponse(result)
+        except:
+            data = {
+                'success': False,
+                'message': 'Something wrong happened while getting set of cooks!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        if len(cooks) == 0:
+            data = {
+                'success': False,
+                'message': 'Нет доступных поваров!'
+            }
+            return JsonResponse(data)
 
     if has_cook_content and cook_choose != 'delivery':
         if cook_choose == 'auto':
@@ -3609,7 +3612,7 @@ def deliver_delivery_order(request) -> JsonResponse:
     delivery_order.save()
     data = {
         'success': True,
-        'message': 'Заказ готов к отправке!'
+        'message': 'Заказ готов к отправке!' if delivery_order.is_ready else 'Заказ не готов к отправке!'
     }
 
     return JsonResponse(data)

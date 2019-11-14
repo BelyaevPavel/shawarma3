@@ -19,6 +19,13 @@
                 </div>
             </a>
         {% endif %}
+        {% if staff_category.title == 'Operator' %}
+            <a href="{% url 'delivery_interface' %}">
+                <div class="header-buttons" id="current-queue">
+                        Доставка
+                </div>
+            </a>
+        {% endif %}
         {% if staff_category.title == 'Cashier' %}
             <a href="{% url 'cooks_content_info' %}">
                 <div class="header-buttons" id="cooks-content-info">

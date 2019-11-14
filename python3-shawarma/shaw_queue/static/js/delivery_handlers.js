@@ -312,6 +312,10 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                         }
                     });
 
+                    $('#id_address').on('click',function () {
+                        $(this).select();
+                    });
+
                     OverrideDeliveryOrderSubmition();
                     CheckOrderIdPresence();
                 }
@@ -899,6 +903,7 @@ function DeliverDeliveryOrder(DeliveryOrderPK) {
                 else {
                     alert(data['message']);
                 }
+                location.reload();
             }
         }
     ).fail(function () {
