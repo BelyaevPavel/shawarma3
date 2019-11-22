@@ -5,21 +5,21 @@
 
 <div class="header-div-container fixed">
     <div class="header-div">
-        {% if staff_category.title == 'Cashier' %}
+        {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryOperator' %}
             <a href="{% url 'menu' %}">
                 <div class="header-buttons" id="menu">
                         Меню
                 </div>
             </a>
         {% endif %}
-        {% if staff_category.title == 'Cashier' or staff_category.title == 'Operator' %}
+        {% if staff_category.title == 'Cashier' or staff_category.title == 'Operator' or staff_category.title == 'DeliveryOperator' %}
             <a href="{% url 'current_queue' %}">
                 <div class="header-buttons" id="current-queue">
                         Очередь заказов
                 </div>
             </a>
         {% endif %}
-        {% if staff_category.title == 'Operator' %}
+        {% if staff_category.title == 'DeliveryOperator' %}
             <a href="{% url 'delivery_interface' %}">
                 <div class="header-buttons" id="current-queue">
                         Доставка
