@@ -86,7 +86,7 @@
         Места выдачи внесены.
     {% endfor %}
     <button onclick="ReadyOrder({{ order_info.id }})" {% if not ready %}disabled{% endif %}>Заказ готов</button>
-    {% if staff_category.title == 'Cashier' %}
+    {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryOperator' %}
         <button onclick="PayOrderCash({{ order_info.id }})" {% if order_info.is_paid %}disabled{% endif %}>Оплатить
             Наличными
         </button>
