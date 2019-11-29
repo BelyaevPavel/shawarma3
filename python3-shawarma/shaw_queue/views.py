@@ -2521,6 +2521,7 @@ def delivery_interface(request):
     processed_d_orders = [
         {
             'order': delivery_order,
+            'show_date': delivery_order.delivered_timepoint.date()==delivery_order.obtain_timepoint.date(),
             'enlight_warning': True if delivery_order.delivered_timepoint - (
                 delivery_order.delivery_duration + delivery_order.preparation_duration)- datetime.timedelta(
                 minutes=5) < timezone.now()  and delivery_order.prep_start_timepoint is None else False,

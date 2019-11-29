@@ -1451,7 +1451,8 @@ div.filter-container {
     border: solid 1px #D8D8D8;
     background-color: white;
     width: 180px;
-    height: 140px;
+    height: -moz-fit-content;
+    height: fit-content;
 }
 
 .delivery-block-header {
