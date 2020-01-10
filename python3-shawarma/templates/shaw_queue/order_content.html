@@ -9,7 +9,8 @@
            edit-order-url="{% url 'menu' %}" data-cancel-order-url="{% url 'cancel_order' %}"
            data-finish-item-url="{% url 'finish_supplement' %}"
            data-finish-all-content-url="{% url 'finish_all_content' %}" data-pay-url="{% url 'pay_order' %}"
-           data-grill-all-content-url="{% url 'grill_all_content' %}">
+           data-grill-all-content-url="{% url 'grill_all_content' %}"
+    data-update-quantity-url="{% url 'update_item_quantity' %}">
     <div class="modal" id="modal-menu" {% comment %}onclick="HideMenu()"{% endcomment %}>
     </div>
     <table class="currentOrderTable">
@@ -49,14 +50,14 @@
                 <div class="order-item-maker {% if order_item.finish_timestamp %}ready
                 {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
-                    {{ order_item.staff_maker }}
+                    {{ order_item.staff_maker.user.first_name}} {{ order_item.staff_maker.user.last_name }}
                 </div>
                 <div class="order-item-maker {% if order_item.finish_timestamp %}ready
                 {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
-                    <input class="quantityInput" type="text" value="{{ order_item.quantity }}"
+                    <input class="quantityInput" {% comment %}type="number" required step="any" min="0.001" max="100"{% endcomment %} value="{{ order_item.quantity|floatformat:3 }}"
                            cost="{{ order_item.menu_item.price }}"
-                           item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %}>
+                           item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %} onblur="UpdateItemQuantity(event)">
                 </div>
                 <div class="order-item-actions">
                     {% if order_item.menu_item.can_be_prepared_by.title == 'Operator' or order_item.menu_item.can_be_prepared_by.title == staff_category.title %}
@@ -104,9 +105,16 @@
         {% endif %}
         {% if staff_category.title == 'Operator' and order_info.with_shashlyk and order_info.is_grilling_shash %}
             <button onclick="FinishAllContent({{ order_info.id }})">
-                Закончить шашлык
+                Закончить всё
+            </button>
+        {% endif %}
+    {% else %}
+        {% if staff_category.title == 'Operator' and not order_info.with_shashlyk and not order_info.supplement_completed %}
+            <button onclick="FinishAllContent({{ order_info.id }})">
+                Закончить всё
             </button>
         {% endif %}
     {% endif %}
     <button onclick="PrintOrder({{ order_info.id }})">Печать</button>
+    <button onclick="CalculateCurrentCost()">Рассчитать текующую стоимость</button>
 {% endblock %}

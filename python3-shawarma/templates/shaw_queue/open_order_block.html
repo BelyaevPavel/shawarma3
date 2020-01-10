@@ -43,6 +43,12 @@
                     {% endif %}
                 {% endif %}
                 {% if staff_category.title == 'Cashier' %}
+                    <button {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
+                                disabled
+                            {% endif %}
+                            onclick="CloseOrder({{ open_order.order.id }})">
+                        Закрыть
+                    </button>
                     <button onclick="CancelOrder({{ open_order.order.id }})">
                         Отменить
                     </button>

@@ -2521,12 +2521,12 @@ def delivery_interface(request):
     processed_d_orders = [
         {
             'order': delivery_order,
-            'show_date': delivery_order.delivered_timepoint.date()==delivery_order.obtain_timepoint.date(),
+            'show_date': delivery_order.delivered_timepoint.date() == delivery_order.obtain_timepoint.date(),
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration)- datetime.timedelta(
-                minutes=5) < timezone.now()  and delivery_order.prep_start_timepoint is None else False,
+                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-            delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point),
             'available_shashlychniks': Staff.objects.filter(available=True,
@@ -2562,8 +2562,8 @@ def delivery_workspace_update(request):
         {
             'order': delivery_order,
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-            delivery_order.delivery_duration + delivery_order.preparation_duration)- datetime.timedelta(
-                minutes=5) < timezone.now()  and delivery_order.prep_start_timepoint is None else False,
+                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
                 delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
@@ -2575,8 +2575,8 @@ def delivery_workspace_update(request):
         diction = {
             'order': delivery_order,
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration)- datetime.timedelta(
-                minutes=5) < timezone.now()  and delivery_order.prep_start_timepoint is None else False,
+                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
                 delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now()
                                      and delivery_order.prep_start_timepoint is None else False,
@@ -2922,14 +2922,14 @@ def select_cook(request):
     except:
         data = {
             'success': False,
-            'message': 'Что-то пошло не так при назначении заказа №{} повару {}!'.format(order.daily_number%100, cook)
+            'message': 'Что-то пошло не так при назначении заказа №{} повару {}!'.format(order.daily_number % 100, cook)
         }
         client.captureException()
         return JsonResponse(data)
 
     data = {
         'success': True,
-        'message': 'Заказ №{} назначен в готовку повару {}.'.format(order.daily_number%100, cook)
+        'message': 'Заказ №{} назначен в готовку повару {}.'.format(order.daily_number % 100, cook)
     }
 
     return JsonResponse(data=data)
@@ -2974,14 +2974,14 @@ def change_cook(request):
     except:
         data = {
             'success': False,
-            'message': 'Что-то пошло не так при смене повара!'.format(order.daily_number%100, cook)
+            'message': 'Что-то пошло не так при смене повара!'.format(order.daily_number % 100, cook)
         }
         client.captureException()
         return JsonResponse(data)
 
     data = {
         'success': True,
-        'message': 'Заказ №{} готов к смене повара.'.format(order.daily_number%100, cook)
+        'message': 'Заказ №{} готов к смене повара.'.format(order.daily_number % 100, cook)
     }
 
     return JsonResponse(data=data)
@@ -3500,6 +3500,8 @@ def make_order(request):
             data["daily_number"] = order.daily_number % 100
             data["guid"] = order.guid_1c
             data["pk"] = order.pk
+            order.is_paid = True
+            order.save()
     else:
         data["success"] = True
         data["total"] = order.total
@@ -4078,7 +4080,14 @@ def finish_cooking(request):
 
 # @login_required()
 # @permission_required('shaw_queue.can_cook')
+
 def finish_all_content(request):
+    """
+    Marks all order items, suitable to current user's staff category, as prepared. If user is an operator,
+    then shashlyk items will be also marked as prepared.
+    :param request:
+    :return:
+    """
     user = request.user
     staff = Staff.objects.get(user=user)
     order_id = request.POST.get('id', None)
@@ -4088,21 +4097,25 @@ def finish_all_content(request):
                                                             menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
         cook_products = OrderContent.objects.filter(order=order,
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
+        operator_products = OrderContent.objects.filter(order=order,
+                                                        menu_item__can_be_prepared_by__title__iexact='Operator')
         if staff.staff_category.title == 'Operator':
-            products = shashlychnik_products
+            products = OrderContent.objects.filter(Q(menu_item__can_be_prepared_by__title__iexact='Shashlychnik') | Q(
+                menu_item__can_be_prepared_by__title__iexact='Operator'), order=order)
         else:
             products = OrderContent.objects.filter(order=order,
                                                    menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
         for product in products:
             product.is_in_grill = False
-            product.finish_timestamp = datetime.datetime.now()
+            if product.finish_timestamp is None:
+                product.finish_timestamp = datetime.datetime.now()
             if product.start_timestamp is None:
                 product.start_timestamp = datetime.datetime.now()
             if product.staff_maker is None:
                 product.staff_maker = Staff.objects.get(user=request.user)
             product.save()
 
-        # Check if all shashlyk is frying.
+        # Check if all shashlyk is finished.
         shashlyk_is_finished = True
         for product in shashlychnik_products:
             if product.finish_timestamp is None:
@@ -4110,13 +4123,21 @@ def finish_all_content(request):
 
         order.shashlyk_completed = shashlyk_is_finished
 
-        # Check if all shawarma is frying.
+        # Check if all shawarma is finished.
         content_is_finished = True
         for product in cook_products:
             if product.finish_timestamp is None:
                 content_is_finished = False
 
         order.content_completed = content_is_finished
+
+        # Check if all supplement is finished.
+        supplement_is_finished = True
+        for product in operator_products:
+            if product.finish_timestamp is None:
+                supplement_is_finished = False
+
+        order.supplement_completed=supplement_is_finished
         # print "saving"
         order.save()
         data = {
@@ -4200,6 +4221,29 @@ def finish_supplement(request):
         if flag:
             product.order.supplement_completed = True
             product.order.save()
+
+        data = {
+            'success': True,
+            'product_id': product_id,
+            'staff_maker': '{} {}'.format(request.user.first_name, request.user.last_name)
+        }
+    else:
+        data = {
+            'success': False,
+            'product_id': product_id,
+            'staff_maker': '{} {}'.format(request.user.first_name, request.user.last_name)
+        }
+
+    return JsonResponse(data)
+
+@login_required()
+def update_item_quantity(request):
+    product_id = json.loads(request.POST.get('item_id', None))
+    new_quantity = json.loads(request.POST.get('new_quantity', None))
+    if product_id and new_quantity > 0:
+        product = OrderContent.objects.get(id=product_id)
+        product.quantity = new_quantity
+        product.save()
 
         data = {
             'success': True,
@@ -4308,6 +4352,8 @@ def pay_order(request):
         try:
             content = OrderContent.objects.filter(order=order, is_canceled=False)
         except:
+            order.is_paid = False
+            order.save()
             data = {
                 'success': False,
                 'message': 'Что-то пошло не так при поиске продуктов!'
@@ -4337,12 +4383,23 @@ def pay_order(request):
         print("Sending request to " + order.servery.ip_address)
         if FORCE_TO_LISTNER:
             data = send_order_to_listner(order)
+            if not data["success"]:
+                print("Payment canceled.")
+                order.is_paid = False
+                order.save()
+            else:
+                order.is_paid = True
+                order.save()
         else:
             data = send_order_to_1c(order, False)
             if not data["success"]:
                 print("Payment canceled.")
                 order.is_paid = False
                 order.save()
+            else:
+                order.is_paid = True
+                order.save()
+
         data['total'] = order.total - order.discount
         print("Request sent.")
 

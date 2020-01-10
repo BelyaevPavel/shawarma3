@@ -56,6 +56,7 @@ urlpatterns = [
     url(r'^ajax/grill_all_content', views.grill_all_content, name="grill_all_content"),
     url(r'^ajax/finish_all_content', views.finish_all_content, name="finish_all_content"),
     url(r'^ajax/finish_supplement', views.finish_supplement, name="finish_supplement"),
+    url(r'^ajax/update_item_quantity', views.update_item_quantity, name="update_item_quantity"),
     url(r'^ajax/current_queue', views.current_queue_ajax, name="current_queue_ajax"),
     url(r'^ajax/statistics', views.statistic_page_ajax, name="update_statistics"),
     url(r'^ajax/opinion_statistics', views.opinion_statistics_ajax, name="update_opinion_statistics"),

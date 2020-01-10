@@ -49,7 +49,7 @@ function EditOrder(id) {
         success: function (data) {
             if (data['success']) {
                 $('#modal-menu').html(data['html']);
-                    $('#modal-menu').css("display", "block");
+                $('#modal-menu').css("display", "block");
                 currOrder = data['order_content'];
                 CalculateTotal();
                 DrawOrderTable();
@@ -114,6 +114,54 @@ function PayOrderCash(id) {
             }
         });
     }
+}
+
+function CalculateCurrentCost() {
+    // var message = ($.map($('input.quantityInput'), function (elem, i) {
+    //     return parseFloat(elem.value)*parseFloat(elem.attr('cost')) || 0;
+    // }).reduce(function (a, b) {
+    //     return a + b;
+    // }, 0));
+    var message = 0;
+    $('input.quantityInput').each(function () {
+        console.log(message + " " + parseFloat($(this).val().replace(/,/g, '.')) + " " + parseFloat($(this).attr('cost')));
+        message = message + parseFloat($(this).val().replace(/,/g, '.')) * parseFloat($(this).attr('cost'));
+    });
+    message = parseFloat(message).toFixed(2);
+    alert(message + " р.");
+}
+
+function UpdateItemQuantity(event) {
+    var url = $('#urls').attr('data-update-quantity-url');
+    var quantity_inputs_values = parseFloat((event.target.value).replace(/,/g, '.'));
+    var quantity_inputs_ids = $(event.target).attr('item-id');
+
+    console.log(quantity_inputs_ids + " " + quantity_inputs_values + " " + $(event.target).is(':valid'));
+    if ($(event.target).is(':valid')) {
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+            }
+        });
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: {
+                'new_quantity': JSON.stringify(quantity_inputs_values),
+                'item_id': JSON.stringify(quantity_inputs_ids),
+            },
+            dataType: 'json',
+            success: function (data) {
+                //if (data['success']) {
+                //    alert('Success!');
+                //}
+            }
+        });
+    }
+    else {
+        alert('Количество введено неверно!');
+    }
+
 }
 
 function PayOrderCard(id) {
