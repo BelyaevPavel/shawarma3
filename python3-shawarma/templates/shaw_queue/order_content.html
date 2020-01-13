@@ -61,18 +61,23 @@
                     <input class="quantityInput" {% comment %}type="number" required step="any" min="0.001" max="100"{% endcomment %}
                            value="{{ order_item.quantity|floatformat:3 }}"
                            cost="{{ order_item.menu_item.price }}"
-                           item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %}
+                           item-id="{{ order_item.id }}"
+                           {% if order_info.is_paid or order_item.finish_timestamp %}disabled{% endif %}
                            onblur="UpdateItemQuantity(event)">
                 </div>
                 <div class="order-item-actions">
-                    {% if order_item.menu_item.can_be_prepared_by.title == 'Operator' or order_item.menu_item.can_be_prepared_by.title == staff_category.title %}
-                        <button onclick="FinishCooking({{ order_item.id }})">
-                            Закончить
+                    {% if not order_info.is_paid and not order_item.finish_timestamp %}
+                        {% if order_item.menu_item.can_be_prepared_by.title == 'Operator' or order_item.menu_item.can_be_prepared_by.title == staff_category.title %}
+                            <button onclick="FinishCooking({{ order_item.id }})">
+                                Закончить
+                            </button>
+                        {% endif %}
+                        <button onclick="CancelItem({{ order_item.id }})">
+                            Отменить
                         </button>
+                    {% else %}
+                        Оплачено, или закончено.
                     {% endif %}
-                    <button onclick="CancelItem({{ order_item.id }})">
-                        Отменить
-                    </button>
                 </div>
             </div>
         {% endfor %}
@@ -103,20 +108,21 @@
         </button>
     {% endif %}
     {% if not order_info.shashlyk_completed %}
-        {% if staff_category.title == 'Operator' or staff_category.title == 'DeliveryOperator' %}
-            {% if order_info.with_shashlyk and not order_info.is_grilling_shash %}
-                <button onclick="GrillAllContent({{ order_info.id }})">
-                    Жарить шашлык
-                </button>
-            {% endif %}
-            {% if order_info.with_shashlyk and order_info.is_grilling_shash %}
-                <button onclick="FinishAllContent({{ order_info.id }})">
-                    Закончить всё
-                </button>
-            {% endif %}
+        {#        {% if staff_category.title == 'Operator' or staff_category.title == 'DeliveryOperator' %}#}
+        {% if order_info.with_shashlyk and not order_info.is_grilling_shash %}
+            <button onclick="GrillAllContent({{ order_info.id }})">
+                Жарить шашлык
+            </button>
         {% endif %}
+        {% if order_info.with_shashlyk and order_info.is_grilling_shash %}
+            <button onclick="FinishAllContent({{ order_info.id }})">
+                Закончить всё
+            </button>
+        {% endif %}
+        {#        {% endif %}#}
     {% else %}
-        {% if staff_category.title == 'Operator' and not order_info.with_shashlyk and not order_info.supplement_completed %}
+        {#        {% if staff_category.title == 'Operator' and not order_info.with_shashlyk and not order_info.supplement_completed %}#}
+        {% if not order_info.with_shashlyk and not order_info.supplement_completed %}
             <button onclick="FinishAllContent({{ order_info.id }})">
                 Закончить всё
             </button>

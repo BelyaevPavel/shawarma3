@@ -4099,7 +4099,7 @@ def finish_all_content(request):
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
         operator_products = OrderContent.objects.filter(order=order,
                                                         menu_item__can_be_prepared_by__title__iexact='Operator')
-        if staff.staff_category.title == 'Operator':
+        if staff.staff_category.title == 'Operator' or staff.staff_category.title == 'Cashier' or staff.staff_category.title == 'DeliveryOperator':
             products = OrderContent.objects.filter(Q(menu_item__can_be_prepared_by__title__iexact='Shashlychnik') | Q(
                 menu_item__can_be_prepared_by__title__iexact='Operator'), order=order)
         else:
