@@ -148,13 +148,16 @@ function UpdateItemQuantity(event) {
             url: url,
             data: {
                 'new_quantity': JSON.stringify(quantity_inputs_values),
-                'item_id': JSON.stringify(quantity_inputs_ids),
+                'item_id': JSON.stringify(quantity_inputs_ids)
             },
             dataType: 'json',
             success: function (data) {
-                //if (data['success']) {
-                //    alert('Success!');
-                //}
+                if (!data['success']) {
+                   alert(data['message']);
+                }
+                else {
+                    $('#total-td').text(data['new_total']);
+                }
             }
         });
     }

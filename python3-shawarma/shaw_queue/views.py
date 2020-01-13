@@ -4137,7 +4137,7 @@ def finish_all_content(request):
             if product.finish_timestamp is None:
                 supplement_is_finished = False
 
-        order.supplement_completed=supplement_is_finished
+        order.supplement_completed = supplement_is_finished
         # print "saving"
         order.save()
         data = {
@@ -4236,25 +4236,54 @@ def finish_supplement(request):
 
     return JsonResponse(data)
 
+
+def calculate_total(order: Order) -> float:
+    total = 0
+
+    items = OrderContent.objects.filter(order=order)
+
+    if len(items) > 0:
+        for item in items:
+            total += item.menu_item.price * item.quantity
+
+    return round(total, 2)
+
+
 @login_required()
 def update_item_quantity(request):
     product_id = json.loads(request.POST.get('item_id', None))
-    new_quantity = json.loads(request.POST.get('new_quantity', None))
+    try:
+        new_quantity = float(json.loads(request.POST.get('new_quantity', None)))
+    except ValueError:
+        data = {
+            'success': False,
+            'message': "Ошибка ввода! Количество должно быть указано числом! Пример: 1,654."
+        }
+        return JsonResponse(data)
+    except TypeError:
+        data = {
+            'success': False,
+            'message': "Ошибка ввода! Не указано количество!"
+        }
+        return JsonResponse(data)
+
     if product_id and new_quantity > 0:
         product = OrderContent.objects.get(id=product_id)
         product.quantity = new_quantity
         product.save()
 
+        order = product.order
+        order.total = calculate_total(order)
+        order.save()
+
         data = {
             'success': True,
-            'product_id': product_id,
-            'staff_maker': '{} {}'.format(request.user.first_name, request.user.last_name)
+            'new_total': order.total
         }
     else:
         data = {
             'success': False,
-            'product_id': product_id,
-            'staff_maker': '{} {}'.format(request.user.first_name, request.user.last_name)
+            'message': "Указано отрицательное количество!"
         }
 
     return JsonResponse(data)

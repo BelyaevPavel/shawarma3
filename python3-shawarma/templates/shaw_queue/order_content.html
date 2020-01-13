@@ -10,7 +10,7 @@
            data-finish-item-url="{% url 'finish_supplement' %}"
            data-finish-all-content-url="{% url 'finish_all_content' %}" data-pay-url="{% url 'pay_order' %}"
            data-grill-all-content-url="{% url 'grill_all_content' %}"
-    data-update-quantity-url="{% url 'update_item_quantity' %}">
+           data-update-quantity-url="{% url 'update_item_quantity' %}">
     <div class="modal" id="modal-menu" {% comment %}onclick="HideMenu()"{% endcomment %}>
     </div>
     <table class="currentOrderTable">
@@ -29,6 +29,9 @@
                 </td>
                 <td>
                     Касса: {{ order_info.servery }}
+                </td>
+                <td>
+                    Сумма: <span id="total-td">{{ order_info.total }}</span>.р
                 </td>
             </tr>
         {% endif %}
@@ -50,14 +53,16 @@
                 <div class="order-item-maker {% if order_item.finish_timestamp %}ready
                 {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
-                    {{ order_item.staff_maker.user.first_name}} {{ order_item.staff_maker.user.last_name }}
+                    {{ order_item.staff_maker.user.first_name }} {{ order_item.staff_maker.user.last_name }}
                 </div>
                 <div class="order-item-maker {% if order_item.finish_timestamp %}ready
                 {% endif %} {% if order_item.is_in_grill %}inGrill
                 {% endif %}">
-                    <input class="quantityInput" {% comment %}type="number" required step="any" min="0.001" max="100"{% endcomment %} value="{{ order_item.quantity|floatformat:3 }}"
+                    <input class="quantityInput" {% comment %}type="number" required step="any" min="0.001" max="100"{% endcomment %}
+                           value="{{ order_item.quantity|floatformat:3 }}"
                            cost="{{ order_item.menu_item.price }}"
-                           item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %} onblur="UpdateItemQuantity(event)">
+                           item-id="{{ order_item.id }}" {% if order_info.is_paid %}disabled{% endif %}
+                           onblur="UpdateItemQuantity(event)">
                 </div>
                 <div class="order-item-actions">
                     {% if order_item.menu_item.can_be_prepared_by.title == 'Operator' or order_item.menu_item.can_be_prepared_by.title == staff_category.title %}
@@ -98,15 +103,17 @@
         </button>
     {% endif %}
     {% if not order_info.shashlyk_completed %}
-        {% if staff_category.title == 'Operator' and order_info.with_shashlyk and not order_info.is_grilling_shash %}
-            <button onclick="GrillAllContent({{ order_info.id }})">
-                Жарить шашлык
-            </button>
-        {% endif %}
-        {% if staff_category.title == 'Operator' and order_info.with_shashlyk and order_info.is_grilling_shash %}
-            <button onclick="FinishAllContent({{ order_info.id }})">
-                Закончить всё
-            </button>
+        {% if staff_category.title == 'Operator' or staff_category.title == 'DeliveryOperator' %}
+            {% if order_info.with_shashlyk and not order_info.is_grilling_shash %}
+                <button onclick="GrillAllContent({{ order_info.id }})">
+                    Жарить шашлык
+                </button>
+            {% endif %}
+            {% if order_info.with_shashlyk and order_info.is_grilling_shash %}
+                <button onclick="FinishAllContent({{ order_info.id }})">
+                    Закончить всё
+                </button>
+            {% endif %}
         {% endif %}
     {% else %}
         {% if staff_category.title == 'Operator' and not order_info.with_shashlyk and not order_info.supplement_completed %}
