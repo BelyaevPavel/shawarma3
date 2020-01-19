@@ -268,8 +268,8 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                             var lon = suggestion.data.geo_lon;
 
                             var R = 6371210;
-                            var base_lat = 55.1682388;
-                            var base_lon = 61.3864114;
+                            var base_lat = 55.196829;
+                            var base_lon = 61.395762;
 
                             var distance = 6371 * 2 * Math.asin(Math.sqrt(
                                     Math.pow(Math.sin((base_lat - Math.abs(lat)) * Math.PI / 180 / 2), 2) +
