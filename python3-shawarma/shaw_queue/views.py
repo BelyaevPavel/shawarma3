@@ -4163,7 +4163,7 @@ def grill_all_content(request):
                                                             menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
         cook_products = OrderContent.objects.filter(order=order,
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
-        if staff.staff_category.title == 'Operator':
+        if staff.staff_category.title == 'Operator' or staff.staff_category.title == 'DeliveryAdministrator':
             products = shashlychnik_products
         else:
             products = OrderContent.objects.filter(order=order,
