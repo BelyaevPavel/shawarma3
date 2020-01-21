@@ -10,7 +10,7 @@
     {% if order_id %}
         <input hidden id="order_id" value="{{ order_id }}">
     {% endif %}
-    <div class="modal-menu modal-content" style="width:920px;">
+    <div class="modal-menu modal-content" style="width:80%; height: 80%">
         <div class="modal" id="modal-edit">
             <div class="modal-content">
                 <span class="close" id="close-modal">&times;</span>
@@ -21,17 +21,31 @@
                            onclick="this.setSelectionRange(0, this.value.length)">
                     <button class="btn info" id="plus-button">+</button>
                     <button class="btn info" id="minus-button">-</button>
-                    <div class="quick-comment-container">
-                        <button class="btn img-btn" id="cheese-button"><img alt="" src="{% static 'img/btns/cheese.png' %}"></button>
-                        <button class="btn img-btn" id="greens-button"><img alt="" src="{% static 'img/btns/greens.png' %}"></button>
-                        <button class="btn img-btn" id="spicy-button"><img alt="" src="{% static 'img/btns/spicy.png' %}"></button>
-                        <button class="btn img-btn" id="spicy30-button"><img alt="" src="{% static 'img/btns/spicy30.png' %}"></button>
-                        <button class="btn img-btn" id="yellow-button"><img alt="" src="{% static 'img/btns/yellow.png' %}"></button>
-                        <button class="btn img-btn" id="noOnion-button"><img alt="" src="{% static 'img/btns/noOnion.png' %}"></button>
-                        <button class="btn img-btn" id="saucePlus-button"><img alt="" src="{% static 'img/btns/saucePlus.png' %}"></button>
-                        <button class="btn img-btn" id="sauceMinus-button"><img alt="" src="{% static 'img/btns/sauceMinus.png' %}"></button>
-                        <button class="btn img-btn" id="noVegetables-button"><img alt="" src="{% static 'img/btns/noVegetables.png' %}"></button>
-                    </div>
+                <div class="quick-comment-container">
+                    <button class="btn img-btn" id="cheese-button"><img alt="" src="{% static 'img/btns/cheese.png' %}">
+                    </button>
+                    <button class="btn img-btn" id="greens-button"><img alt="" src="{% static 'img/btns/greens.png' %}">
+                    </button>
+                    <button class="btn img-btn" id="spicy-button"><img alt="" src="{% static 'img/btns/spicy.png' %}">
+                    </button>
+                    <button class="btn img-btn" id="spicy30-button"><img alt=""
+                                                                         src="{% static 'img/btns/spicy30.png' %}">
+                    </button>
+                    <button class="btn img-btn" id="yellow-button"><img alt="" src="{% static 'img/btns/yellow.png' %}">
+                    </button>
+                    <button class="btn img-btn" id="noOnion-button"><img alt=""
+                                                                         src="{% static 'img/btns/noOnion.png' %}">
+                    </button>
+                    <button class="btn img-btn" id="saucePlus-button"><img alt=""
+                                                                           src="{% static 'img/btns/saucePlus.png' %}">
+                    </button>
+                    <button class="btn img-btn" id="sauceMinus-button"><img alt=""
+                                                                            src="{% static 'img/btns/sauceMinus.png' %}">
+                    </button>
+                    <button class="btn img-btn" id="noVegetables-button"><img alt=""
+                                                                              src="{% static 'img/btns/noVegetables.png' %}">
+                    </button>
+                </div>
                 </p>
                 <p>
                     <label for="item-note" class="modal-label">Комментарий</label>
@@ -68,88 +82,93 @@
             </div>
         </div>
         <span class="close" id="close-modal-menu">&times;</span>
-        <div class="menu-div" style="width:680px; height:480px">
+        <div class="menu-div" style="width:calc(100% - 300px); height:80%; max-height: 500px;">
             {% include 'shaw_queue/menu.html' with menu_items=menu_items %}
         </div>
-        <div class="order-div" style="width:200px;">
-            <table class="currentOrderTable" id="menu-order-display">
-                <thead>Содержание заказа
-                <tr>
-                    <td class="currentOrderTotalText">
-                        <div>
-                            Итого
-                        </div>
-                    </td>
-                    <td class="currentOrderTotalFig">
-                        <div>
-                            <p class="totalDisplay">
+        <div class="order-div" style="width:250px;">
 
-                            </p>
-                        </div>
-                    </td>
-                </tr>
-                </thead>
-
-                <tbody></tbody>
-                <tfoot>
-                <tr>
-                    <td class="currentOrderTotalText">
-                        <div>
-                            Итого
-                        </div>
-                    </td>
-                    <td class="currentOrderTotalFig">
-                        <div>
-                            <p class="totalDisplay">
-
-                            </p>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <button type="button" class="subm" data-send-url="{% url 'make_order' %}">
-                        Принять
-                    </button>
-                    <div class="shadowed">
+            <button type="button" class="subm" data-send-url="{% url 'make_order' %}">
+                Принять
+            </button>
+            <div class="shadowed">
+                <p>
+                    <input type="radio" id="not_paid" checked value="not_paid" name="payment_choose">
+                    <label for="not_paid">Не Оплачен</label>
+                </p>
+                {% if not delivery_mode %}
+                    <p>
+                        <input type="radio" id="paid_with_cash" value="paid_with_cash"
+                               name="payment_choose">
+                        <label for="paid_with_cash">Наличные</label>
+                    </p>
+                    <p>
+                        <input type="radio" id="paid_without_cash" value="paid_without_cash"
+                               name="payment_choose">
+                        <label for="paid_without_cash">Безналичный</label>
+                    </p>
+                {% endif %}
+            </div>
+            <div class="shadowed">
+                {% if not delivery_mode %}
+                    <p>
+                        <input type="radio" id="cook_auto" checked name="cook_choose" value="auto">
+                        <label for="cook_auto">Автоназначение</label>
+                    </p>
+                    {% for available_cooker in available_cookers %}
                         <p>
-                            <input type="radio" id="not_paid" checked value="not_paid" name="payment_choose">
-                            <label for="not_paid">Не Оплачен</label>
+                            <input type="radio" id="cook_{{ available_cooker.id }}" name="cook_choose"
+                                   value="{{ available_cooker.id }}">
+                            <label for="cook_{{ available_cooker.id }}">{{ available_cooker.user.first_name }} {{ available_cooker.user.last_name }}</label>
                         </p>
-                        {% if not delivery_mode %}
-                            <p>
-                                <input type="radio" id="paid_with_cash" value="paid_with_cash" name="payment_choose">
-                                <label for="paid_with_cash">Наличные</label>
-                            </p>
-                            <p>
-                                <input type="radio" id="paid_without_cash" value="paid_without_cash"
-                                       name="payment_choose">
-                                <label for="paid_without_cash">Безналичный</label>
-                            </p>
-                        {% endif %}
-                    </div>
-                    <div class="shadowed">
-                        {% if not delivery_mode %}
-                            <p>
-                                <input type="radio" id="cook_auto" checked name="cook_choose" value="auto">
-                                <label for="cook_auto">Автоназначение</label>
-                            </p>
-                            {% for available_cooker in available_cookers %}
-                                <p>
-                                    <input type="radio" id="cook_{{ available_cooker.id }}" name="cook_choose"
-                                           value="{{ available_cooker.id }}">
-                                    <label for="cook_{{ available_cooker.id }}">{{ available_cooker.user.first_name }} {{ available_cooker.user.last_name }}</label>
+                    {% endfor %}
+                {% else %}
+                    <p>
+                        <input type="radio" id="cook_delivery" checked name="cook_choose" value="delivery">
+                        <label for="cook_auto">Доставка</label>
+                    </p>
+                {% endif %}
+            </div>
+            <div style="overflow-y: scroll; max-height: 500px;">
+                <table class="currentOrderTable" id="menu-order-display">
+                    <thead>Содержание заказа
+                    <tr>
+                        <td class="currentOrderTotalText">
+                            <div>
+                                Итого
+                            </div>
+                        </td>
+                        <td class="currentOrderTotalFig">
+                            <div>
+                                <p class="totalDisplay">
+
                                 </p>
-                            {% endfor %}
-                        {% else %}
-                            <p>
-                                <input type="radio" id="cook_delivery" checked name="cook_choose" value="delivery">
-                                <label for="cook_auto">Доставка</label>
-                            </p>
-                        {% endif %}
-                    </div>
-                </tr>
-                </tfoot>
-            </table>
+                            </div>
+                        </td>
+                    </tr>
+                    </thead>
+
+                    <tbody></tbody>
+                    <tfoot>
+                    <tr>
+                        <td class="currentOrderTotalText">
+                            <div>
+                                Итого
+                            </div>
+                        </td>
+                        <td class="currentOrderTotalFig">
+                            <div>
+                                <p class="totalDisplay">
+
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+
         </div>
     </div>
 {% endblock %}
