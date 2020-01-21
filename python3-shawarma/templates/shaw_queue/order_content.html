@@ -76,7 +76,11 @@
                             Отменить
                         </button>
                     {% else %}
-                        Оплачено, или закончено.
+			{% if order_info.is_paid %}
+                        	Оплачено.
+                    	{% else %}
+                        	Закончено.
+                    	{% endif %}
                     {% endif %}
                 </div>
             </div>
