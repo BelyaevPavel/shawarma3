@@ -2552,9 +2552,9 @@ def delivery_workspace_update(request):
     timezone_now = timezone.now().date()
     datetime_datetime_now = datetime.datetime.now().date()
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone_datetime_now)
-    if len(delivery_orders):
+    if len(delivery_orders) == 0:
         delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone_now)
-        if len(delivery_orders):
+        if len(delivery_orders) == 0:
             delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime_datetime_now)
     delivery_orders = delivery_orders.filter(order__close_time__isnull=True)
     delivery_orders = delivery_orders.filter(order__is_canceled=False).order_by('delivered_timepoint')
@@ -4163,7 +4163,7 @@ def grill_all_content(request):
                                                             menu_item__can_be_prepared_by__title__iexact='Shashlychnik')
         cook_products = OrderContent.objects.filter(order=order,
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
-        if staff.staff_category.title == 'Operator' or staff.staff_category.title == 'DeliveryAdministrator':
+        if staff.staff_category.title == 'Operator' or staff.staff_category.title == 'DeliveryAdmin':
             products = shashlychnik_products
         else:
             products = OrderContent.objects.filter(order=order,

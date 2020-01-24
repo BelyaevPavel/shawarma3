@@ -42,7 +42,7 @@
                         </button>
                     {% endif %}
                 {% endif %}
-                {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryAdministrator' %}
+                {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryAdmin' %}
                     <button {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
                                 disabled
                             {% endif %}
