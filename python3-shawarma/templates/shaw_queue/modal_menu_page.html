@@ -10,7 +10,7 @@
     {% if order_id %}
         <input hidden id="order_id" value="{{ order_id }}">
     {% endif %}
-    <div class="modal-menu modal-content" style="width:80%; height: 80%">
+    <div class="modal-menu modal-content" style="width:80%; height: 80%; max-height: 650px">
         <div class="modal" id="modal-edit">
             <div class="modal-content">
                 <span class="close" id="close-modal">&times;</span>
@@ -82,7 +82,7 @@
             </div>
         </div>
         <span class="close" id="close-modal-menu">&times;</span>
-        <div class="menu-div" style="width:calc(100% - 300px); height:80%; max-height: 500px;">
+        <div class="menu-div" style="width:calc(100% - 300px); height:100%; max-height: 650px;">
             {% include 'shaw_queue/menu.html' with menu_items=menu_items %}
         </div>
         <div class="order-div" style="width:250px;">
