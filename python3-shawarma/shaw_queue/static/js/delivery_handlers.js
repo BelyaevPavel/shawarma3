@@ -139,7 +139,10 @@ function ShowMenu() {
     $.ajax({
             type: 'GET',
             url: $('#delivery-urls').attr('menu-url'),
-            data: {'delivery_mode': true},
+            data: {
+                'delivery_mode': true,
+                'modal_mode': true,
+            },
             dataType: 'json',
             success: function (data) {
                 if (data['success']) {
@@ -312,7 +315,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                         }
                     });
 
-                    $('#id_address').on('click',function () {
+                    $('#id_address').on('click', function () {
                         $(this).select();
                     });
 
@@ -811,29 +814,58 @@ function FinishShashlykCooking(OrderPK) {
 }
 
 
-function FinishDeliveryOrder(DeliveryOrderPK) {
-    $.ajaxSetup({
-        beforeSend: function (xhr, settings) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken)
-        }
-    });
-    $.ajax({
-            type: 'POST',
-            url: $('#delivery-urls').attr('finish-delivery-order-url'),
-            data: {"delivery_order_pk": DeliveryOrderPK},
-            dataType: 'json',
-            success: function (data) {
-                if (data['success']) {
-                    alert(data['message']);
-                }
-                else {
-                    alert(data['message']);
+function FinishDeliveryOrder(DeliveryOrderPK, IsPaid) {
+    if (IsPaid==1) {
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+            }
+        });
+        $.ajax({
+                type: 'POST',
+                url: $('#delivery-urls').attr('finish-delivery-order-url'),
+                data: {"delivery_order_pk": DeliveryOrderPK},
+                dataType: 'json',
+                success: function (data) {
+                    if (data['success']) {
+                        alert(data['message']);
+                    }
+                    else {
+                        alert(data['message']);
+                    }
                 }
             }
+        ).fail(function () {
+            console.log('Failed ' + aux);
+        });
+    }
+    else {
+        if (confirm("Заказ не оплачен! Продолжить?")) {
+            $.ajaxSetup({
+                beforeSend: function (xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken)
+                }
+            });
+            $.ajax({
+                    type: 'POST',
+                    url: $('#delivery-urls').attr('finish-delivery-order-url'),
+                    data: {"delivery_order_pk": DeliveryOrderPK},
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data['success']) {
+                            alert(data['message']);
+                        }
+                        else {
+                            alert(data['message']);
+                        }
+                    }
+                }
+            ).fail(function () {
+                console.log('Failed ' + aux);
+            });
+
         }
-    ).fail(function () {
-        console.log('Failed ' + aux);
-    });
+    }
 }
 
 

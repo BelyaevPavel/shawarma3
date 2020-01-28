@@ -823,6 +823,7 @@ def welcomer(request):
 
 @login_required()
 def menu(request):
+    modal_mode = json.loads(request.GET.get('modal_mode', 'false'))
     delivery_mode = json.loads(request.GET.get('delivery_mode', 'false'))
     order_id = int(request.GET.get('order_id', -1))
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
@@ -837,10 +838,14 @@ def menu(request):
         }
         client.captureException()
         return JsonResponse(data)
-    if delivery_mode:
+    if modal_mode:
         template = loader.get_template('shaw_queue/modal_menu_page.html')
     else:
         template = loader.get_template('shaw_queue/menu_page.html')
+
+    if delivery_mode is False:
+        delivery_mode = True if len(DeliveryOrder.objects.filter(order__id=order_id)) > 0 else False
+
     result = define_service_point(device_ip)
     if result['success']:
         try:
@@ -863,13 +868,13 @@ def menu(request):
     else:
         return JsonResponse(result)
 
-    if delivery_mode == False:
+    if modal_mode == False:
         context['is_modal'] = False
         return HttpResponse(template.render(context, request))
     else:
         context['is_modal'] = True
         if order_id != -1:
-            context['delivery_mode'] = False
+            context['delivery_mode'] = delivery_mode
             context['order_id'] = order_id
         data = {
             'success': True,

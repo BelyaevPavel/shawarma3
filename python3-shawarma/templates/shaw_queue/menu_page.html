@@ -6,7 +6,7 @@
     <script type="text/javascript" src="{% static 'js/menu_handlers.js' %}"></script>
 {% endblock %}
 {% block content %}
-    <input hidden id="urls" data-status-refresh-url="{% url 'status_refresh' %}" data-search-comment="{% url 'search_comment' %}">
+    <input hidden id="menu-urls" data-status-refresh-url="{% url 'status_refresh' %}" data-search-comment="{% url 'search_comment' %}">
     <input hidden id="is-modal" value="{{ is_modal }}">
     <div class="modal" id="modal-edit">
         <div class="modal-content">

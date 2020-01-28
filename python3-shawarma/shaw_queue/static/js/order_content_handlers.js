@@ -43,7 +43,7 @@ function EditOrder(id) {
         url: url,
         data: {
             'order_id': id,
-            'delivery_mode': true
+            'modal_mode': true
         },
         dataType: 'json',
         success: function (data) {

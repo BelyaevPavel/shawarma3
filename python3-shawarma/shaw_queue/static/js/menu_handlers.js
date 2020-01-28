@@ -168,7 +168,7 @@ function StatusRefresher(guid) {
         });
         $.ajax({
                 type: 'POST',
-                url: $('#urls').attr('data-status-refresh-url'),
+                url: $('#menu-urls').attr('data-status-refresh-url'),
                 data: {
                     "order_guid": guid
                 },
@@ -764,7 +764,7 @@ function ss(index, id) {
     });
     $.ajax({
             type: 'POST',
-            url: $('#urls').attr('data-search-comment'),
+            url: $('#menu-urls').attr('data-search-comment'),
             data: {
                 "id": index,
                 "note": searchTerm
@@ -792,8 +792,9 @@ function ss(index, id) {
                 });
             }
         }
-    ).fail(function () {
-        alert('У вас нет права добавлять заказ!');
+    ).fail(function (jqXHR, textStatus) {
+        alert('Необработанное искюение!' + textStatus);
+        console.log(jqXHR+' '+textStatus);
     });
 
 

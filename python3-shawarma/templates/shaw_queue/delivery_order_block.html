@@ -10,7 +10,8 @@
     <div class="delivery-block-actions">
         <button class="small-btn success" title="Закончить заказ"
                 {% if not delivery_order.order.order.content_completed %}
-                disabled {% endif %} onclick="FinishDeliveryOrder({{ delivery_order.order.pk }})">
+                disabled {% endif %}
+                onclick="FinishDeliveryOrder({{ delivery_order.order.pk }}, {% if delivery_order.order.is_paid %}1{% else %}0{% endif %})">
             &#10003;
         </button>
         <div class="dropdown">
