@@ -637,7 +637,12 @@ def ats_listner(request):
             except Staff.DoesNotExist:
                 print("Failed to find manager {}".format(operator_id))
                 return HttpResponse('Failed to find call manager.')
-            call_data = CallData(ats_id=call_uid, timepoint=timezone.now(), customer=customer,
+
+            try:
+                call_data = CallData.objects.get(ats_id=call_uid)
+                call_data.call_manager = call_manager
+            except CallData.DoesNotExist:
+                call_data = CallData(ats_id=call_uid, timepoint=timezone.now(), customer=customer,
                                  call_manager=call_manager)
             print("Created {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,
                                                call_data.call_manager))
@@ -664,6 +669,7 @@ def ats_listner(request):
 
         if call_data is not None:
             try:
+                print("Trying to clean call data...")
                 call_data.full_clean()
             except ValidationError as e:
                 client.captureException()
@@ -671,6 +677,7 @@ def ats_listner(request):
                 for message in e.messages:
                     exception_messages += message
                     logger.error('Call data has not pass validation: {}'.format(message))
+                    print('Call data has not pass validation: {}'.format(message))
                 return HttpResponse('Call data has not pass validation: {}'.format(exception_messages))
             call_data.save()
             print("Saving {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,

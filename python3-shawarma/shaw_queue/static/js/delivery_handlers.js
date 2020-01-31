@@ -11,7 +11,7 @@
 // });
 
 var workspace_update_timeout = 10000; // ms
-var call_check_timeout = 10000; // ms
+var call_check_timeout = 2000; // ms
 var modal_delivery_order_is_opened = false;
 var modal_menu_is_opened = false;
 var modal_menu_container = $('#modal-menu');
@@ -44,6 +44,7 @@ function HideMenu() {
 function HideDeliveryOrder() {
     Hide("modal-delivery-order");
     modal_delivery_order_is_opened = false;
+    location.reload()
 }
 
 function ToggleCollapsible(collapsibleId, contentId) {
