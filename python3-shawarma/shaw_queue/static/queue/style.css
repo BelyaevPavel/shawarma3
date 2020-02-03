@@ -561,20 +561,25 @@ div.menu-content, div.menu-item-details, div.menu-item-note {
     width: 100%;
 }
 
+div.menu-item-details {
+    position: relative;
+    max-height: 70px;
+}
+
 div.menu-content {
     line-height: 30px;
 }
 
 div.menu-item {
-
     margin: 5px;
     padding: 7px;
     width: 140px;
-    height: 60px;
+    height: 70px;
     border: solid 1px #D8D8D8;
     background: #F6F6F6;
     float: left;
     cursor: pointer;
+    position: relative;
 }
 
 div.menu-item-title, div.menu-item-price, div.menu-item-actions {
@@ -584,6 +589,14 @@ div.menu-item-title, div.menu-item-price, div.menu-item-actions {
 div.menu-item-title {
     width: 100%;
     font-size: large;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    max-height: 70px;
+}
+
+div.menu-item-title:hover{
+    overflow: visible;
 }
 
 div.menu-item-price {
@@ -591,6 +604,9 @@ div.menu-item-price {
     text-align: right;
     font-size: large;
     color: darkred;
+    position: absolute;
+    top: 50px;
+    right: 0px;
 }
 
 div.menu-item-note {
