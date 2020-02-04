@@ -1469,6 +1469,7 @@ div.filter-container {
     width: 180px;
     height: -moz-fit-content;
     height: fit-content;
+    position: relative;
 }
 
 .delivery-block-header {
@@ -1482,6 +1483,13 @@ div.filter-container {
 .delivery-block-content, .delivery-block-actions {
     text-align: center;
     height: 30px;
+}
+
+.delivery-block-actions{
+    position: absolute;
+    bottom: 0px;
+    margin: auto;
+    width: 100%;
 }
 
 .delivery-block-actions >  .dropdown > .dropdown-content {
