@@ -16,20 +16,20 @@ class MenuCategory(models.Model):
     hidden = models.BooleanField(default="False")
 
     def __str__(self):
-        return "{}".format(self.title)
+        return u"{}".format(self.title)
 
-    def __unicode__(self):
-        return "{}".format(self.title)
+    # def __unicode__(self):
+    #     return "{}".format(self.title)
 
 
 class StaffCategory(models.Model):
     title = models.CharField(max_length=20)
 
     def __str__(self):
-        return "{}".format(self.title)
+        return u"{}".format(self.title)
 
-    def __unicode__(self):
-        return "{}".format(self.title)
+    # def __unicode__(self):
+    #     return "{}".format(self.title)
 
 
 class ServicePoint(models.Model):
@@ -37,7 +37,7 @@ class ServicePoint(models.Model):
     subnetwork = models.CharField(max_length=10, default="")
 
     def __str__(self):
-        return "{}".format(self.title)
+        return u"{}".format(self.title)
 
     def __unicode__(self):
         return "{}".format(self.title)
@@ -52,7 +52,7 @@ class Staff(models.Model):
     phone_number = models.CharField(max_length=20, verbose_name="телефон", default=None, null=True)
 
     def __str__(self):
-        return "{} {} {}".format(self.staff_category, self.user.first_name, self.user.last_name)
+        return u"{} {} {}".format(self.staff_category, self.user.first_name, self.user.last_name)
 
     def __unicode__(self):
         return "{} {} {}".format(self.staff_category, self.user.first_name, self.user.last_name)
@@ -68,7 +68,7 @@ class Menu(models.Model):
     category = models.ForeignKey(MenuCategory)
 
     def __str__(self):
-        return "{}".format(self.title)
+        return u"{}".format(self.title)
 
     def __unicode__(self):
         return "{}".format(self.title)
@@ -82,7 +82,7 @@ class Servery(models.Model):
     service_point = models.ForeignKey(ServicePoint, default=None, null=True)
 
     def __str__(self):
-        return "{}".format(self.title)
+        return u"{}".format(self.title)
 
     def __unicode__(self):
         return "{}".format(self.title)
@@ -123,7 +123,7 @@ class Order(models.Model):
     status_1c = models.IntegerField(verbose_name="1C Status", default=200)
 
     def __str__(self):
-        return "{} №{}".format(self.servery, self.daily_number)
+        return u"{} №{}".format(self.servery, self.daily_number)
 
     def __unicode__(self):
         return "{} №{}".format(self.servery, self.daily_number)
@@ -149,7 +149,7 @@ class OrderContent(models.Model):
     quantity = models.FloatField(verbose_name="Quantity", default=1.0, null=False)
 
     def __str__(self):
-        return "№{} {}".format(self.order, self.menu_item)
+        return u"№{} {}".format(self.order, self.menu_item)
 
     def __unicode__(self):
         return "№{} {}".format(self.order, self.menu_item)
@@ -168,7 +168,7 @@ class OrderOpinion(models.Model):
     post_time = models.DateTimeField(verbose_name="Post Time", null=True)
 
     def __str__(self):
-        return "№{} {}".format(self.order, self.mark)
+        return u"№{} {}".format(self.order, self.mark)
 
     def __unicode__(self):
         return "№{} {}".format(self.order, self.mark)
@@ -191,7 +191,7 @@ class Printer(models.Model):
     service_point = models.ForeignKey(ServicePoint, default=None, null=True)
 
     def __str__(self):
-        return "№{} {}".format(self.title, self.service_point)
+        return u"№{} {}".format(self.title, self.service_point)
 
     def __unicode__(self):
         return "№{} {}".format(self.title, self.service_point)
@@ -204,7 +204,7 @@ class Customer(models.Model):
     note = models.CharField(max_length=200, blank=True, verbose_name="комментарий")
 
     def __str__(self):
-        return "{} {}".format(self.phone_number, self.name)
+        return u"{} {}".format(self.phone_number, self.name)
 
     def __unicode__(self):
         return "{} {}".format(self.name, self.phone_number)
@@ -220,7 +220,7 @@ class DiscountCard(models.Model):
     customer = models.ForeignKey(Customer, blank=True, null=True, verbose_name="owner of card")
 
     def __str__(self):
-        return "№{} {}".format(self.number, self.customer)
+        return u"№{} {}".format(self.number, self.customer)
 
     def __unicode__(self):
         return "№{} {}".format(self.number, self.customer)
@@ -238,7 +238,7 @@ class Delivery(models.Model):
     is_finished = models.BooleanField(verbose_name="Is dinished", default=False)
 
     def __str__(self):
-        return "№{} {}".format(self.id, self.car_driver)
+        return u"№{} {}".format(self.id, self.car_driver)
 
     def __unicode__(self):
         return "№{} {}".format(self.id, self.car_driver)
@@ -266,7 +266,7 @@ class DeliveryOrder(models.Model):
                             verbose_name="комментарий")
 
     def __str__(self):
-        return "№{} {} {}".format(self.daily_number, self.delivery, self.order)
+        return u"№{} {} {}".format(self.daily_number, self.delivery, self.order)
 
     def __unicode__(self):
         return "№{} {} {}".format(self.daily_number, self.delivery, self.order)
@@ -286,7 +286,7 @@ class CallData(models.Model):
     missed = models.BooleanField(default=False, verbose_name="Звонок пропущен")
 
     def __str__(self):
-        return "{} {}".format(self.customer, self.duration)
+        return u"{} {}".format(self.customer, self.duration)
 
     def __unicode__(self):
         return "{} {}".format(self.customer, self.duration)
