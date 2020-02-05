@@ -1432,6 +1432,7 @@ div.filter-container {
     top: 0px;
     right: 0px;
     position: absolute;
+    z-index: 1000;
 }
 
 .section {

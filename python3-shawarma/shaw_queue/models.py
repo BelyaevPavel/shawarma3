@@ -247,12 +247,15 @@ class Delivery(models.Model):
         return reverse('delivery-list')  # , kwargs={'pk': self.pk}
 
 
+def limit_order_choises_by_date():
+    return {'open_time__gte': (timezone.now() - datetime.timedelta(days=2)).date()}
+
 class DeliveryOrder(models.Model):
     delivery = models.ForeignKey(Delivery, null=True, blank=True, verbose_name="доставка")
     daily_number = models.IntegerField(verbose_name="номер за день")#, unique_for_date='obtain_timepoint'
     is_ready = models.BooleanField(default=False, verbose_name="готов к отправке")
     is_delivered = models.BooleanField(default=False, verbose_name="доставлен")
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="включеный заказ")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="включеный заказ", limit_choices_to=limit_order_choises_by_date)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="клиент")
     address = models.CharField(max_length=250, default="Не указан", verbose_name="адрес")
     obtain_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время получения заказа")
