@@ -6,7 +6,8 @@
         {% if delivery_order.show_date %}{{ delivery_order.order.obtain_timepoint|date:"SHORT_DATE_FORMAT" }}
             - {{ delivery_order.order.delivered_timepoint|date:"SHORT_DATE_FORMAT" }}{% endif %}</div>
     <div class="delivery-block-content">Рейс: {{ delivery_order.order.delivery }}</div>
-    <div class="delivery-block-content">Аддрес: {{ delivery_order.order.address }}</div>
+    <div class="delivery-block-content">Адрес: {{ delivery_order.order.address }}</div>
+    <div class="delivery-block-content">Время: {{ delivery_order.order.delivered_timepoint|time:"H:i" }}</div>
     <div class="delivery-block-actions">
         <button class="small-btn success" title="Закончить заказ"
                 {% if not delivery_order.order.order.content_completed %}
