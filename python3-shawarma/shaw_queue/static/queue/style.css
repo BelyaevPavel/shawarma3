@@ -29,6 +29,30 @@ ul {
     border-bottom-left-radius: 4px;
 }
 
+/* Indicators */
+
+.shawarma-indicator {
+    background-color: white;
+    color: black;
+width:15px;
+height:15px;
+position: absolute;
+top: 1px;
+right: 1px;
+}
+
+.shashlyk-indicator {
+    border-radius: 50%;
+    background-color: white;
+    color: black;
+width:15px;
+height:15px;
+position: absolute;
+top: 1px;
+right: 18px;
+}
+
+/* end Indicators */
 
 /* Dropdown description*/
 
@@ -1479,6 +1503,7 @@ div.filter-container {
     border: solid 1px #D8D8D8;
     text-align: center;
     cursor: pointer;
+position: relative;
 }
 
 .delivery-block-content, .delivery-block-actions {

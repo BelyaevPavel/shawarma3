@@ -946,6 +946,7 @@ function DeliverDeliveryOrder(DeliveryOrderPK) {
 }
 
 function CancelDeliveryOrder(DeliveryOrderPK) {
+        if (confirm("Вы отменяете заказ! Продолжить?")) {
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
@@ -968,6 +969,7 @@ function CancelDeliveryOrder(DeliveryOrderPK) {
     ).fail(function () {
         console.log('Failed ' + aux);
     });
+}
 }
 
 function StartDelivery(DeliveryPk) {

@@ -2569,7 +2569,7 @@ def delivery_workspace_update(request):
         if len(delivery_orders) == 0:
             delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime_datetime_now)
     delivery_orders = delivery_orders.filter(order__close_time__isnull=True)
-    delivery_orders = delivery_orders.filter(order__is_canceled=False).order_by('delivered_timepoint')
+    delivery_orders = delivery_orders.filter(order__is_canceled=False).order_by('obtain_timepoint')
     processed_d_orders = [
         {
             'order': delivery_order,
