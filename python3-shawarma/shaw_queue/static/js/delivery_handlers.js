@@ -218,7 +218,8 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
 
                     // When the user clicks on <span> (x), close the modal
                     closeMenuSpan.onclick = function () {
-                        HideDeliveryOrder();
+                        if (confirm("Продолжить без созранения?"))
+                            HideDeliveryOrder();
                     };
 
                     // When the user clicks anywhere outside of the modal, close it
@@ -816,7 +817,7 @@ function FinishShashlykCooking(OrderPK) {
 
 
 function FinishDeliveryOrder(DeliveryOrderPK, IsPaid) {
-    if (IsPaid==1) {
+    if (IsPaid == 1) {
         $.ajaxSetup({
             beforeSend: function (xhr, settings) {
                 xhr.setRequestHeader("X-CSRFToken", csrftoken)
