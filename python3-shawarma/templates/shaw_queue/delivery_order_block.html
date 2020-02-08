@@ -17,18 +17,20 @@
                                                 inGrill
                                             {% endif %}
                                         {% endif %}" title="Индикатор готовности шашлыка {% if delivery_order.order.order.shashlyk_completed %}: Готово{% else %}{% if delivery_order.order.order.is_grilling_shash %}: Жарится{% endif %}{% endif %}"></div>{% endif %}</div>
+<div onclick="window.open(&quot{% url 'order_content' delivery_order.order.order.id %}&quot,&quot mywindow&quot);" style="cursor: pointer;">
     <div class="delivery-block-content">Рейс: {{ delivery_order.order.delivery }}</div>
     <div class="delivery-block-content">Адрес: {{ delivery_order.order.address }}</div>
     <div class="delivery-block-content">Время: {{ delivery_order.order.delivered_timepoint|time:"H:i" }}</div>
+</div>
     <div class="delivery-block-actions">
         <button class="small-btn success" title="Закончить заказ"
-                {% if not delivery_order.order.order.content_completed %}
+                {% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed or not delivery_order.order.order.supplement_completed %}
                 disabled {% endif %}
                 onclick="FinishDeliveryOrder({{ delivery_order.order.pk }}, {% if delivery_order.order.is_paid %}1{% else %}0{% endif %})">
             &#10003;
         </button>
         <div class="dropdown">
-            {% if delivery_order.order.order.prepared_by and delivery_order.order.order.content_completed and delivery_order.order.order.shashlyk_completed and delivery_order.order.order.supplement_completed %}
+            {% if delivery_order.order.order.content_completed and delivery_order.order.order.shashlyk_completed and delivery_order.order.order.supplement_completed %}
                 {% if delivery_order.order.is_ready %}
                     <button class="small-btn warning" title="Пометить заказ, как не готовый к отправке."
                             {% comment %}{% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed or not delivery_order.order.order.supplement_completed %}
@@ -50,6 +52,9 @@
                         {% endif %}
                     </button>
                     <div class="dropdown-content">
+		    <a href="{% url 'order_content' delivery_order.order.order.id %}" target="_blank">
+			Подробности
+                    </a>
                         <a onclick="PrintDeliveryOrder({{ delivery_order.order.id }})">
                             Печать
                         </a>

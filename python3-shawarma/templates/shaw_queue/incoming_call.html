@@ -69,7 +69,7 @@
         {% if customer_pk %}
             <div class="last-orders-container">
                 {% for customer_order in customer_orders %}
-                    <div class="order-preview-container">
+                    <div class="order-preview-container" onclick="window.open(&quot{% url 'order_content' customer_order.delivery_order.order.id %}&quot,&quot mywindow&quot);" style="cursor: pointer;">
                         <h4>Заказ: {{ customer_order.delivery_order.obtain_timepoint }}</h4>
                         <p>Адрес: {{ customer_order.delivery_order.address }}</p>
                         <ul>

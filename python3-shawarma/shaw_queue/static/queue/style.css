@@ -1453,7 +1453,7 @@ div.filter-container {
     width: -moz-fit-content;
     height: 50px;
     border-radius: 0px 0px 0px 5px;
-    top: 0px;
+    bottom: 10px;
     right: 0px;
     position: absolute;
     z-index: 1000;

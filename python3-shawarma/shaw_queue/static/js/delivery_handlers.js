@@ -19,6 +19,7 @@ var modal_delivery_order_container = $('#modal-delivery-order');
 var modal_delivery_order_content;
 
 $(document).ready(function () {
+    HideSidebar('delivery-left-column', 'show-left-column');
     HideSidebar('delivery-right-column', 'show-right-column');
     UpdateWorkspace();
     CheckCalls();
@@ -407,6 +408,14 @@ function CreateIncomingCall() {
                     modal_delivery_order_container.css("display", "block");
                     modal_delivery_order_is_opened = true;
                     OverrideIncomingCallSubmition();
+
+                // Get the <span> element that closes the modal
+                var closeMenuSpan = document.getElementById("close-modal-delivery-order");
+
+                // When the user clicks on <span> (x), close the modal
+                closeMenuSpan.onclick = function () {
+                    HideDeliveryOrder();
+                };
                 }
                 else {
                     alert(data['message']);
