@@ -80,6 +80,7 @@ class Servery(models.Model):
     ip_address = models.CharField(max_length=500, default="")
     guid_1c = models.CharField(max_length=100, default="")
     service_point = models.ForeignKey(ServicePoint, default=None, null=True)
+    payment_kiosk = models.BooleanField(verbose_name="Точка приёма платежей", default=True)
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -251,6 +252,14 @@ def limit_order_choises_by_date():
     return {'open_time__gte': (timezone.now() - datetime.timedelta(days=2)).date()}
 
 class DeliveryOrder(models.Model):
+    CASH_PAYMENT = "CSH"
+    CASHLESS_PAYMENT = "CLS"
+    MIXED_PAYMENT = "MXD"
+    PAYMENT_CHOISES = [
+        (CASH_PAYMENT, 'Наличные'),
+        (CASHLESS_PAYMENT, 'Безнал'),
+        (MIXED_PAYMENT, 'Смешанная')]
+    prefered_payment = models.CharField(max_length=3, choices=PAYMENT_CHOISES, default=CASH_PAYMENT, verbose_name="Вид оплаты")
     delivery = models.ForeignKey(Delivery, null=True, blank=True, verbose_name="доставка")
     daily_number = models.IntegerField(verbose_name="номер за день")#, unique_for_date='obtain_timepoint'
     is_ready = models.BooleanField(default=False, verbose_name="готов к отправке")

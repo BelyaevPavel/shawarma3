@@ -1559,7 +1559,8 @@ position: relative;
 
 #modal-delivery-order-create {
     width: -moz-fit-content;
-    max-height: 540px;
+    width: fit-content;
+    max-height: 603px;
     overflow-y: auto;
     margin: 5% auto !important;
 }
