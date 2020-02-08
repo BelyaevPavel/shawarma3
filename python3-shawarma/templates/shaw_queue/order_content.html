@@ -93,10 +93,12 @@
         <label for="servery_auto">Автоназначение</label>
     </p>
     {% for servery in serveries %}
+{% if servery.payment_kiosk %}
         <p>
             <input type="radio" id="servery_{{ servery.id }}" name="servery_choose" value="{{ servery.id }}">
             <label for="servery_{{ servery.id }}">{{ servery.title }}</label>
         </p>
+{% endif %}
     {% empty %}
         Места выдачи внесены.
     {% endfor %}
