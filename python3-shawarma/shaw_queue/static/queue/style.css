@@ -1503,7 +1503,8 @@ div.filter-container {
     border: solid 1px #D8D8D8;
     text-align: center;
     cursor: pointer;
-position: relative;
+    position: relative;
+    min-height: 25px;
 }
 
 .delivery-block-content, .delivery-block-actions {
