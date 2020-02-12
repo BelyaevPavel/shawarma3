@@ -643,7 +643,7 @@ def ats_listner(request):
                 call_data.call_manager = call_manager
             except CallData.DoesNotExist:
                 call_data = CallData(ats_id=call_uid, timepoint=timezone.now(), customer=customer,
-                                 call_manager=call_manager)
+                                     call_manager=call_manager)
             print("Created {} {} {} {}".format(call_data.ats_id, call_data.timepoint, call_data.customer,
                                                call_data.call_manager))
 
@@ -2260,6 +2260,9 @@ def order_content(request, order_id):
     order_info.save()
     current_order_content = OrderContent.objects.filter(order=order_id)
     template = loader.get_template('shaw_queue/order_content.html')
+    delivery_order = None
+    if order_info.is_delivery:
+        delivery_order = DeliveryOrder.objects.get(order=order_info)
 
     result = define_service_point(device_ip)
     if result['success']:
@@ -2273,6 +2276,8 @@ def order_content(request, order_id):
                 'ready': order_info.content_completed and order_info.supplement_completed and order_info.shashlyk_completed,
                 'serveries': Servery.objects.filter(service_point=result['service_point'])
             }
+            if delivery_order:
+                context['enlight_payment'] = delivery_order.prefered_payment
         except MultipleObjectsReturned:
             data = {
                 'success': False,
@@ -3424,6 +3429,7 @@ def make_order(request):
 
     content_to_send = []
     order.servery = servery
+    order.is_delivery = True if cook_choose == 'delivery' else False
     order.save()
 
     total = 0

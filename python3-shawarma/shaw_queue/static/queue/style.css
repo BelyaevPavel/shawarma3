@@ -725,6 +725,17 @@ div.order-item-title, div.order-item-note, div.order-item-maker, div.order-item-
     width: 20%;
     float: left;
     text-align: center;
+    height: inherit;
+}
+
+div.order-item-title, div.order-item-note{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+}
+
+div.order-item-title:hover, div.order-item-note:hover{
+    overflow: visible;
 }
 
 .content-container {
