@@ -62,7 +62,7 @@
                            value="{{ order_item.quantity|floatformat:3 }}"
                            cost="{{ order_item.menu_item.price }}"
                            item-id="{{ order_item.id }}"
-                           {% if order_info.is_paid or order_item.finish_timestamp %}disabled{% endif %}
+                           {% if order_info.is_paid or order_item.finish_timestamp or not order_item.menu_item.is_by_weight %}disabled{% endif %}
                            onblur="UpdateItemQuantity(event)">
                 </div>
                 <div class="order-item-actions">

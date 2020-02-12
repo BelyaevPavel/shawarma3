@@ -66,6 +66,7 @@ class Menu(models.Model):
     can_be_prepared_by = models.ForeignKey(StaffCategory)
     guid_1c = models.CharField(max_length=100, default="")
     category = models.ForeignKey(MenuCategory)
+    is_by_weight = models.BooleanField(verbose_name="На развес", default=False)
 
     def __str__(self):
         return u"{}".format(self.title)
