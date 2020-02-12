@@ -4342,23 +4342,63 @@ def pay_order(request):
     paid_with_cash = json.loads(request.POST['paid_with_cash'])
     servery_id = request.POST['servery_id']
 
+    servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        servery_ip = '127.0.0.1'
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except MultipleObjectsReturned:
+        data = {
+            'success': False,
+            'message': 'Найдено множество заказов с таким id!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске заказа!'
+        }
+        return JsonResponse(data)
+
     if servery_id != 'auto':
         try:
             servery = Servery.objects.get(id=servery_id)
         except MultipleObjectsReturned:
             data = {
                 'success': False,
-                'message': 'Multiple serveries returned!'
+                'message': 'Найдено множество касс с таким ip!'
             }
             client.captureException()
             return JsonResponse(data)
         except:
             data = {
                 'success': False,
-                'message': 'Something wrong happened while getting servery!'
+                'message': 'Что-то пошло не так при поиске кассы!'
             }
             client.captureException()
             return JsonResponse(data)
+        order.servery = servery
+    else:
+        if not order.servery.payment_kiosk:
+            try:
+                servery = Servery.objects.get(ip_address=servery_ip)
+            except MultipleObjectsReturned:
+                data = {
+                    'success': False,
+                    'message': 'Найдено множество касс с таким ip!'
+                }
+                client.captureException()
+                return JsonResponse(data)
+            except:
+                data = {
+                    'success': False,
+                    'message': 'Что-то пошло не так при поиске кассы!'
+                }
+                client.captureException()
+                return JsonResponse(data)
+            order.servery = servery
 
     total = 0
     if order_id:
@@ -4375,14 +4415,6 @@ def pay_order(request):
             total += item.menu_item.price * item.quantity
             item.save()
 
-        try:
-            order = Order.objects.get(id=order_id)
-        except:
-            data = {
-                'success': False,
-                'message': 'Что-то пошло не так при поиске заказа!'
-            }
-            return JsonResponse(data)
         cash_to_throw_out = 0
         rounding_discount = 0
         if order.with_shashlyk:
@@ -4390,8 +4422,8 @@ def pay_order(request):
         order.discount += rounding_discount
         order.is_paid = True
         order.paid_with_cash = paid_with_cash
-        if servery_id != 'auto':
-            order.servery = servery
+        # if servery_id != 'auto':
+        #     order.servery = servery
 
         total = 0
         content_presence = False
