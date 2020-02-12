@@ -19,6 +19,10 @@ var modal_delivery_order_container = $('#modal-delivery-order');
 var modal_delivery_order_content;
 
 $(document).ready(function () {
+    interface_button.addClass('header-active');
+    jQuery.datetimepicker.setLocale('ru');
+    $('#datetimepicker1').datetimepicker();
+    $('#datetimepicker2').datetimepicker();
     HideSidebar('delivery-left-column', 'show-left-column');
     HideSidebar('delivery-right-column', 'show-right-column');
     UpdateWorkspace();
@@ -219,7 +223,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
 
                     // When the user clicks on <span> (x), close the modal
                     closeMenuSpan.onclick = function () {
-                        if (confirm("Продолжить без созранения?"))
+                        if (confirm("Продолжить без сохранения?"))
                             HideDeliveryOrder();
                     };
 
@@ -605,6 +609,8 @@ function SendDelivery() {
 
 
 function UpdateWorkspace() {
+    var start_datetime = $('#datetimepicker1').val();
+    var end_datetime = $('#datetimepicker2').val();
     var workspace = $('#delivery-workspace');
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
@@ -615,6 +621,10 @@ function UpdateWorkspace() {
             type: 'GET',
             url: $('#delivery-urls').attr('workspace-update'),
             dataType: 'json',
+            data: {
+                "start_date": start_datetime,
+                "end_date": end_datetime
+            },
             success: function (data) {
                 if (data['success']) {
                     workspace.html(data['html']);

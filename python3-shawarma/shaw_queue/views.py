@@ -2562,17 +2562,28 @@ def delivery_interface(request):
 
 @login_required()
 def delivery_workspace_update(request):
+    start_date = request.GET.get('start_date', None)
+    timezone_date_now = timezone.datetime.now().date()
+    if start_date is None or start_date == '':
+        start_date_conv = datetime.datetime.combine(date=timezone_date_now, time=datetime.time(hour=0, minute=1))
+    else:
+        start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+    end_date = request.GET.get('end_date', None)
+    if end_date is None or end_date == '':
+        end_date_conv = datetime.datetime.combine(date=start_date_conv.date(), time=datetime.time(hour=23, minute=59))
+    else:
+        end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
     utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_workspace.html')
-    print("{} {} {}".format(timezone.datetime.now(), datetime.datetime.now(), utc.localize(datetime.datetime.now())))
-    timezone_datetime_now = timezone.datetime.now().date()
-    timezone_now = timezone.now().date()
-    datetime_datetime_now = datetime.datetime.now().date()
-    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone_datetime_now)
-    if len(delivery_orders) == 0:
-        delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone_now)
-        if len(delivery_orders) == 0:
-            delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime_datetime_now)
+    # print("{} {} {}".format(timezone.datetime.now(), datetime.datetime.now(), utc.localize(datetime.datetime.now())))
+    # timezone_now = timezone.now().date()
+    # datetime_datetime_now = datetime.datetime.now().date()
+    delivery_orders = DeliveryOrder.objects.filter(delivered_timepoint__gte=start_date_conv,
+                                                   delivered_timepoint__lte=end_date_conv)
+    # if len(delivery_orders) == 0:
+    #     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone_now)
+    #     if len(delivery_orders) == 0:
+    #         delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime_datetime_now)
     delivery_orders = delivery_orders.filter(order__close_time__isnull=True)
     delivery_orders = delivery_orders.filter(order__is_canceled=False).order_by('obtain_timepoint')
     processed_d_orders = [
