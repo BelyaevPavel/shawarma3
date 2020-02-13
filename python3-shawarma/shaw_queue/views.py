@@ -244,10 +244,19 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
 
     def post(self, request):
         delivery_order_pk = request.POST.get('delivery_order_pk', None)
+        order_id = request.POST.get('order', None)
+        if order_id is not None and delivery_order_pk is None:
+            aux_delivery_orders = DeliveryOrder.objects.filter(order__id=order_id)
+            if len(aux_delivery_orders) > 0:
+                data = {
+                    'success': False,
+                    'message': 'Попытка создать второй заказ доставки для одного вложенного заказа!'
+                }
+                return JsonResponse(data)
         daily_number = request.POST.get('daily_number', 0)
         print("delivery_order_pk = {}".format(delivery_order_pk))
         print("request.POST = {}".format(request.POST))
-        order = Order.objects.get(id=request.POST.get('order'))
+        order = Order.objects.get(id=order_id)
         print("order  = {}".format(order))
         servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
         if DEBUG_SERVERY:

@@ -343,6 +343,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
 
 
 function SendDeliveryOrder() {
+    $('#btn-save-delivery-order').prop('disabled', true);
     var pk = $('#delivery-order-form').attr('object-pk');
     var daily_number = $('#id_daily_number').val();
     var form_data = {
@@ -361,7 +362,7 @@ function SendDeliveryOrder() {
     if (pk)
         form_data['delivery_order_pk'] = pk;
     if (daily_number)
-        form_data['daily_number'] = pk;
+        form_data['daily_number'] = daily_number;
     else
         form_data['daily_number'] = -1;
     $.ajaxSetup({
