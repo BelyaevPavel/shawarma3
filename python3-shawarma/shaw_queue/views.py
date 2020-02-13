@@ -2262,7 +2262,22 @@ def order_content(request, order_id):
     template = loader.get_template('shaw_queue/order_content.html')
     delivery_order = None
     if order_info.is_delivery:
-        delivery_order = DeliveryOrder.objects.get(order=order_info)
+        try:
+            delivery_order = DeliveryOrder.objects.get(order=order_info)
+
+        except MultipleObjectsReturned:
+            # TODO: Find out cause of delivery order duplicates.
+            # data = {
+            #     'success': False,
+            #     'message': 'Множество экземпляров персонала возвращено!'
+            # }
+            # logger.error('{} Множество экземпляров персонала возвращено!'.format(request.user))
+            # client.captureException()
+            # return JsonResponse(data)
+
+            # Hotfix
+            delivery_order = DeliveryOrder.objects.filter(order=order_info)
+            delivery_order = delivery_order[0]
 
     result = define_service_point(device_ip)
     if result['success']:
