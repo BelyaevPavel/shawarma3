@@ -2243,10 +2243,19 @@ def s_i_a(request):
 
         result = define_service_point(device_ip)
         if result['success']:
-            open_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                               with_shashlyk=True, is_canceled=False,
-                                               is_grilling_shash=True, is_ready=False,
-                                               servery__service_point=result['service_point']).order_by('open_time')
+            regular_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                                  with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
+                                                  is_ready=False,
+                                                  servery__service_point=result['service_point'],
+                                                  is_delivery=False).order_by('open_time')
+            today_delivery_orders = Order.objects.filter(is_delivery=True,
+                                                         deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                         close_time__isnull=True,
+                                                         with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
+                                                         is_ready=False,
+                                                         servery__service_point=result['service_point']).order_by(
+                'open_time')
+            open_orders = regular_orders | today_delivery_orders
             context = {
                 'open_orders': [{'order': open_order,
                                  'shashlychnik_part': OrderContent.objects.filter(order=open_order).filter(
