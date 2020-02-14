@@ -1831,13 +1831,27 @@ def cook_interface(request):
         #     staff.save()
         context = None
         taken_order_content = None
-        new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
-                                         open_time__contains=datetime.date.today(), is_canceled=False,
-                                         content_completed=False, is_grilling=False, start_shawarma_cooking=True,
-                                         close_time__isnull=True).order_by('open_time')
-        other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_cooking=True,
-                                            open_time__contains=datetime.date.today(), is_canceled=False,
-                                            close_time__isnull=True).order_by('open_time')
+        regular_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+                                                 open_time__contains=datetime.date.today(),
+                                                 is_canceled=False, content_completed=False, is_grilling=False,
+                                                 start_shawarma_cooking=True, close_time__isnull=True).order_by(
+            'open_time')
+        today_delivery_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+                                                        deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                        is_canceled=False, content_completed=False, is_grilling=False,
+                                                        start_shawarma_cooking=True, close_time__isnull=True).order_by(
+            'open_time')
+        new_order = regular_new_order | today_delivery_new_order
+        regular_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+                                                    start_shawarma_cooking=True,
+                                                    open_time__contains=datetime.date.today(), is_canceled=False,
+                                                    close_time__isnull=True).order_by('open_time')
+        today_delivery_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+                                                           start_shawarma_cooking=True,
+                                                           deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                           is_canceled=False,
+                                                           close_time__isnull=True).order_by('open_time')
+        other_orders = regular_other_orders | today_delivery_other_orders
         has_order = False
         display_number = ''
         if len(new_order) > 0:
@@ -1971,16 +1985,38 @@ def c_i_a(request):
         #     staff.save()
         context = None
         taken_order_content = None
-        other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_preparation=True,
-                                            open_time__contains=datetime.date.today(),
-                                            is_canceled=False, close_time__isnull=True).filter(
+
+        regular_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+                                                    start_shawarma_cooking=True, is_delivery=False,
+                                                    open_time__contains=datetime.date.today(), is_canceled=False,
+                                                    close_time__isnull=True).order_by('open_time')
+        today_delivery_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, is_delivery=True,
+                                                           deliveryorder__delivered_timepoint__contains=datetime.date.today(),
+                                                           is_canceled=False,
+                                                           close_time__isnull=True).filter(
             Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
+        other_orders = regular_other_orders | today_delivery_other_orders
+        # other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_preparation=True,
+        #                                     open_time__contains=datetime.date.today(),
+        #                                     is_canceled=False, close_time__isnull=True).filter(
+        #     Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         try:
-            new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
-                                             open_time__contains=datetime.date.today(),
-                                             is_canceled=False, content_completed=False, is_grilling=False,
-                                             close_time__isnull=True).filter(
+            regular_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+                                                     open_time__contains=datetime.date.today(), is_delivery=False,
+                                                     is_canceled=False, content_completed=False, is_grilling=False,
+                                                     start_shawarma_cooking=True, close_time__isnull=True).order_by(
+                'open_time')
+            today_delivery_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False, is_delivery=True,
+                                                            deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                            is_canceled=False, content_completed=False, is_grilling=False,
+                                                            close_time__isnull=True).filter(
                 Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
+            new_order = regular_new_order | today_delivery_new_order
+            # new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+            #                                  open_time__contains=datetime.date.today(),
+            #                                  is_canceled=False, content_completed=False, is_grilling=False,
+            #                                  close_time__isnull=True).filter(
+            #     Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         except:
             data = {
                 'success': False,
