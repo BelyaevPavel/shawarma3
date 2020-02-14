@@ -1406,9 +1406,15 @@ def current_queue_ajax(request):
 
     result = define_service_point(device_ip)
     if result['success']:
-        current_day_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                                  is_canceled=False, is_ready=False,
-                                                  servery__service_point=result['service_point']).order_by('open_time')
+        regular_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
+                                              is_canceled=False, is_delivery=False,
+                                              is_ready=False, servery__service_point=result['service_point']).order_by(
+            'open_time')
+        today_delivery_orders = Order.objects.filter(is_delivery=True, close_time__isnull=True, is_canceled=False,
+                                                     is_ready=False, servery__service_point=result['service_point'],
+                                                     deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date()).order_by(
+            'open_time')
+        current_day_orders = regular_orders | today_delivery_orders
         serveries = Servery.objects.filter(service_point=result['service_point'])
         serveries_dict = {}
         for servery in serveries:
@@ -1416,6 +1422,7 @@ def current_queue_ajax(request):
             if request.COOKIES.get('servery_{}'.format(servery.id), 'True') == 'False':
                 serveries_dict['{}'.format(servery.id)] = False
         try:
+            # TODO: Check if folowing is ever needed
             if paid_filter:
                 if not_paid_filter:
                     if shawarma_filter:
@@ -2006,9 +2013,11 @@ def c_i_a(request):
                                                      is_canceled=False, content_completed=False, is_grilling=False,
                                                      start_shawarma_cooking=True, close_time__isnull=True).order_by(
                 'open_time')
-            today_delivery_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False, is_delivery=True,
+            today_delivery_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
+                                                            is_delivery=True,
                                                             deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
-                                                            is_canceled=False, content_completed=False, is_grilling=False,
+                                                            is_canceled=False, content_completed=False,
+                                                            is_grilling=False,
                                                             close_time__isnull=True).filter(
                 Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
             new_order = regular_new_order | today_delivery_new_order
