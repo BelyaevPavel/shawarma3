@@ -279,10 +279,10 @@ class DeliveryOrder(models.Model):
                             verbose_name="комментарий")
 
     def __str__(self):
-        return u"№{} {} {}".format(self.daily_number, self.delivery, self.order)
+        return u"№{} {} {}".format(self.daily_number, self.customer.phone_number, self.order)
 
     def __unicode__(self):
-        return "№{} {} {}".format(self.daily_number, self.delivery, self.order)
+        return "№{} {} {}".format(self.daily_number, self.customer.phone_number, self.order)
 
     def get_absolute_url(self):
         return reverse('delivery-order-list')  # , kwargs={'pk': self.pk}
