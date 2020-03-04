@@ -4,24 +4,38 @@
          onclick="CreateDeliveryOrder({{ delivery_order.order.pk }},{{ delivery_order.order.customer.pk }})">Заказ
         №{{ delivery_order.order.daily_number }}/{{ delivery_order.order.order.daily_number }}
         {% if delivery_order.show_date %}{{ delivery_order.order.obtain_timepoint|date:"SHORT_DATE_FORMAT" }}
-            - {{ delivery_order.order.delivered_timepoint|date:"SHORT_DATE_FORMAT" }}{% endif %} {% if delivery_order.order.order.with_shawarma %} <div class="shawarma-indicator {% if delivery_order.order.order.content_completed %}
+            - {{ delivery_order.order.delivered_timepoint|date:"SHORT_DATE_FORMAT" }}{% endif %}
+        {% if delivery_order.order.order.with_shawarma %}
+            <div class="shawarma-indicator {% if delivery_order.order.order.content_completed %}
                                                 ready
                                         {% else %}
-                                            {% if delivery_order.order.order.is_grilling  %}
+                                            {% if delivery_order.order.order.is_grilling %}
                                                 inGrill
                                             {% endif %}
-                                        {% endif %}" title="Индикатор готовности шаурмы {% if delivery_order.order.order.content_completed %}: Готово{% else %}{% if delivery_order.order.order.is_grilling  %}: Жарится{% endif %}{% endif %}"></div>{% endif %}  {% if delivery_order.order.order.with_shashlyk %}<div class="shashlyk-indicator {% if delivery_order.order.order.shashlyk_completed %}
+                                        {% endif %}"
+                 title="Индикатор готовности шаурмы {% if delivery_order.order.order.content_completed %}: Готово
+
+
+                     {% else %}{% if delivery_order.order.order.is_grilling %}: Жарится{% endif %}{% endif %}"></div>{% endif %}
+        {% if delivery_order.order.order.with_shashlyk %}
+            <div class="shashlyk-indicator {% if delivery_order.order.order.shashlyk_completed %}
                                                 ready
                                         {% else %}
                                             {% if delivery_order.order.order.is_grilling_shash %}
                                                 inGrill
                                             {% endif %}
-                                        {% endif %}" title="Индикатор готовности шашлыка {% if delivery_order.order.order.shashlyk_completed %}: Готово{% else %}{% if delivery_order.order.order.is_grilling_shash %}: Жарится{% endif %}{% endif %}"></div>{% endif %}</div>
-<div onclick="window.open(&quot{% url 'order_content' delivery_order.order.order.id %}&quot,&quot mywindow&quot);" style="cursor: pointer;">
-    <div class="delivery-block-content">Рейс: {{ delivery_order.order.delivery }}</div>
-    <div class="delivery-block-content">Адрес: {{ delivery_order.order.address }}</div>
-    <div class="delivery-block-content">Время: {{ delivery_order.order.delivered_timepoint|time:"H:i" }}</div>
-</div>
+                                        {% endif %}"
+                 title="Индикатор готовности шашлыка {% if delivery_order.order.order.shashlyk_completed %}: Готово
+
+
+                     {% else %}{% if delivery_order.order.order.is_grilling_shash %}: Жарится{% endif %}{% endif %}"></div>{% endif %}
+    </div>
+    <div onclick="window.open(&quot{% url 'order_content' delivery_order.order.order.id %}&quot,&quot mywindow&quot);"
+         style="cursor: pointer;">
+        <div class="delivery-block-content">Рейс: {{ delivery_order.order.delivery }}</div>
+        <div class="delivery-block-content">Адрес: {{ delivery_order.order.address }}</div>
+        <div class="delivery-block-content">Время: {{ delivery_order.order.delivered_timepoint|time:"H:i" }}</div>
+    </div>
     <div class="delivery-block-actions">
         <button class="small-btn success" title="Закончить заказ"
                 {% if not delivery_order.order.order.content_completed or not delivery_order.order.order.shashlyk_completed %}
@@ -52,9 +66,9 @@
                         {% endif %}
                     </button>
                     <div class="dropdown-content">
-		    <a href="{% url 'order_content' delivery_order.order.order.id %}" target="_blank">
-			Подробности
-                    </a>
+                        <a href="{% url 'order_content' delivery_order.order.order.id %}" target="_blank">
+                            Подробности
+                        </a>
                         <a onclick="PrintDeliveryOrder({{ delivery_order.order.id }})">
                             Печать
                         </a>
@@ -65,8 +79,8 @@
                     Готовить
                 </button>
                 <div class="dropdown-content">
-		<a href="{% url 'order_content' delivery_order.order.order.id %}" target="_blank">
-			Подробности
+                    <a href="{% url 'order_content' delivery_order.order.order.id %}" target="_blank">
+                        Подробности
                     </a>
                     <a onclick="PrintDeliveryOrder({{ delivery_order.order.id }})">
                         Печать
@@ -78,31 +92,43 @@
                                 Сменить повара
                             </a>
                             {% if delivery_order.order.order.with_shawarma %}
-                                {% if delivery_order.order.order.start_shawarma_preparation %}
-                                    <p>Шаурма:</p>
-                                    <a onclick="StartShawarmaCooking({{ delivery_order.order.order.pk }})">
-                                        Начать готовить шаурму
-                                    </a>
-                                {% else %}
-                                    <p>Шаурма:</p>
-                                    <a onclick="StartShawarmaPreparation({{ delivery_order.order.order.pk }})">
-                                        Начать собирать шаурму
-                                    </a>
+                                {% if not delivery_order.order.order.start_shawarma_cooking %}
+                                    {% if delivery_order.order.order.start_shawarma_preparation %}
+                                        <p>Шаурма:</p>
+                                        <a onclick="StartShawarmaCooking({{ delivery_order.order.order.pk }})">
+                                            Начать готовить шаурму
+                                        </a>
+                                    {% else %}
+                                        <p>Шаурма:</p>
+                                        <a onclick="StartShawarmaPreparation({{ delivery_order.order.order.pk }})">
+                                            Начать собирать шаурму
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
                             {% endif %}
                         {% endif %}
                     {% else %}
+                        {% if delivery_order.available_cooks|length_is:"1" %}
+                            {% for available_cook in delivery_order.available_cooks %}
+                                <a onclick="StartAllCooking({{ available_cook.pk }}, {{ delivery_order.order.pk }},{{ delivery_order.order.order.pk }})"
+                                   title="Заказ будет назначен повару {{ available_cook }}">
+                                    Готовить всё
+                                </a>
+                            {% empty %}
+                                Нет доступных поваров.
+                            {% endfor %}
+                        {% endif %}
 
-                            {% if delivery_order.order.order.with_shawarma %}
-                        <p>Повара:</p>
-                        {% for available_cook in delivery_order.available_cooks %}
-                            <a onclick="SelectCook({{ available_cook.pk }}, {{ delivery_order.order.pk }})"
-                               title="Назначить заказ повару {{ available_cook }}">
-                                {{ available_cook }}
-                            </a>
-                        {% empty %}
-                            Нет доступных поваров.
-                        {% endfor %}
+                        {% if delivery_order.order.order.with_shawarma %}
+                            <p>Повара:</p>
+                            {% for available_cook in delivery_order.available_cooks %}
+                                <a onclick="SelectCook({{ available_cook.pk }}, {{ delivery_order.order.pk }})"
+                                   title="Назначить заказ повару {{ available_cook }}">
+                                    {{ available_cook }}
+                                </a>
+                            {% empty %}
+                                Нет доступных поваров.
+                            {% endfor %}
                         {% endif %}
                     {% endif %}
                     {% if delivery_order.order.order.with_shashlyk and not delivery_order.order.order.shashlyk_completed %}

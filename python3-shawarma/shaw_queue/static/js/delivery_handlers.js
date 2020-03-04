@@ -415,13 +415,13 @@ function CreateIncomingCall() {
                     modal_delivery_order_is_opened = true;
                     OverrideIncomingCallSubmition();
 
-                // Get the <span> element that closes the modal
-                var closeMenuSpan = document.getElementById("close-modal-delivery-order");
+                    // Get the <span> element that closes the modal
+                    var closeMenuSpan = document.getElementById("close-modal-delivery-order");
 
-                // When the user clicks on <span> (x), close the modal
-                closeMenuSpan.onclick = function () {
-                    HideDeliveryOrder();
-                };
+                    // When the user clicks on <span> (x), close the modal
+                    closeMenuSpan.onclick = function () {
+                        HideDeliveryOrder();
+                    };
                 }
                 else {
                     alert(data['message']);
@@ -694,11 +694,26 @@ function ChangeCook(DeliveryOrderPK) {
                 else {
                     alert(data['message']);
                 }
+                location.reload();
             }
         }
     ).fail(function () {
         console.log('Failed ' + aux);
     });
+}
+
+
+function StartAllCooking(CookPK, DeliveryOrderPK, OrderPK) {
+    $.when(SelectCook(CookPK, DeliveryOrderPK)).done(function () {
+        $.when(StartShawarmaPreparation(OrderPK)).done(function () {
+            $.when(StartShawarmaCooking(OrderPK)).done(function () {
+                StartShashlykCooking(OrderPK);
+            })
+        })
+    });
+    // StartShawarmaPreparation(OrderPK);
+    // StartShawarmaCooking(OrderPK);
+    // StartShashlykCooking(OrderPK);
 }
 
 
@@ -708,7 +723,7 @@ function SelectCook(CookPK, DeliveryOrderPK) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
         }
     });
-    $.ajax({
+    return $.ajax({
             type: 'POST',
             url: $('#delivery-urls').attr('select-cook-url'),
             data: {"cook_pk": CookPK, "delivery_order_pk": DeliveryOrderPK},
@@ -734,7 +749,7 @@ function StartShawarmaCooking(OrderPK) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
         }
     });
-    $.ajax({
+    return $.ajax({
             type: 'POST',
             url: $('#delivery-urls').attr('start-shawarma-cooking-url'),
             data: {"order_pk": OrderPK},
@@ -760,7 +775,7 @@ function StartShawarmaPreparation(OrderPK) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
         }
     });
-    $.ajax({
+    return $.ajax({
             type: 'POST',
             url: $('#delivery-urls').attr('start-shawarma-preparation-url'),
             data: {"order_pk": OrderPK},
@@ -791,7 +806,7 @@ function StartShashlykCooking(OrderPK) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken)
         }
     });
-    $.ajax({
+    return $.ajax({
             type: 'POST',
             url: $('#delivery-urls').attr('start-shashlyk-cooking-url'),
             data: {"order_pk": OrderPK},
@@ -967,30 +982,30 @@ function DeliverDeliveryOrder(DeliveryOrderPK) {
 }
 
 function CancelDeliveryOrder(DeliveryOrderPK) {
-        if (confirm("Вы отменяете заказ! Продолжить?")) {
-    $.ajaxSetup({
-        beforeSend: function (xhr, settings) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken)
-        }
-    });
-    $.ajax({
-            type: 'POST',
-            url: $('#delivery-urls').attr('cancel-delivery-order-url'),
-            data: {"delivery_order_pk": DeliveryOrderPK},
-            dataType: 'json',
-            success: function (data) {
-                if (data['success']) {
-                    alert(data['message']);
-                }
-                else {
-                    alert(data['message']);
+    if (confirm("Вы отменяете заказ! Продолжить?")) {
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken)
+            }
+        });
+        $.ajax({
+                type: 'POST',
+                url: $('#delivery-urls').attr('cancel-delivery-order-url'),
+                data: {"delivery_order_pk": DeliveryOrderPK},
+                dataType: 'json',
+                success: function (data) {
+                    if (data['success']) {
+                        alert(data['message']);
+                    }
+                    else {
+                        alert(data['message']);
+                    }
                 }
             }
-        }
-    ).fail(function () {
-        console.log('Failed ' + aux);
-    });
-}
+        ).fail(function () {
+            console.log('Failed ' + aux);
+        });
+    }
 }
 
 function StartDelivery(DeliveryPk) {
