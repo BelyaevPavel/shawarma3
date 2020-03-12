@@ -289,8 +289,10 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                                 ));
 
                             var content =
-                                '<a href="http://maps.yandex.ru/?text=' + lat + ',' + lon +
-                                '" data-ref="geo-link" target="_blank">Расстояние: ' + distance.toFixed(0) + ' км</a>';
+                                '<a href="http://maps.yandex.ru/?rtext='+ base_lat + ',' + base_lon + '~'
+                                + lat + ',' + lon + '&rtt=auto " data-ref="geo-link" target="_blank">Расстояние: ' + distance.toFixed(0) + ' км</a>';
+                                //'<a href="http://maps.yandex.ru/?text=' + lat + ',' + lon +
+                                //'" data-ref="geo-link" target="_blank">Расстояние: ' + distance.toFixed(0) + ' км</a>';
 
                             console.log(suggestion.data.qc_geo);
                             // switch (suggestion.data.qc_geo) {
