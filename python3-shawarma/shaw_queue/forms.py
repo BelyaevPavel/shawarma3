@@ -3,7 +3,7 @@ from django.contrib.admin import widgets
 from django.utils import timezone
 import datetime
 
-from .models import Order, OrderContent, Staff, Delivery, StaffCategory, DeliveryOrder, Customer
+from .models import Customer, Delivery, DeliveryOrder, Order, OrderContent, ServicePoint, Staff, StaffCategory
 
 
 class OrderForm(forms.ModelForm):
@@ -70,6 +70,10 @@ class DeliveryOrderForm(forms.ModelForm):
     delivery = forms.ModelChoiceField(
         queryset=Delivery.objects.filter(creation_timepoint__contains=timezone.datetime.today),
         empty_label="Без доставки.", required=False)
+    service_point = forms.ModelChoiceField(queryset=ServicePoint.objects.all(), required=True, label="Точка",
+                                           empty_label=None)
+    field_order = ['delivery', 'service_point', 'address', 'obtain_timepoint', 'delivered_timepoint',
+                   'preparation_duration', 'delivery_duration']
 
     def __init__(self, *args, **kwargs):
         super(DeliveryOrderForm, self).__init__(*args, **kwargs)

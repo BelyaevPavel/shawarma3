@@ -17,6 +17,7 @@ var modal_menu_is_opened = false;
 var modal_menu_container = $('#modal-menu');
 var modal_delivery_order_container = $('#modal-delivery-order');
 var modal_delivery_order_content;
+var last_suggestion = null;
 
 $(document).ready(function () {
     interface_button.addClass('header-active');
@@ -271,62 +272,14 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                         token: data['token'],
                         type: "ADDRESS",
                         /* Вызывается, когда пользователь выбирает одну из подсказок */
-                        onSelect: function (suggestion) {
-                            console.log(suggestion);
-
-                            var lat = suggestion.data.geo_lat;
-                            var lon = suggestion.data.geo_lon;
-
-                            var R = 6371210;
-                            var base_lat = 55.196829;
-                            var base_lon = 61.395762;
-
-                            var distance = 6371 * 2 * Math.asin(Math.sqrt(
-                                    Math.pow(Math.sin((base_lat - Math.abs(lat)) * Math.PI / 180 / 2), 2) +
-                                    Math.cos(base_lat * Math.PI / 180) *
-                                    Math.cos(Math.abs(lat) * Math.PI / 180) *
-                                    Math.pow(Math.sin((base_lon - lon) * Math.PI / 180 / 2), 2)
-                                ));
-
-                            var content =
-                                '<a href="http://maps.yandex.ru/?rtext='+ base_lat + ',' + base_lon + '~'
-                                + lat + ',' + lon + '&rtt=auto " data-ref="geo-link" target="_blank">Расстояние: ' + distance.toFixed(0) + ' км</a>';
-                                //'<a href="http://maps.yandex.ru/?text=' + lat + ',' + lon +
-                                //'" data-ref="geo-link" target="_blank">Расстояние: ' + distance.toFixed(0) + ' км</a>';
-
-                            console.log(suggestion.data.qc_geo);
-                            // switch (suggestion.data.qc_geo) {
-                            //     case '0':
-                            //         content += ' (Точные координаты)';
-                            //         break;
-                            //     case '1':
-                            //         content += ' (Найен только ближайший дом)';
-                            //         break;
-                            //     case '2':
-                            //         content += ' (Найдена только улица)';
-                            //         break;
-                            //     case '3':
-                            //         content += ' (Найден только населенный пункт)';
-                            //         break;
-                            //     case '4':
-                            //         content += ' (Найден только город)';
-                            //         break;
-                            //     case '5':
-                            //         content += ' (Координаты не определены)';
-                            //         break;
-                            //     default:
-                            //         content = 'Что-то пошло не так!';
-                            // }
-
-                            document.getElementById('coordinates').innerHTML = content;
-                            //console.log("Geo "+content);
-
-                        }
+                        onSelect: GetSuggestion
                     });
 
                     $('#id_address').on('click', function () {
                         $(this).select();
                     });
+
+                    $('#id_service_point').on('change', UpdateDistanceTip);
 
                     OverrideDeliveryOrderSubmition();
                     CheckOrderIdPresence();
@@ -341,6 +294,71 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
     ).fail(function () {
         alert('Необработанное исключение!');
     });
+}
+
+function SetDistanceTip(suggestion) {
+    var lat = suggestion.data.geo_lat;
+    var lon = suggestion.data.geo_lon;
+
+    var R = 6371210;
+    // var base_lat = 55.196829;
+    // var base_lon = 61.395762;
+    var coordinates = $('input[service_point_id=' + $('#id_service_point').val() + ']');
+    var base_lat = parseFloat(coordinates.attr('latitude').replace(',', '.'));
+    var base_lon = parseFloat(coordinates.attr('longitude').replace(',', '.'));
+
+    var distance = 6371 * 2 * Math.asin(Math.sqrt(
+            Math.pow(Math.sin((base_lat - Math.abs(lat)) * Math.PI / 180 / 2), 2) +
+            Math.cos(base_lat * Math.PI / 180) *
+            Math.cos(Math.abs(lat) * Math.PI / 180) *
+            Math.pow(Math.sin((base_lon - lon) * Math.PI / 180 / 2), 2)
+        ));
+
+    var content =
+        '<a href="http://maps.yandex.ru/?rtext=' + base_lat + ',' + base_lon + '~'
+        + lat + ',' + lon + '&rtt=auto " data-ref="geo-link" target="_blank">Расстояние: ' + distance.toFixed(0) + ' км</a>';
+    //'<a href="http://maps.yandex.ru/?text=' + lat + ',' + lon +
+    //'" data-ref="geo-link" target="_blank">Расстояние: ' + distance.toFixed(0) + ' км</a>';
+
+    console.log(suggestion.data.qc_geo);
+    // switch (suggestion.data.qc_geo) {
+    //     case '0':
+    //         content += ' (Точные координаты)';
+    //         break;
+    //     case '1':
+    //         content += ' (Найен только ближайший дом)';
+    //         break;
+    //     case '2':
+    //         content += ' (Найдена только улица)';
+    //         break;
+    //     case '3':
+    //         content += ' (Найден только населенный пункт)';
+    //         break;
+    //     case '4':
+    //         content += ' (Найден только город)';
+    //         break;
+    //     case '5':
+    //         content += ' (Координаты не определены)';
+    //         break;
+    //     default:
+    //         content = 'Что-то пошло не так!';
+    // }
+
+    document.getElementById('coordinates').innerHTML = content;
+}
+
+
+function GetSuggestion(suggestion) {
+    console.log(suggestion);
+    last_suggestion = suggestion;
+    SetDistanceTip(suggestion);
+    //console.log("Geo "+content);
+}
+
+
+function UpdateDistanceTip() {
+    if (last_suggestion != null)
+        SetDistanceTip(last_suggestion);
 }
 
 
@@ -798,7 +816,7 @@ function StartShawarmaPreparation(OrderPK) {
 
 
 function SetAddressFieldValue(AddressString) {
-    $('#id_address').val(AddressString);
+    $('#id_address').val($('input[service_point_id=' + $('#id_service_point').val() + ']').attr('address'));
 }
 
 

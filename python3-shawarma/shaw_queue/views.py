@@ -235,6 +235,15 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
         for field in context['form'].fields:
             context['form'].fields[field].widget.attrs['class'] = 'form-control'
             print(context['form'].fields[field].widget.attrs)
+
+        service_points = ServicePoint.objects.all()
+        context['coordinates'] = [{
+                                      'service_point_id': service_point.id,
+                                      'latitude': service_point.latitude,
+                                      'longitude': service_point.longitude,
+                                      'address': service_point.title
+                                  } for service_point in service_points]
+
         data = {
             'success': True,
             'html': template.render(context, request),

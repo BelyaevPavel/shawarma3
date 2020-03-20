@@ -18,8 +18,8 @@ class MenuCategory(models.Model):
     def __str__(self):
         return u"{}".format(self.title)
 
-    # def __unicode__(self):
-    #     return "{}".format(self.title)
+        # def __unicode__(self):
+        #     return "{}".format(self.title)
 
 
 class StaffCategory(models.Model):
@@ -28,19 +28,42 @@ class StaffCategory(models.Model):
     def __str__(self):
         return u"{}".format(self.title)
 
-    # def __unicode__(self):
-    #     return "{}".format(self.title)
+        # def __unicode__(self):
+        #     return "{}".format(self.title)
 
 
 class ServicePoint(models.Model):
     title = models.CharField(max_length=100, default="")
     subnetwork = models.CharField(max_length=10, default="")
+    latitude = models.FloatField(verbose_name="Широта", default=55.196829, blank=False, null=False)
+    longitude = models.FloatField(verbose_name="Долгота", default=61.395762, blank=False, null=False)
 
     def __str__(self):
         return u"{}".format(self.title)
 
     def __unicode__(self):
         return "{}".format(self.title)
+
+
+class ServiceAreaPolygon(models.Model):
+    service_point = models.ForeignKey(ServicePoint, on_delete=models.CASCADE)
+    title = models.CharField(verbose_name="Название", max_length=25, default="Полигон", blank=False, null=False)
+    note = models.CharField(verbose_name="Описание", max_length=200, blank=True)
+
+    def __str__(self):
+        return u"[{}] {}".format(self.service_point, self.title)
+
+
+class ServiceAreaPolyCoord(models.Model):
+    polygon = models.ForeignKey(ServiceAreaPolygon, on_delete=models.CASCADE)
+    point_order = models.IntegerField(verbose_name="Порядок вершины",
+                                      help_text="Вершины полигона должны быть перечислены в порядке правого обхода ("
+                                                "по часовой стрелке).")
+    latitude = models.FloatField(verbose_name="Широта", blank=False, null=False)
+    longitude = models.FloatField(verbose_name="Долгота", blank=False, null=False)
+
+    def __str__(self):
+        return u"[{}] {}({} {})".format(self.polygon, self.point_order, self.longitude, self.latitude)
 
 
 class Staff(models.Model):
@@ -252,6 +275,7 @@ class Delivery(models.Model):
 def limit_order_choises_by_date():
     return {'open_time__gte': (timezone.now() - datetime.timedelta(days=2)).date()}
 
+
 class DeliveryOrder(models.Model):
     CASH_PAYMENT = "CSH"
     CASHLESS_PAYMENT = "CLS"
@@ -260,12 +284,14 @@ class DeliveryOrder(models.Model):
         (CASH_PAYMENT, 'Наличные'),
         (CASHLESS_PAYMENT, 'Безнал'),
         (MIXED_PAYMENT, 'Смешанная')]
-    prefered_payment = models.CharField(max_length=3, choices=PAYMENT_CHOISES, default=CASH_PAYMENT, verbose_name="Вид оплаты")
+    prefered_payment = models.CharField(max_length=3, choices=PAYMENT_CHOISES, default=CASH_PAYMENT,
+                                        verbose_name="Вид оплаты")
     delivery = models.ForeignKey(Delivery, null=True, blank=True, verbose_name="доставка")
-    daily_number = models.IntegerField(verbose_name="номер за день")#, unique_for_date='obtain_timepoint'
+    daily_number = models.IntegerField(verbose_name="номер за день")  # , unique_for_date='obtain_timepoint'
     is_ready = models.BooleanField(default=False, verbose_name="готов к отправке")
     is_delivered = models.BooleanField(default=False, verbose_name="доставлен")
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="включеный заказ", limit_choices_to=limit_order_choises_by_date)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="включеный заказ",
+                              limit_choices_to=limit_order_choises_by_date)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="клиент")
     address = models.CharField(max_length=250, default="Не указан", verbose_name="адрес")
     obtain_timepoint = models.DateTimeField(blank=True, null=True, verbose_name="время получения заказа")
