@@ -14,6 +14,7 @@ class MenuCategory(models.Model):
     eng_title = models.CharField(max_length=20)
     weight = models.IntegerField(verbose_name="Weight", default=0)
     hidden = models.BooleanField(default="False")
+    customer_appropriate = models.BooleanField(verbose_name="Подходит для демонстрации покупателю", default=False)
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -90,6 +91,7 @@ class Menu(models.Model):
     guid_1c = models.CharField(max_length=100, default="")
     category = models.ForeignKey(MenuCategory)
     is_by_weight = models.BooleanField(verbose_name="На развес", default=False)
+    customer_appropriate = models.BooleanField(verbose_name="Подходит для демонстрации покупателю", default=False)
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -303,6 +305,7 @@ class DeliveryOrder(models.Model):
                                              verbose_name="продолжительность доставки")
     note = models.CharField(max_length=250, null=True, blank=True, help_text="Введите комментарий к заказу.",
                             verbose_name="комментарий")
+    moderation_needed = models.BooleanField(default=False, verbose_name="требуется модерация")
 
     def __str__(self):
         return u"№{} {} {}".format(self.daily_number, self.customer.phone_number, self.order)

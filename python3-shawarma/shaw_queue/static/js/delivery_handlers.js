@@ -378,6 +378,7 @@ function SendDeliveryOrder() {
         'delivery_duration': $('#id_delivery_duration').val(),
         'note': $('#id_note').val(),
         'prefered_payment': $('#id_prefered_payment').val(),
+        'service_point': $('#id_service_point').val(),
     };
     if (pk)
         form_data['delivery_order_pk'] = pk;

@@ -274,39 +274,40 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
         sellpointAddress = ''
         if result['success']:
             sellpointAddress = result['service_point'].title
+        else:
+            return JsonResponse(result)
         if delivery_order_pk is not None:
             form = DeliveryOrderForm(request.POST, instance=DeliveryOrder.objects.get(pk=delivery_order_pk))
         else:
             form = DeliveryOrderForm(request.POST)
 
             # order_last_daily_number=0
-
-            if result['success']:
-                try:
-                    order_last_daily_number = DeliveryOrder.objects.filter(
-                        obtain_timepoint__contains=timezone.datetime.today().date(),
-                        order__servery__service_point=result['service_point']).aggregate(Max('daily_number'))
-                except EmptyResultSet:
-                    data = {
-                        'success': False,
-                        'message': 'Empty set of orders returned!'
-                    }
-                    client.captureException()
-                    return JsonResponse(data)
-            else:
-                return JsonResponse(result)
+            try:
+                order_last_daily_number = DeliveryOrder.objects.filter(
+                    obtain_timepoint__contains=timezone.datetime.today().date(),
+                    order__servery__service_point=result['service_point']).aggregate(Max('daily_number'))
+            except EmptyResultSet:
+                data = {
+                    'success': False,
+                    'message': 'Empty set of orders returned!'
+                }
+                client.captureException()
+                return JsonResponse(data)
 
             if order_last_daily_number:
                 if order_last_daily_number['daily_number__max'] is not None:
                     daily_number = order_last_daily_number['daily_number__max'] + 1
                 else:
                     daily_number = 1
+
                     # print("form.is_valid() = {}".format(form.is_valid()))
         if form.is_valid():
             cleaned_data = form.cleaned_data
             print("Cleaned data: {}".format(cleaned_data))
             delivery_order = form.save(commit=False)
+
             delivery_order.daily_number = daily_number
+            delivery_order.moderation_needed = False
             delivery_order.save()
 
             print("Is valid.")
@@ -3356,7 +3357,6 @@ def cooks_content_info_ajax(request):
 def make_order(request):
     order_id = request.POST.get('order_id', None)
     delivery_order_pk = request.POST.get('delivery_order_pk', None)
-    file = open('log/cook_choose.log', 'a')
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         servery_ip = '127.0.0.1'
@@ -3364,6 +3364,15 @@ def make_order(request):
     content = json.loads(request.POST['order_content'])
     payment = request.POST['payment']
     cook_choose = request.POST['cook_choose']
+
+    is_paid = False
+    paid_with_cash = False
+    if payment != 'not_paid':
+        if payment == 'paid_with_cash':
+            paid_with_cash = True
+            is_paid = True
+        else:
+            is_paid = True
 
     if len(content) == 0:
         data = {
@@ -3391,42 +3400,40 @@ def make_order(request):
 
     order_next_number = 0
     if result['success']:
-        try:
-            order_last_daily_number = Order.objects.filter(open_time__contains=datetime.date.today(),
-                                                           servery__service_point=result['service_point']).aggregate(
-                Max('daily_number'))
-        except EmptyResultSet:
-            data = {
-                'success': False,
-                'message': 'Empty set of orders returned!'
-            }
-            client.captureException()
-            return JsonResponse(data)
-        except:
-            data = {
-                'success': False,
-                'message': 'Something wrong happened while getting set of orders!'
-            }
-            client.captureException()
-            return JsonResponse(data)
+        service_point = result['service_point']
+        return JsonResponse(data=make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash,
+                                                 servery, service_point))
     else:
         return JsonResponse(result)
 
+
+def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, servery,
+                    service_point):
+    file = open('log/cook_choose.log', 'a')
+    try:
+        order_last_daily_number = Order.objects.filter(open_time__contains=timezone.datetime.today(),
+                                                       servery__service_point=service_point).aggregate(
+            Max('daily_number'))
+    except EmptyResultSet:
+        data = {
+            'success': False,
+            'message': 'Empty set of orders returned!'
+        }
+        client.captureException()
+        return data
+    except:
+        data = {
+            'success': False,
+            'message': 'Something wrong happened while getting set of orders!'
+        }
+        client.captureException()
+        return data
+    order_next_number = 0
     if order_last_daily_number:
         if order_last_daily_number['daily_number__max'] is not None:
             order_next_number = order_last_daily_number['daily_number__max'] + 1
         else:
             order_next_number = 1
-
-    is_paid = False
-    paid_with_cash = False
-    if payment != 'not_paid':
-        if payment == 'paid_with_cash':
-            paid_with_cash = True
-            is_paid = True
-        else:
-            is_paid = True
-
     try:
         if order_id:
             order = Order.objects.get(id=order_id)
@@ -3434,7 +3441,7 @@ def make_order(request):
             order.is_paid = is_paid
             order.paid_with_cash = paid_with_cash
         else:
-            order = Order(open_time=datetime.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
+            order = Order(open_time=timezone.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
                           paid_with_cash=paid_with_cash, status_1c=0)
     except:
         data = {
@@ -3442,48 +3449,42 @@ def make_order(request):
             'message': 'Something wrong happened while creating new order!'
         }
         client.captureException()
-        return JsonResponse(data)
+        return data
 
     # cooks = Staff.objects.filter(user__last_login__contains=datetime.date.today(), staff_category__title__iexact='Cook')
     data = {
         "daily_number": order.daily_number,
         "display_number": order.daily_number % 100
     }
-
     has_cook_content = False
     for item in content:
         menu_item = Menu.objects.get(id=item['id'])
         if menu_item.can_be_prepared_by.title == 'Cook':
             has_cook_content = True
-
     if has_cook_content and cook_choose != 'delivery':
         try:
-            if result['success']:
-                cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
-                                             service_point=result['service_point'])
-                cooks = sample(list(cooks), len(cooks))
-            else:
-                return JsonResponse(result)
+            cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                         service_point=service_point)
+            cooks = sample(list(cooks), len(cooks))
         except:
             data = {
                 'success': False,
                 'message': 'Something wrong happened while getting set of cooks!'
             }
             client.captureException()
-            return JsonResponse(data)
+            return data
 
         if len(cooks) == 0:
             data = {
                 'success': False,
                 'message': 'Нет доступных поваров!'
             }
-            return JsonResponse(data)
-
+            return data
     if has_cook_content and cook_choose != 'delivery':
         if cook_choose == 'auto':
             min_index = 0
             min_count = 100
-            file.write("Заказ №{}\n".format(order.daily_number))
+            # file.write("Заказ №{}\n".format(order.daily_number))
             for cook_index in range(0, len(cooks)):
                 try:
                     cooks_order_content = OrderContent.objects.filter(order__prepared_by=cooks[cook_index],
@@ -3497,7 +3498,7 @@ def make_order(request):
                         'success': False,
                         'message': 'Something wrong happened while getting cook\'s content!'
                     }
-                    return JsonResponse(data)
+                    return data
 
                 file.write("{}: {}\n".format(cooks[cook_index], len(cooks_order_content)))
 
@@ -3516,20 +3517,18 @@ def make_order(request):
                     'message': 'Multiple staff returned while binding cook to order!'
                 }
                 client.captureException()
-                return JsonResponse(data)
+                return data
             except:
                 data = {
                     'success': False,
                     'message': 'Something wrong happened while getting set of orders!'
                 }
                 client.captureException()
-                return JsonResponse(data)
-
+                return data
     content_to_send = []
     order.servery = servery
     order.is_delivery = True if cook_choose == 'delivery' else False
     order.save()
-
     total = 0
     content_presence = False
     shashlyk_presence = False
@@ -3546,7 +3545,7 @@ def make_order(request):
                     'message': 'Something wrong happened while creating new order!'
                 }
                 client.captureException()
-                return JsonResponse(data)
+                return data
             new_order_content.save()
             menu_item = Menu.objects.get(id=item['id'])
             if menu_item.can_be_prepared_by.title == 'Cook':
@@ -3568,7 +3567,7 @@ def make_order(request):
                         'message': 'Something wrong happened while creating new order!'
                     }
                     client.captureException()
-                    return JsonResponse(data)
+                    return data
                 new_order_content.save()
                 menu_item = Menu.objects.get(id=item['id'])
                 if menu_item.can_be_prepared_by.title == 'Cook':
@@ -3585,7 +3584,6 @@ def make_order(request):
                 'quantity': item['quantity']
             }
         )
-
     order.total = total
     order.with_shawarma = content_presence
     order.with_shashlyk = shashlyk_presence
@@ -3593,7 +3591,6 @@ def make_order(request):
     order.shashlyk_completed = not shashlyk_presence
     order.supplement_completed = not supplement_presence
     order.save()
-
     if order.is_paid:
         print("Sending request to " + order.servery.ip_address)
         print(order)
@@ -3625,8 +3622,7 @@ def make_order(request):
         data["message"] = ''
         data["daily_number"] = order.daily_number % 100
         data["pk"] = order.pk
-
-    return JsonResponse(data)
+    return data
 
 
 @login_required()
@@ -4215,7 +4211,7 @@ def finish_all_content(request):
                                                     menu_item__can_be_prepared_by__title__iexact='Cook')
         operator_products = OrderContent.objects.filter(order=order,
                                                         menu_item__can_be_prepared_by__title__iexact='Operator')
-        if staff.staff_category.title == 'Operator' or staff.staff_category.title == 'Cashier' or staff.staff_category.title == 'DeliveryOperator':
+        if staff.staff_category.title == 'Operator' or staff.staff_category.title == 'Cashier' or staff.staff_category.title == 'DeliveryOperator' or staff.staff_category.title == 'DeliveryAdmin':
             products = OrderContent.objects.filter(Q(menu_item__can_be_prepared_by__title__iexact='Shashlychnik') | Q(
                 menu_item__can_be_prepared_by__title__iexact='Operator'), order=order)
         else:
@@ -5873,3 +5869,116 @@ def send_email(subject, staff, device_ip):
                   auth_password=SMTP_PASSWORD)
     except:
         print('failed to send mail')
+
+
+def check_order_status(request):
+    phone_number = request.GET.get('phone_number', None)
+    if phone_number is not None:
+        delivery_order = DeliveryOrder.objects.filter(customer__phone_number=phone_number).order_by(
+            'obtain_timepoint').last()
+        if delivery_order:
+            if delivery_order.order.is_ready:
+                data = {
+                    'response': 'Заказ ' + str(delivery_order.daily_number) + ' готов!'
+                }
+            else:
+                if delivery_order.moderation_needed:
+                    data = {
+                        'response': 'Заказу ' + str(delivery_order.daily_number) + ' требуется модерация!'
+                    }
+                else:
+                    if delivery_order.order.is_grilling or delivery_order.order.is_grilling_shash:
+                        data = {
+                            'response': 'Заказ ' + str(delivery_order.daily_number) + ' готовится!'
+                        }
+                    else:
+                        data = {
+                            'response': 'Заказ ' + str(delivery_order.daily_number) + ' в очереди!'
+                        }
+        else:
+            data = {
+                'response': "Заказы отсутствуют"
+            }
+    else:
+        data = {
+            'response': 'No number'
+        }
+
+    return JsonResponse(data=data)
+
+
+def get_customers_menu(request):
+    # TODO: Add filter by customer appropriate content.
+    menu_categories = MenuCategory.objects.order_by('weight')
+    data = {
+        'categories': [
+            {
+                'title': category.title,
+                'items': [
+                    {
+                        'id': item.id,
+                        'name': item.title,
+                        'price': item.price
+                    } for item in Menu.objects.filter(category=category)
+                    ]
+            } for category in menu_categories
+            ]
+    }
+    return JsonResponse(data=data)
+
+
+def register_customer_order(request):
+    name = request.GET.get('name', None)
+    phone_number = request.GET.get('phone_number', None)
+    comment = request.GET.get('comment', None)
+    order_content_str = request.GET.get('order_content', None)
+    customer_order_content = {}
+    if order_content_str is not None and order_content_str != "":
+        customer_order_content = json.loads(order_content_str)
+        # TODO: Set specific service point for order acceptance.
+        service_point = ServicePoint.objects.get(title='Debug Service Point')
+        servery = Servery.objects.filter(service_point=service_point).first()
+        data = make_order_func(customer_order_content, 'delivery', False, None, False, servery, service_point)
+
+        customer = None
+        try:
+            customer = Customer.objects.get(phone_number=phone_number)
+        except MultipleObjectsReturned:
+            data = {
+                'success': False,
+                'message': 'Multiple customers found!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+        except Customer.DoesNotExist:
+            customer = Customer(phone_number=phone_number)
+            customer.save()
+
+        delivery_order = DeliveryOrder(address=service_point.title, customer=customer, note=comment,
+                                       obtain_timepoint=timezone.datetime.now(),
+                                       delivered_timepoint=timezone.datetime.now(),
+                                       order=Order.objects.get(pk=data['pk']), moderation_needed=True)
+        try:
+            order_last_daily_number = DeliveryOrder.objects.filter(
+                obtain_timepoint__contains=timezone.datetime.today().date(),
+                order__servery__service_point=service_point).aggregate(Max('daily_number'))
+        except EmptyResultSet:
+            data = {
+                'success': False,
+                'message': 'Empty set of orders returned!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        if order_last_daily_number:
+            if order_last_daily_number['daily_number__max'] is not None:
+                daily_number = order_last_daily_number['daily_number__max'] + 1
+            else:
+                daily_number = 1
+        delivery_order.daily_number = daily_number
+        delivery_order.save()
+        return JsonResponse(data={'success': True})
+    else:
+        return Http404();
+
+    return HttpResponse();
