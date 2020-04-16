@@ -2681,7 +2681,9 @@ def delivery_workspace_update(request):
                 delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
                 minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and
+                                     delivery_order.prep_start_timepoint is None or
+                                     delivery_order.moderation_needed else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point)
         } for delivery_order in delivery_orders
