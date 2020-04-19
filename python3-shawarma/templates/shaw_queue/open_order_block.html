@@ -27,7 +27,7 @@
             </div>
             <div class="order-block-actions">
                 {% if staff_category.title == 'Operator' %}
-                    <button {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
+                    <button class="small-btn warning" {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
                                 disabled
                             {% endif %}
                             onclick="CloseOrder({{ open_order.order.id }})">
@@ -43,13 +43,13 @@
                     {% endif %}
                 {% endif %}
                 {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryAdmin' %}
-                    <button {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
+                    <button class="small-btn warning" {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
                                 disabled
                             {% endif %}
                             onclick="CloseOrder({{ open_order.order.id }})">
                         Закрыть
                     </button>
-                    <button onclick="CancelOrder({{ open_order.order.id }})">
+                    <button class="small-btn danger" onclick="CancelOrder({{ open_order.order.id }})">
                         Отменить
                     </button>
                 {% endif %}

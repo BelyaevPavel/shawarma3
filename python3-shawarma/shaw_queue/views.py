@@ -2340,6 +2340,7 @@ def order_content(request, order_id):
 
         except MultipleObjectsReturned:
             # TODO: Find out cause of delivery order duplicates.
+            # Cause is that cashiers are making orders from multiple tabs while order creation process is not finished.
             # data = {
             #     'success': False,
             #     'message': 'Множество экземпляров персонала возвращено!'
@@ -5876,7 +5877,8 @@ def send_email(subject, staff, device_ip):
 def check_order_status(request):
     phone_number = request.GET.get('phone_number', None)
     if phone_number is not None:
-        delivery_order = DeliveryOrder.objects.filter(customer__phone_number=phone_number).order_by(
+        delivery_order = DeliveryOrder.objects.filter(customer__phone_number=phone_number,
+                                                      obtain_timepoint__contains=timezone.datetime.now().date()).order_by(
             'obtain_timepoint').last()
         if delivery_order:
             if delivery_order.order.is_ready:
@@ -5910,8 +5912,7 @@ def check_order_status(request):
 
 
 def get_customers_menu(request):
-    # TODO: Add filter by customer appropriate content.
-    menu_categories = MenuCategory.objects.order_by('weight')
+    menu_categories = MenuCategory.objects.filter(customer_appropriate=True).order_by('weight')
     data = {
         'categories': [
             {
@@ -5921,8 +5922,8 @@ def get_customers_menu(request):
                         'id': item.id,
                         'name': item.title,
                         'price': item.price
-                    } for item in Menu.objects.filter(category=category)
-                    ]
+                    } for item in Menu.objects.filter(category=category, customer_appropriate=True)
+                ]
             } for category in menu_categories
             ]
     }
@@ -5937,9 +5938,34 @@ def register_customer_order(request):
     customer_order_content = {}
     if order_content_str is not None and order_content_str != "":
         customer_order_content = json.loads(order_content_str)
-        # TODO: Set specific service point for order acceptance.
-        service_point = ServicePoint.objects.get(title='Debug Service Point')
-        servery = Servery.objects.filter(service_point=service_point).first()
+        try:
+            service_point = ServicePoint.objects.get(default_remote_order_acceptor=True)
+        except MultipleObjectsReturned:
+            service_point = ServicePoint.objects.filter(default_remote_order_acceptor=True).first()
+        except ServicePoint.DoesNotExist:
+            service_point = ServicePoint.objects.all().first()
+        except:
+            data = {
+                'success': False,
+                'message': 'Something gone wrong while searching service points!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
+        try:
+            servery = Servery.objects.get(service_point=service_point, default_remote_order_acceptor=True)
+        except MultipleObjectsReturned:
+            servery = Servery.objects.get(service_point=service_point, default_remote_order_acceptor=True).first()
+        except ServicePoint.DoesNotExist:
+            servery = Servery.objects.all().first()
+        except:
+            data = {
+                'success': False,
+                'message': 'Something gone wrong while searching serveries!'
+            }
+            client.captureException()
+            return JsonResponse(data)
+
         data = make_order_func(customer_order_content, 'delivery', False, None, False, servery, service_point)
 
         customer = None
@@ -5972,6 +5998,7 @@ def register_customer_order(request):
             client.captureException()
             return JsonResponse(data)
 
+        daily_number = 1
         if order_last_daily_number:
             if order_last_daily_number['daily_number__max'] is not None:
                 daily_number = order_last_daily_number['daily_number__max'] + 1
@@ -5981,6 +6008,4 @@ def register_customer_order(request):
         delivery_order.save()
         return JsonResponse(data={'success': True})
     else:
-        return Http404();
-
-    return HttpResponse();
+        return Http404()

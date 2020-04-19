@@ -38,6 +38,9 @@ class ServicePoint(models.Model):
     subnetwork = models.CharField(max_length=10, default="")
     latitude = models.FloatField(verbose_name="Широта", default=55.196829, blank=False, null=False)
     longitude = models.FloatField(verbose_name="Долгота", default=61.395762, blank=False, null=False)
+    default_remote_order_acceptor = models.BooleanField(verbose_name="Точка, принимающая интернет-заказы",
+                                                        default=False,
+                                                        help_text="Может быть выбрана ТОЛЬКО ОДНА точка.")
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -107,6 +110,9 @@ class Servery(models.Model):
     guid_1c = models.CharField(max_length=100, default="")
     service_point = models.ForeignKey(ServicePoint, default=None, null=True, on_delete=models.CASCADE)
     payment_kiosk = models.BooleanField(verbose_name="Точка приёма платежей", default=True)
+    default_remote_order_acceptor = models.BooleanField(verbose_name="Касса, принимающая интернет-заказы",
+                                                        default=False,
+                                                        help_text="Может быть выбрана ТОЛЬКО ОДНА касса на точку.")
 
     def __str__(self):
         return u"{}".format(self.title)
