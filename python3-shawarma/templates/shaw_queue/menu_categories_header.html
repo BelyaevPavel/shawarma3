@@ -1,16 +1,14 @@
 {% load static %}
-<div class="menu-header-div-container fixed">
-    <div class="menu-header-div">
-	{% if menu_categories %}
-		{% for menu_category in menu_categories %}
-			{% if not menu_category.hidden %}
-		        <div class="menu-header-buttons" onclick="ChangeCategory('{{ menu_category.eng_title }}')">
-		                {{ menu_category.title }}
-			</div>
+<div class="menu-header-div">
+    {% if menu_categories %}
+        {% for menu_category in menu_categories %}
+            {% if not menu_category.hidden %}
+                <div class="menu-header-buttons" onclick="ChangeCategory('{{ menu_category.eng_title }}')">
+                    {{ menu_category.title }}
+                </div>
             {% endif %}
-		{% endfor %}
-	{% else %}
-		<p>В меню пусто.</p>
-	{% endif %}
-    </div>
+        {% endfor %}
+    {% else %}
+        <p>В меню пусто.</p>
+    {% endif %}
 </div>

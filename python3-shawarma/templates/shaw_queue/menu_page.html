@@ -14,7 +14,7 @@
             <p id="item-title" class="modal-title">Title</p>
             <p>
                 <label for="item-quantity" class="modal-label">Количество</label>
-                <input type="text" value="" class="modal-quantity-input" id="item-quantity" onclick="this.setSelectionRange(0, this.value.length)">
+                <input type="text" value="" class="quantityInput" id="item-quantity" onclick="this.setSelectionRange(0, this.value.length)">
                 <button class="btn info" id="plus-button">+</button>
                 <button class="btn info" id="minus-button">-</button>
                 <div class="quick-comment-container">
@@ -99,7 +99,7 @@
                 </td>
             </tr>
             <tr>
-                <button type="button" class="subm" data-send-url="{% url 'make_order' %}">
+                <button type="button" class="subm small-btn success" data-send-url="{% url 'make_order' %}">
                     Принять
                 </button>
                 <div class="shadowed">

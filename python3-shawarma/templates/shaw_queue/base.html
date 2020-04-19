@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0">
+    <title>Шаурма На Труда</title>
+</head>
+<body>
 {% csrf_token %}
 {% load static %}
 <link rel="stylesheet" type="text/css" href="{% static 'queue/style.css' %}">
@@ -5,9 +14,11 @@
 <script type="text/javascript" src="{% static 'js/base_handlers.js' %}"></script>
 {% include 'shaw_queue/header.html' with staff_category=staff_category %}
 <div class="page-content">
-{% block content %}
-    Нечего отображать.
-{% endblock %}
-{% block aditional_static %}
-{% endblock %}
+    {% block content %}
+        Нечего отображать.
+    {% endblock %}
+    {% block aditional_static %}
+    {% endblock %}
 </div>
+</body>
+</html>
