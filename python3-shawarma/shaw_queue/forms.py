@@ -80,10 +80,11 @@ class DeliveryOrderForm(forms.ModelForm):
         self.fields['delivery'].queryset = Delivery.objects.filter(
             creation_timepoint__contains=timezone.datetime.today().date(), departure_timepoint__isnull=True,
             is_canceled=False)
+        self.fields['service_point'].queryset = ServicePoint.objects.all()
 
     class Meta:
         model = DeliveryOrder
-        exclude = ['prep_start_timepoint', 'is_delivered', 'is_ready']
+        exclude = ['prep_start_timepoint', 'is_delivered', 'is_ready', 'moderation_needed']
         widgets = {
             'daily_number': forms.HiddenInput(attrs={
                 'required': False
@@ -98,6 +99,7 @@ class DeliveryOrderForm(forms.ModelForm):
                 'placeholder': 'Формат: ДД.ММ.ГГГГ ЧЧ:ММ',
                 'pattern': "[0-3][0-9].[0-1][0-9].[0-9]{4} [0-2][0-9]:[0-6][0-9]",
                 'title': 'Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ',
+                'disabled': True
             }),
             'delivered_timepoint': forms.DateTimeInput(attrs={
                 'required': True,

@@ -38,54 +38,59 @@
     {#            style="height: 100%; float: left; width: 0px" hidden>#}
     {#        &raquo;#}
     {#    </button>#}
-    <div id="delivery-left-column" class="shadowed">
-        <div class="delivery-sidebar-content">
-            <div id="delivery-left-column-content">
-                {% include 'shaw_queue/delivery_left_col_content.html' with delivery_info=delivery_info %}
+    <div id="delivery-left-column" class="sidebar sidebar_left">
+        <div class="sidebar__content">
+            <div class="section">
+                <div class="section__title">
+                    Рейсы доставки
+                </div>
+                <div class="section__content" id="delivery-left-column-content">
+                    {% include 'shaw_queue/delivery_left_col_content.html' with delivery_info=delivery_info %}
+                </div>
+                <button class="btn success" onclick="CreateDelivery()" style="width: 100%">&plus;</button>
             </div>
-            <button class="btn success" onclick="CreateDelivery()">&plus;</button>
-        </div>
-        <div>
-            <button class="btn info" onclick="HideSidebar('delivery-left-column', 'show-left-column')"
-                    style="width: 100%;">
+            <button class="btn info sidebar__close-btn"
+                    onclick="HideSidebar('delivery-left-column', 'show-left-column')">
                 &laquo;
             </button>
         </div>
+        <button id="show-left-column" class="btn info sidebar__open-btn"
+                onclick="ShowSidebar('delivery-left-column', 'show-left-column')">
+            &raquo;
+        </button>
     </div>
-    <button id="show-left-column" class="btn info" onclick="ShowSidebar('delivery-left-column', 'show-left-column')"
-            style="height: 100%; float: left; width: 0px" hidden>
-        &raquo;
-    </button>
-    <div id="delivery-workspace">
+    <div id="delivery-workspace" class="delivery-workspace">
         {% include 'shaw_queue/delivery_workspace.html' with delivery_orders=delivery_orders %}
     </div>
-    <div id="delivery-right-column">
-        <div class="delivery-sidebar-content">
+    <div id="delivery-right-column" class="sidebar sidebar_right">
+        <div class="sidebar__content">
             <div class="section">
-                <div class="section-title">
+                <div class="section__title">
                     Период
                 </div>
-                <div class="section-content">
-                    <div>
+                <div class="section__content">
+                    <div class="form-group">
                         <label for="datetimepicker1">От:</label>
-                        <input type="text" id="datetimepicker1"/>
+                        <input type="text" id="datetimepicker1" class="form-control"/>
                     </div>
-                    <div>
+                    <div class="form-group">
                         <label for="datetimepicker2">До:</label>
-                        <input type="text" id="datetimepicker2"/>
+                        <input type="text" id="datetimepicker2" class="form-control"/>
                     </div>
                 </div>
             </div>
-        </div>
-        <div>
-            <button class="btn info" onclick="HideSidebar('delivery-right-column', 'show-right-column')"
-                    style="width: 100%;">
+            <button class="btn info sidebar__close-btn"
+                    onclick="HideSidebar('delivery-right-column', 'show-right-column')">
                 &raquo;
             </button>
         </div>
+        <button id="show-right-column" class="btn info sidebar__open-btn"
+                onclick="ShowSidebar('delivery-right-column', 'show-right-column')">
+            &laquo;
+        </button>
     </div>
-    <button id="show-right-column" class="btn info" onclick="ShowSidebar('delivery-right-column', 'show-right-column')"
-            style="height: 100%; float: left; width: 0px" hidden>
-        &laquo;
-    </button>
+    <div class="opaque-container" id="delivery-workspace-controls">
+        {#    <button class="btn info" onclick="CreateDeliveryOrder()" title="Add Order" >+</button>#}
+        <button class="btn info" onclick="CreateIncomingCall()" title="Add Customer">+</button>
+    </div>
 {% endblock %}

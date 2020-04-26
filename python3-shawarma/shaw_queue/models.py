@@ -14,6 +14,7 @@ class MenuCategory(models.Model):
     eng_title = models.CharField(max_length=20)
     weight = models.IntegerField(verbose_name="Weight", default=0)
     hidden = models.BooleanField(default="False")
+    customer_appropriate = models.BooleanField(verbose_name="Подходит для демонстрации покупателю", default=False)
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -37,6 +38,9 @@ class ServicePoint(models.Model):
     subnetwork = models.CharField(max_length=10, default="")
     latitude = models.FloatField(verbose_name="Широта", default=55.196829, blank=False, null=False)
     longitude = models.FloatField(verbose_name="Долгота", default=61.395762, blank=False, null=False)
+    default_remote_order_acceptor = models.BooleanField(verbose_name="Точка, принимающая интернет-заказы",
+                                                        default=False,
+                                                        help_text="Может быть выбрана ТОЛЬКО ОДНА точка.")
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -67,11 +71,11 @@ class ServiceAreaPolyCoord(models.Model):
 
 
 class Staff(models.Model):
-    staff_category = models.ForeignKey(StaffCategory)
+    staff_category = models.ForeignKey(StaffCategory, on_delete=models.SET_NULL, null=True)
     available = models.BooleanField(default="False")
     super_guy = models.BooleanField(default="False")
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True, on_delete=models.SET_NULL)
     phone_number = models.CharField(max_length=20, verbose_name="телефон", default=None, null=True)
 
     def __str__(self):
@@ -86,10 +90,11 @@ class Menu(models.Model):
     note = models.CharField(max_length=500, null=False)
     price = models.FloatField(default=0, validators=[MinValueValidator(0, "Price can't be negative!")])
     avg_preparation_time = models.DurationField(verbose_name="Average preparation time.")
-    can_be_prepared_by = models.ForeignKey(StaffCategory)
+    can_be_prepared_by = models.ForeignKey(StaffCategory, on_delete=models.SET_NULL, null=True)
     guid_1c = models.CharField(max_length=100, default="")
-    category = models.ForeignKey(MenuCategory)
+    category = models.ForeignKey(MenuCategory, on_delete=models.SET_NULL, null=True)
     is_by_weight = models.BooleanField(verbose_name="На развес", default=False)
+    customer_appropriate = models.BooleanField(verbose_name="Подходит для демонстрации покупателю", default=False)
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -103,8 +108,11 @@ class Servery(models.Model):
     title = models.CharField(max_length=500, default="")
     ip_address = models.CharField(max_length=500, default="")
     guid_1c = models.CharField(max_length=100, default="")
-    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True, on_delete=models.CASCADE)
     payment_kiosk = models.BooleanField(verbose_name="Точка приёма платежей", default=True)
+    default_remote_order_acceptor = models.BooleanField(verbose_name="Касса, принимающая интернет-заказы",
+                                                        default=False,
+                                                        help_text="Может быть выбрана ТОЛЬКО ОДНА касса на точку.")
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -127,10 +135,10 @@ class Order(models.Model):
     # start_shashlyk_cooking = models.BooleanField(verbose_name="Start Shashlyk Cooking", default=True)
     total = models.FloatField(default=0, validators=[MinValueValidator(0, "Total can't be negative!")])
     is_canceled = models.BooleanField(verbose_name="Is canceled", default=False)
-    closed_by = models.ForeignKey(Staff, related_name="closer", verbose_name="Closed By", null=True)
-    canceled_by = models.ForeignKey(Staff, related_name="canceler", verbose_name="Canceled By", null=True)
-    opened_by = models.ForeignKey(Staff, related_name="opener", verbose_name="Opened By", null=True)
-    prepared_by = models.ForeignKey(Staff, related_name="maker", default=None, null=True)
+    closed_by = models.ForeignKey(Staff, related_name="closer", verbose_name="Closed By", null=True, on_delete=models.SET_NULL)
+    canceled_by = models.ForeignKey(Staff, related_name="canceler", verbose_name="Canceled By", null=True, on_delete=models.SET_NULL)
+    opened_by = models.ForeignKey(Staff, related_name="opener", verbose_name="Opened By", null=True, on_delete=models.SET_NULL)
+    prepared_by = models.ForeignKey(Staff, related_name="maker", default=None, null=True, on_delete=models.SET_NULL)
     printed = models.BooleanField(default=False, verbose_name="Check Printed")
     is_paid = models.BooleanField(default=False, verbose_name="Is Paid")
     is_grilling = models.BooleanField(default=False, verbose_name="Is Grilling")
@@ -140,7 +148,7 @@ class Order(models.Model):
     is_delivery = models.BooleanField(default=False, verbose_name="Is Delivery Order")
     # True - if paid with cash, False - if paid with card.
     paid_with_cash = models.BooleanField(default=True, verbose_name="Paid With Cash")
-    servery = models.ForeignKey(Servery, verbose_name="Servery")
+    servery = models.ForeignKey(Servery, verbose_name="Servery", on_delete=models.CASCADE)
     guid_1c = models.CharField(max_length=100, default="")
     discount = models.FloatField(default=0, validators=[MinValueValidator(0, "Total can't be negative!")])
     sent_to_1c = models.BooleanField(verbose_name="Sent To 1C", default=False)
@@ -169,7 +177,7 @@ class OrderContent(models.Model):
     finish_timestamp = models.DateTimeField(verbose_name="Finish Timestamp", null=True)
     is_in_grill = models.BooleanField(verbose_name="Is in grill", default=False)
     is_canceled = models.BooleanField(verbose_name="Is canceled", default=False)
-    canceled_by = models.ForeignKey(Staff, related_name="content_canceler", verbose_name="Canceled By", null=True)
+    canceled_by = models.ForeignKey(Staff, related_name="content_canceler", verbose_name="Canceled By", null=True, on_delete=models.SET_NULL)
     note = models.CharField(max_length=500, default="")
     quantity = models.FloatField(verbose_name="Quantity", default=1.0, null=False)
 
@@ -213,7 +221,7 @@ class PauseTracker(models.Model):
 class Printer(models.Model):
     title = models.CharField(max_length=20, default="")
     ip_address = models.CharField(max_length=20, default="")
-    service_point = models.ForeignKey(ServicePoint, default=None, null=True)
+    service_point = models.ForeignKey(ServicePoint, default=None, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return u"№{} {}".format(self.title, self.service_point)
@@ -242,7 +250,7 @@ class DiscountCard(models.Model):
     number = models.CharField(max_length=30)
     discount = models.FloatField()
     guid_1c = models.CharField(max_length=100, default="")
-    customer = models.ForeignKey(Customer, blank=True, null=True, verbose_name="owner of card")
+    customer = models.ForeignKey(Customer, blank=True, null=True, verbose_name="owner of card", on_delete=models.CASCADE)
 
     def __str__(self):
         return u"№{} {}".format(self.number, self.customer)
@@ -286,7 +294,7 @@ class DeliveryOrder(models.Model):
         (MIXED_PAYMENT, 'Смешанная')]
     prefered_payment = models.CharField(max_length=3, choices=PAYMENT_CHOISES, default=CASH_PAYMENT,
                                         verbose_name="Вид оплаты")
-    delivery = models.ForeignKey(Delivery, null=True, blank=True, verbose_name="доставка")
+    delivery = models.ForeignKey(Delivery, null=True, blank=True, verbose_name="доставка", on_delete=models.SET_NULL)
     daily_number = models.IntegerField(verbose_name="номер за день")  # , unique_for_date='obtain_timepoint'
     is_ready = models.BooleanField(default=False, verbose_name="готов к отправке")
     is_delivered = models.BooleanField(default=False, verbose_name="доставлен")
@@ -303,6 +311,7 @@ class DeliveryOrder(models.Model):
                                              verbose_name="продолжительность доставки")
     note = models.CharField(max_length=250, null=True, blank=True, help_text="Введите комментарий к заказу.",
                             verbose_name="комментарий")
+    moderation_needed = models.BooleanField(default=False, verbose_name="требуется модерация")
 
     def __str__(self):
         return u"№{} {} {}".format(self.daily_number, self.customer.phone_number, self.order)

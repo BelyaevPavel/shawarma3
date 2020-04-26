@@ -110,31 +110,34 @@ function CalculateGrid() {
 }
 
 function HideSidebar(SidebarID, ShowButtonID) {
-    $('#' + SidebarID).hide();
-    $('#' + SidebarID).width(0);
+    // $('#' + SidebarID).hide();
+    // $('#' + SidebarID).width(0);
     $('#' + ShowButtonID).show();
-    $('#' + ShowButtonID).css('width', '68px');
-    var workspace = $('#delivery-workspace');
+    // $('#' + ShowButtonID).css('width', '68px');
+    $('#'+SidebarID).removeClass('sidebar_open');
+    /*var workspace = $('#delivery-workspace');
     var sidebars_width = $('#delivery-left-column').outerWidth() + $('#delivery-right-column').outerWidth();
-    var showLeftColumnWidth = $('#show-left-column').is(":hidden") ? 0 : $('#show-left-column').outerWidth();
-    var showRightColumnWidth = $('#show-right-column').is(":hidden") ? 0 : $('#show-right-column').outerWidth();
+    var showLeftColumnWidth = !$('#show-left-column').hasClass("sidebar_open") ? 0 : $('#show-left-column').outerWidth();
+    var showRightColumnWidth = !$('#show-right-column').hasClass("sidebar_open") ? 0 : $('#show-right-column').outerWidth();
     console.log('calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
     workspace.css('width', 'calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
-    CalculateGrid();
+    CalculateGrid();*/
 }
 
 function ShowSidebar(SidebarID, ShowButtonID) {
-    $('#' + SidebarID).show();
-    $('#' + SidebarID).width(300);
+    // $('#' + SidebarID).show();
+    // $('#' + SidebarID).width(300);
     $('#' + ShowButtonID).hide();
-    $('#' + ShowButtonID).css('width', '0px');
-    var workspace = $('#delivery-workspace');
+    // $('#' + ShowButtonID).css('width', '0px');
+    $('#'+SidebarID).addClass('sidebar_open');
+    //$('#'+SidebarID+' .sidebar__content').toggle();
+/*    var workspace = $('#delivery-workspace');
     var sidebars_width = $('#delivery-left-column').outerWidth() + $('#delivery-right-column').outerWidth();
-    var showLeftColumnWidth = $('#show-left-column').is(":hidden") ? 0 : $('#show-left-column').outerWidth();
-    var showRightColumnWidth = $('#show-right-column').is(":hidden") ? 0 : $('#show-right-column').outerWidth();
+    var showLeftColumnWidth = !$('#show-left-column').hasClass("sidebar_open") ? 0 : $('#show-left-column').outerWidth();
+    var showRightColumnWidth = !$('#show-right-column').hasClass("sidebar_open") ? 0 : $('#show-right-column').outerWidth();
     console.log('calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
     workspace.css('width', 'calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
-    CalculateGrid();
+    CalculateGrid();*/
 }
 
 function ShowMenu() {
@@ -378,6 +381,7 @@ function SendDeliveryOrder() {
         'delivery_duration': $('#id_delivery_duration').val(),
         'note': $('#id_note').val(),
         'prefered_payment': $('#id_prefered_payment').val(),
+        'service_point': $('#id_service_point').val(),
     };
     if (pk)
         form_data['delivery_order_pk'] = pk;
