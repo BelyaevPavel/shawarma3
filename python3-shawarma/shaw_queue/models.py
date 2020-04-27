@@ -87,6 +87,7 @@ class Staff(models.Model):
 
 class Menu(models.Model):
     title = models.CharField(max_length=200)
+    customer_title = models.CharField(max_length=200, default="")
     note = models.CharField(max_length=500, null=False)
     price = models.FloatField(default=0, validators=[MinValueValidator(0, "Price can't be negative!")])
     avg_preparation_time = models.DurationField(verbose_name="Average preparation time.")
