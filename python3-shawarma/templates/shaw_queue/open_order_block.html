@@ -23,28 +23,32 @@
                                                 inGrill
                                             {% endif %}
                                         {% endif %}">
-                <a href="{% url 'order_content' open_order.order.id %}">{{ open_order.order.prepared_by.user.first_name }} ({{ open_order.cook_part_ready_count.count }}/{{ open_order.cook_part_count.count }})</a>
+                <a href="{% url 'order_content' open_order.order.id %}">{{ open_order.order.prepared_by.user.first_name }}
+                    ({{ open_order.cook_part_ready_count.count }}/{{ open_order.cook_part_count.count }})</a>
             </div>
             <div class="order-block-actions">
                 {% if staff_category.title == 'Operator' %}
-                    <button class="small-btn warning" {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
-                                disabled
+                    <button class="small-btn warning"
+                            {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
+                            disabled
                             {% endif %}
                             onclick="CloseOrder({{ open_order.order.id }})">
                         Закрыть
                     </button>
-                    <button onclick="PrintOrder({{ open_order.order.id }})">
-                        <img src="{% static "img/printing-text24.png" %}">
+                    <button onclick="PrintOrder({{ open_order.order.id }})" class="small-btn info small-btn_img">
+                        <img src="{% static "img/printing-text24.png" %}" alt="Print">
                     </button>
                     {% if open_order.order.is_ready %}
-                        <button onclick="VoiceOrder('{% url 'voice_order' open_order.order.id  %}')">
+                        <button onclick="VoiceOrder('{% url 'voice_order' open_order.order.id %}')"
+                                class="small-btn info small-btn_img">
                             <img src="{% static "img/voice-icon.png" %}">
                         </button>
                     {% endif %}
                 {% endif %}
                 {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryAdmin' %}
-                    <button class="small-btn warning" {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
-                                disabled
+                    <button class="small-btn warning"
+                            {% if not open_order.order.content_completed or not open_order.order.shashlyk_completed or not open_order.order.supplement_completed %}
+                            disabled
                             {% endif %}
                             onclick="CloseOrder({{ open_order.order.id }})">
                         Закрыть

@@ -393,6 +393,7 @@ div.open-orders {
     width: calc(100% - 235px);
     height: 100%;
     float: left;
+    padding: 1rem;
 }
 
 div.order-block-container {
@@ -427,6 +428,11 @@ div.order-cook-part {
     float: left;
     text-align: right;
     font-size: large;
+}
+
+.order-block-actions {
+    display: flex;
+    width: 100%;
 }
 
 div.servery-title {
@@ -1387,6 +1393,15 @@ div.filter-container {
 
 .default:hover {
     background: #e7e7e7;
+}
+
+.small-btn_img {
+    width: 100%;
+}
+
+.small-btn_img img {
+    object-fit: fill;
+    object-position: center;
 }
 
 #carousels {

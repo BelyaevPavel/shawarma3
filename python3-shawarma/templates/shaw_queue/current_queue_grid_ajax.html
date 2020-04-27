@@ -59,11 +59,11 @@ voice-all-url="{% url 'voice_all' %}" close-all-url="{% url 'close_all' %}" orde
     {% endfor %}
 </div>
 <div class="ready-orders">
-    <div>
-        <button class="small-btn info" onclick="VoiceAll()">
+    <div style="display: flex;flex-direction: column;">
+        <button class="btn info" onclick="VoiceAll()">
             Озвучить всё
         </button>
-        <button class="small-btn warning" onclick="CloseAll()">
+        <button class="btn warning" onclick="CloseAll()">
             Закрыть всё
         </button>
     </div>
