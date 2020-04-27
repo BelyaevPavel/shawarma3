@@ -5956,7 +5956,7 @@ def register_customer_order(request):
             servery = Servery.objects.get(service_point=service_point, default_remote_order_acceptor=True)
         except MultipleObjectsReturned:
             servery = Servery.objects.get(service_point=service_point, default_remote_order_acceptor=True).first()
-        except ServicePoint.DoesNotExist:
+        except Servery.DoesNotExist:
             servery = Servery.objects.all().first()
         except:
             data = {
