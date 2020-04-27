@@ -5919,13 +5919,14 @@ def get_customers_menu(request):
     data = {
         'categories': [
             {
-                'title': category.title,
+                'title': category.customer_title,
                 'items': [
                     {
                         'id': item.id,
                         'name': item.customer_title,
                         'price': item.price
-                    } for item in Menu.objects.filter(category=category, customer_appropriate=True)
+                    } for item in
+                    Menu.objects.filter(category=category, customer_appropriate=True).order_by('customer_title')
                 ]
             } for category in menu_categories
         ]
