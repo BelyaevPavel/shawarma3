@@ -1513,6 +1513,7 @@ div.filter-container {
     grid-gap: 10px;
     grid-template-columns: repeat(6, 180px);
     grid-template-rows: repeat(5, 140px);
+    padding: 1rem 80px;
 }
 
 .opaque-container {
