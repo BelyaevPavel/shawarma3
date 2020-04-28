@@ -11,6 +11,7 @@ import datetime
 # Create your models here.
 class MenuCategory(models.Model):
     title = models.CharField(max_length=20)
+    customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
     eng_title = models.CharField(max_length=20)
     weight = models.IntegerField(verbose_name="Weight", default=0)
     hidden = models.BooleanField(default="False")
@@ -87,7 +88,7 @@ class Staff(models.Model):
 
 class Menu(models.Model):
     title = models.CharField(max_length=200)
-    customer_title = models.CharField(max_length=200, default="")
+    customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
     note = models.CharField(max_length=500, null=False)
     price = models.FloatField(default=0, validators=[MinValueValidator(0, "Price can't be negative!")])
     avg_preparation_time = models.DurationField(verbose_name="Average preparation time.")

@@ -72,6 +72,7 @@ class DeliveryOrderForm(forms.ModelForm):
         empty_label="Без доставки.", required=False)
     service_point = forms.ModelChoiceField(queryset=ServicePoint.objects.all(), required=True, label="Точка",
                                            empty_label=None)
+    moderation_needed = forms.CharField(required=False, widget=forms.HiddenInput())
     field_order = ['delivery', 'service_point', 'address', 'obtain_timepoint', 'delivered_timepoint',
                    'preparation_duration', 'delivery_duration']
 
@@ -84,7 +85,7 @@ class DeliveryOrderForm(forms.ModelForm):
 
     class Meta:
         model = DeliveryOrder
-        exclude = ['prep_start_timepoint', 'is_delivered', 'is_ready', 'moderation_needed']
+        exclude = ['prep_start_timepoint', 'is_delivered', 'is_ready']
         widgets = {
             'daily_number': forms.HiddenInput(attrs={
                 'required': False

@@ -270,6 +270,7 @@ function DeliveryOKHandeler(order_pk) {
     var customer_pk = $('#current-order-data').attr('customer-pk');
     //CreateDeliveryOrder(-1, customer_pk, -1, order_pk);
     $("#id_order").val(order_pk);
+    $("#id_moderation_needed").val("False");
     currOrder = [];
     DrawOrderTable();
     CalculateTotal();
