@@ -211,6 +211,7 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
                 'object_pk': delivery_order_pk,
                 "customer_display": customer_display,
                 'sellpointAddress': sellpointAddress,
+                'delivery_order': delivery_order,
                 'form': DeliveryOrderForm(instance=delivery_order)
             }
         else:
@@ -1166,9 +1167,17 @@ def current_queue(request):
 
     result = define_service_point(device_ip)
     if result['success']:
-        current_day_orders = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=True,
-                                                  is_canceled=False, is_ready=False,
-                                                  servery__service_point=result['service_point']).order_by('open_time')
+        regular_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+                                              close_time__isnull=True,
+                                              is_canceled=False, is_delivery=False,
+                                              is_ready=False, servery__service_point=result['service_point']).order_by(
+            'open_time')
+        today_delivery_orders = Order.objects.filter(is_delivery=True, close_time__isnull=True, is_canceled=False,
+                                                     deliveryorder__moderation_needed=False,
+                                                     is_ready=False, servery__service_point=result['service_point'],
+                                                     deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date()).order_by(
+            'open_time')
+        current_day_orders = regular_orders | today_delivery_orders
         serveries = Servery.objects.filter(service_point=result['service_point'])
         serveries_dict = {}
         for servery in serveries:
@@ -1284,7 +1293,8 @@ def current_queue(request):
     template = loader.get_template('shaw_queue/current_queue_grid.html')
     context = {
         'open_orders': [{'order': open_order,
-                         'display_number': open_order.daily_number % 100,
+                         'display_number': str(open_order.daily_number % 100) + "Д" if DeliveryOrder.objects.filter(
+                             order=open_order) else open_order.daily_number % 100,
                          'printed': open_order.printed,
                          'cook_part_ready_count': OrderContent.objects.filter(order=open_order,
                                                                               is_canceled=False).filter(
@@ -2605,9 +2615,9 @@ def delivery_interface(request):
     print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
     staff = Staff.objects.get(user=request.user)
     print("staff_id = {}".format(staff.id))
-    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=datetime.date.today(),
+    delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone.datetime.today().date(),
                                                    order__close_time__isnull=True).order_by('delivered_timepoint')
-    deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
+    deliveries = Delivery.objects.filter(creation_timepoint__contains=timezone.datetime.today().date(),
                                          departure_timepoint__isnull=True, is_canceled=False).order_by(
         'departure_timepoint')
 
@@ -2658,14 +2668,14 @@ def delivery_workspace_update(request):
     start_date = request.GET.get('start_date', None)
     timezone_date_now = timezone.datetime.now().date()
     if start_date is None or start_date == '':
-        start_date_conv = datetime.datetime.combine(date=timezone_date_now, time=datetime.time(hour=0, minute=1))
+        start_date_conv = timezone.datetime.combine(date=timezone_date_now, time=datetime.time(hour=0, minute=1))
     else:
-        start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+        start_date_conv = timezone.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
     end_date = request.GET.get('end_date', None)
     if end_date is None or end_date == '':
-        end_date_conv = datetime.datetime.combine(date=start_date_conv.date(), time=datetime.time(hour=23, minute=59))
+        end_date_conv = timezone.datetime.combine(date=start_date_conv.date(), time=datetime.time(hour=23, minute=59))
     else:
-        end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+        end_date_conv = timezone.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
     utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_workspace.html')
     # print("{} {} {}".format(timezone.datetime.now(), datetime.datetime.now(), utc.localize(datetime.datetime.now())))
@@ -2713,7 +2723,7 @@ def delivery_workspace_update(request):
     #     'delivery_orders': delivery_orders
     # }
 
-    deliveries = Delivery.objects.filter(creation_timepoint__contains=datetime.date.today(),
+    deliveries = Delivery.objects.filter(creation_timepoint__contains=timezone.datetime.today().date(),
                                          departure_timepoint__isnull=True, is_canceled=False).order_by(
         'departure_timepoint')
 

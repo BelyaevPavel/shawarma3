@@ -114,7 +114,7 @@ function HideSidebar(SidebarID, ShowButtonID) {
     // $('#' + SidebarID).width(0);
     $('#' + ShowButtonID).show();
     // $('#' + ShowButtonID).css('width', '68px');
-    $('#'+SidebarID).removeClass('sidebar_open');
+    $('#' + SidebarID).removeClass('sidebar_open');
     /*var workspace = $('#delivery-workspace');
     var sidebars_width = $('#delivery-left-column').outerWidth() + $('#delivery-right-column').outerWidth();
     var showLeftColumnWidth = !$('#show-left-column').hasClass("sidebar_open") ? 0 : $('#show-left-column').outerWidth();
@@ -129,15 +129,15 @@ function ShowSidebar(SidebarID, ShowButtonID) {
     // $('#' + SidebarID).width(300);
     $('#' + ShowButtonID).hide();
     // $('#' + ShowButtonID).css('width', '0px');
-    $('#'+SidebarID).addClass('sidebar_open');
+    $('#' + SidebarID).addClass('sidebar_open');
     //$('#'+SidebarID+' .sidebar__content').toggle();
-/*    var workspace = $('#delivery-workspace');
-    var sidebars_width = $('#delivery-left-column').outerWidth() + $('#delivery-right-column').outerWidth();
-    var showLeftColumnWidth = !$('#show-left-column').hasClass("sidebar_open") ? 0 : $('#show-left-column').outerWidth();
-    var showRightColumnWidth = !$('#show-right-column').hasClass("sidebar_open") ? 0 : $('#show-right-column').outerWidth();
-    console.log('calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
-    workspace.css('width', 'calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
-    CalculateGrid();*/
+    /*    var workspace = $('#delivery-workspace');
+        var sidebars_width = $('#delivery-left-column').outerWidth() + $('#delivery-right-column').outerWidth();
+        var showLeftColumnWidth = !$('#show-left-column').hasClass("sidebar_open") ? 0 : $('#show-left-column').outerWidth();
+        var showRightColumnWidth = !$('#show-right-column').hasClass("sidebar_open") ? 0 : $('#show-right-column').outerWidth();
+        console.log('calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
+        workspace.css('width', 'calc(100% - ' + sidebars_width + 'px - ' + showLeftColumnWidth + 'px - ' + showRightColumnWidth + 'px)');
+        CalculateGrid();*/
 }
 
 function ShowMenu() {
@@ -175,8 +175,7 @@ function ShowMenu() {
                             HideMenu();
                         }
                     }
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             },
@@ -270,6 +269,9 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
                     $('#btn_show_menu').on('click', function (event) {
                         event.preventDefault();
                     });
+                    $('#btn_edit_order').on('click', function (event) {
+                        event.preventDefault();
+                    });
 
                     $("#id_address").suggestions({
                         token: data['token'],
@@ -286,8 +288,7 @@ function CreateDeliveryOrder(DeliveryOrderPK = -1, CustomerPK = -1, DeliveryPK =
 
                     OverrideDeliveryOrderSubmition();
                     CheckOrderIdPresence();
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             },
@@ -311,11 +312,11 @@ function SetDistanceTip(suggestion) {
     var base_lon = parseFloat(coordinates.attr('longitude').replace(',', '.'));
 
     var distance = 6371 * 2 * Math.asin(Math.sqrt(
-            Math.pow(Math.sin((base_lat - Math.abs(lat)) * Math.PI / 180 / 2), 2) +
-            Math.cos(base_lat * Math.PI / 180) *
-            Math.cos(Math.abs(lat) * Math.PI / 180) *
-            Math.pow(Math.sin((base_lon - lon) * Math.PI / 180 / 2), 2)
-        ));
+        Math.pow(Math.sin((base_lat - Math.abs(lat)) * Math.PI / 180 / 2), 2) +
+        Math.cos(base_lat * Math.PI / 180) *
+        Math.cos(Math.abs(lat) * Math.PI / 180) *
+        Math.pow(Math.sin((base_lon - lon) * Math.PI / 180 / 2), 2)
+    ));
 
     var content =
         '<a href="http://maps.yandex.ru/?rtext=' + base_lat + ',' + base_lon + '~'
@@ -402,8 +403,7 @@ function SendDeliveryOrder() {
             success: function (data) {
                 if (data['success']) {
                     location.reload();
-                }
-                else {
+                } else {
                     modal_delivery_order_container.html(data['html']);
                     OverrideDeliveryOrderSubmition();
                 }
@@ -446,8 +446,7 @@ function CreateIncomingCall() {
                     closeMenuSpan.onclick = function () {
                         HideDeliveryOrder();
                     };
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             },
@@ -501,8 +500,7 @@ function SendIncomingCall(CustomerPK = null) {
                     if (event.target == modal_delivery_order_content) {
                         console.log("Inside");
                         HideDeliveryOrder();
-                    }
-                    else {
+                    } else {
                         console.log("Outside");
                     }
                 };
@@ -548,8 +546,7 @@ function CreateDelivery() {
                     modal_delivery_order_container.css("display", "block");
                     modal_delivery_order_is_opened = true;
                     OverrideDeliverySubmition();
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             },
@@ -613,8 +610,7 @@ function SendDelivery() {
             success: function (data) {
                 if (data['success']) {
                     location.reload();
-                }
-                else {
+                } else {
                     modal_delivery_order_container.html(data['html']);
                     OverrideDeliverySubmition();
                 }
@@ -654,8 +650,7 @@ function UpdateWorkspace() {
                 if (data['success']) {
                     workspace.html(data['html']);
                     $('#delivery-left-column-content').html(data['delivery_html']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             },
@@ -685,8 +680,7 @@ function CheckCalls() {
                         SendIncomingCall(data['caller_pk']);
                     else
                         console.log('There is a call but some modal window seams to be opened.');
-                }
-                else {
+                } else {
                     console.log('Waiting for calls...');
                 }
             },
@@ -714,8 +708,7 @@ function ChangeCook(DeliveryOrderPK) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
                 location.reload();
@@ -755,8 +748,7 @@ function SelectCook(CookPK, DeliveryOrderPK) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             }
@@ -781,8 +773,7 @@ function StartShawarmaCooking(OrderPK) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             }
@@ -807,8 +798,7 @@ function StartShawarmaPreparation(OrderPK) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             }
@@ -838,8 +828,7 @@ function StartShashlykCooking(OrderPK) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             }
@@ -864,8 +853,7 @@ function FinishShashlykCooking(OrderPK) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             }
@@ -891,8 +879,7 @@ function FinishDeliveryOrder(DeliveryOrderPK, IsPaid) {
                 success: function (data) {
                     if (data['success']) {
                         alert(data['message']);
-                    }
-                    else {
+                    } else {
                         alert(data['message']);
                     }
                 }
@@ -900,8 +887,7 @@ function FinishDeliveryOrder(DeliveryOrderPK, IsPaid) {
         ).fail(function () {
             console.log('Failed ' + aux);
         });
-    }
-    else {
+    } else {
         if (confirm("Заказ не оплачен! Продолжить?")) {
             $.ajaxSetup({
                 beforeSend: function (xhr, settings) {
@@ -909,15 +895,14 @@ function FinishDeliveryOrder(DeliveryOrderPK, IsPaid) {
                 }
             });
             $.ajax({
-                    type: 'POST',
-                    url: $('#delivery-urls').attr('finish-delivery-order-url'),
-                    data: {"delivery_order_pk": DeliveryOrderPK},
+                type: 'POST',
+                url: $('#delivery-urls').attr('finish-delivery-order-url'),
+                data: {"delivery_order_pk": DeliveryOrderPK},
                     dataType: 'json',
                     success: function (data) {
                         if (data['success']) {
                             alert(data['message']);
-                        }
-                        else {
+                        } else {
                             alert(data['message']);
                         }
                     }
@@ -962,13 +947,11 @@ function CheckDeliveryOrder(DeliveryOrderPK) {
                         if (event.target == modal_delivery_order_content) {
                             console.log("Inside");
                             HideDeliveryOrder();
-                        }
-                        else {
+                        } else {
                             console.log("Outside");
                         }
                     };
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             }
@@ -993,8 +976,7 @@ function DeliverDeliveryOrder(DeliveryOrderPK) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
                 location.reload();
@@ -1020,8 +1002,7 @@ function CancelDeliveryOrder(DeliveryOrderPK) {
                 success: function (data) {
                     if (data['success']) {
                         alert(data['message']);
-                    }
-                    else {
+                    } else {
                         alert(data['message']);
                     }
                 }
@@ -1046,8 +1027,7 @@ function StartDelivery(DeliveryPk) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             }
@@ -1071,8 +1051,7 @@ function CancelDelivery(DeliveryPk) {
             success: function (data) {
                 if (data['success']) {
                     alert(data['message']);
-                }
-                else {
+                } else {
                     alert(data['message']);
                 }
             }
@@ -1084,13 +1063,63 @@ function CancelDelivery(DeliveryPk) {
 
 function CheckOrderIdPresence() {
     var value = $('#id_order').val();
+    var moderation_needed = $('#id_moderation_needed').val()
     if (value) {
-        $('#btn-save-delivery-order').show();
+        if (moderation_needed != "True")
+            $('#btn-save-delivery-order').show();
+        else
+            $('#btn-save-delivery-order').hide();
         $('#btn_show_menu').hide();
-    }
-    else {
+    } else {
         $('#btn-save-delivery-order').hide();
         $('#btn_show_menu').show();
 
     }
+}
+
+function EditOrder(id) {
+    var url = $('#delivery-urls').attr('menu-url');
+    //var confirmation = confirm("Заказ готов?");
+    //if (confirmation) {
+    console.log(id + ' ' + url);
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken)
+        }
+    });
+    $.ajax({
+        type: 'GET',
+        url: url,
+        data: {
+            'order_id': id,
+            'modal_mode': true
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data['success']) {
+                $('#modal-menu').html(data['html']);
+                $('#modal-menu').css("display", "block");
+                currOrder = data['order_content'];
+
+                // Get the <span> element that closes the modal
+                var closeMenuSpan = document.getElementById("close-modal-menu");
+
+                // When the user clicks on <span> (x), close the modal
+                closeMenuSpan.onclick = function () {
+                    HideMenu();
+                };
+
+                // When the user clicks anywhere outside of the modal, close it
+                window.onclick = function (event) {
+                    if (event.target == modal_menu_container) {
+                        HideMenu();
+                    }
+                }
+
+                CalculateTotal();
+                DrawOrderTable();
+            }
+        }
+    });
+    //}
 }

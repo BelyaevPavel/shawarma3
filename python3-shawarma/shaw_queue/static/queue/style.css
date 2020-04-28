@@ -1645,7 +1645,7 @@ div.filter-container {
 #modal-delivery-order-create {
     width: -moz-fit-content;
     width: fit-content;
-    max-height: 645px;
+    max-height: 695px;
     overflow-y: auto;
     margin: 5% auto !important;
 }
