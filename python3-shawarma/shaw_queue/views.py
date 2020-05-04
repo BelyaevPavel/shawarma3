@@ -5901,7 +5901,7 @@ def check_order_status(request):
             else:
                 if delivery_order.moderation_needed:
                     data = {
-                        'response': 'Заказу ' + str(delivery_order.daily_number) + ' требуется модерация!'
+                        'response': 'Заказ ' + str(delivery_order.daily_number) + ' на модерации!'
                     }
                 else:
                     if delivery_order.order.is_grilling or delivery_order.order.is_grilling_shash:
