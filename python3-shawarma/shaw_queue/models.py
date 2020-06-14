@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.urls import reverse
@@ -135,11 +135,17 @@ class Order(models.Model):
     start_shawarma_preparation = models.BooleanField(verbose_name="Start Shawarma Preparation", default=True)
     start_shawarma_cooking = models.BooleanField(verbose_name="Start Shawarma Cooking", default=True)
     # start_shashlyk_cooking = models.BooleanField(verbose_name="Start Shashlyk Cooking", default=True)
-    total = models.FloatField(default=0, validators=[MinValueValidator(0, "Total can't be negative!")])
+    total = models.FloatField(verbose_name="Сумма", default=0,
+                              validators=[MinValueValidator(0, "Total can't be negative!")])
+    discounted_total = models.FloatField(verbose_name="Сумма с учётом скидки", default=0,
+                                         validators=[MinValueValidator(0, "Discounted total can't be negative!")])
     is_canceled = models.BooleanField(verbose_name="Is canceled", default=False)
-    closed_by = models.ForeignKey(Staff, related_name="closer", verbose_name="Closed By", null=True, on_delete=models.SET_NULL)
-    canceled_by = models.ForeignKey(Staff, related_name="canceler", verbose_name="Canceled By", null=True, on_delete=models.SET_NULL)
-    opened_by = models.ForeignKey(Staff, related_name="opener", verbose_name="Opened By", null=True, on_delete=models.SET_NULL)
+    closed_by = models.ForeignKey(Staff, related_name="closer", verbose_name="Closed By", null=True,
+                                  on_delete=models.SET_NULL)
+    canceled_by = models.ForeignKey(Staff, related_name="canceler", verbose_name="Canceled By", null=True,
+                                    on_delete=models.SET_NULL)
+    opened_by = models.ForeignKey(Staff, related_name="opener", verbose_name="Opened By", null=True,
+                                  on_delete=models.SET_NULL)
     prepared_by = models.ForeignKey(Staff, related_name="maker", default=None, null=True, on_delete=models.SET_NULL)
     printed = models.BooleanField(default=False, verbose_name="Check Printed")
     is_paid = models.BooleanField(default=False, verbose_name="Is Paid")
@@ -152,7 +158,8 @@ class Order(models.Model):
     paid_with_cash = models.BooleanField(default=True, verbose_name="Paid With Cash")
     servery = models.ForeignKey(Servery, verbose_name="Servery", on_delete=models.CASCADE)
     guid_1c = models.CharField(max_length=100, default="")
-    discount = models.FloatField(default=0, validators=[MinValueValidator(0, "Total can't be negative!")])
+    discount = models.FloatField(default=0, validators=[MinValueValidator(0, "Discount can't be negative!"),
+                                                        MaxValueValidator(100, "Discount can't be greater then 100!")])
     sent_to_1c = models.BooleanField(verbose_name="Sent To 1C", default=False)
     paid_in_1c = models.BooleanField(verbose_name="Paid In 1C", default=False)
     status_1c = models.IntegerField(verbose_name="1C Status", default=200)
@@ -179,7 +186,8 @@ class OrderContent(models.Model):
     finish_timestamp = models.DateTimeField(verbose_name="Finish Timestamp", null=True)
     is_in_grill = models.BooleanField(verbose_name="Is in grill", default=False)
     is_canceled = models.BooleanField(verbose_name="Is canceled", default=False)
-    canceled_by = models.ForeignKey(Staff, related_name="content_canceler", verbose_name="Canceled By", null=True, on_delete=models.SET_NULL)
+    canceled_by = models.ForeignKey(Staff, related_name="content_canceler", verbose_name="Canceled By", null=True,
+                                    on_delete=models.SET_NULL)
     note = models.CharField(max_length=500, default="")
     quantity = models.FloatField(verbose_name="Quantity", default=1.0, null=False)
 
@@ -252,7 +260,8 @@ class DiscountCard(models.Model):
     number = models.CharField(max_length=30)
     discount = models.FloatField()
     guid_1c = models.CharField(max_length=100, default="")
-    customer = models.ForeignKey(Customer, blank=True, null=True, verbose_name="owner of card", on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, blank=True, null=True, verbose_name="owner of card",
+                                 on_delete=models.CASCADE)
 
     def __str__(self):
         return u"№{} {}".format(self.number, self.customer)
