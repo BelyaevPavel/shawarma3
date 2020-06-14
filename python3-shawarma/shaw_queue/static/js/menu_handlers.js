@@ -80,7 +80,8 @@ function SendOrder() {
             var order_data = {
                 "order_content": JSON.stringify(currOrder),
                 "payment": $('[name=payment_choose]:checked').val(),
-                "cook_choose": $('[name=cook_choose]:checked').val()
+                "cook_choose": $('[name=cook_choose]:checked').val(),
+                "discount": $('[name=discount]:checked').val()?parseFloat($('[name=discount]:checked').val()):0
             };
             var order_id = $('#order_id').val();
             if (order_id)

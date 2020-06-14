@@ -3380,6 +3380,7 @@ def make_order(request):
     content = json.loads(request.POST['order_content'])
     payment = request.POST['payment']
     cook_choose = request.POST['cook_choose']
+    discount = request.POST.get('discount', 0)
 
     is_paid = False
     paid_with_cash = False
@@ -3418,13 +3419,13 @@ def make_order(request):
     if result['success']:
         service_point = result['service_point']
         return JsonResponse(data=make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash,
-                                                 servery, service_point))
+                                                 servery, service_point, discount))
     else:
         return JsonResponse(result)
 
 
 def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, servery,
-                    service_point):
+                    service_point, discount=0):
     file = open('log/cook_choose.log', 'a')
     try:
         order_last_daily_number = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
@@ -3456,9 +3457,10 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
             OrderContent.objects.filter(order=order).delete()
             order.is_paid = is_paid
             order.paid_with_cash = paid_with_cash
+            order.discount = discount
         else:
             order = Order(open_time=timezone.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
-                          paid_with_cash=paid_with_cash, status_1c=0)
+                          paid_with_cash=paid_with_cash, status_1c=0, discount=discount)
     except:
         data = {
             'success': False,
@@ -5472,6 +5474,26 @@ def send_order_to_1c(order, is_return):
             }
             client.captureException()
             return data
+        order.sent_to_1c = True
+        try:
+            order.discount = result.json()['Discount']
+        except KeyError:
+            data = {
+                'success': False,
+                'message': 'Нет Discount в ответе 1С!'
+            }
+            client.captureException()
+            return data
+        order.sent_to_1c = True
+        try:
+            order.discounted_total = result.json()['Summ']
+        except KeyError:
+            data = {
+                'success': False,
+                'message': 'Нет Summ в ответе 1С!'
+            }
+            client.captureException()
+            return data
 
         order.save()
 
@@ -5901,7 +5923,7 @@ def check_order_status(request):
             else:
                 if delivery_order.moderation_needed:
                     data = {
-                        'response': 'Заказу ' + str(delivery_order.daily_number) + ' требуется модерация!'
+                        'response': 'Заказ ' + str(delivery_order.daily_number) + ' на модерации!'
                     }
                 else:
                     if delivery_order.order.is_grilling or delivery_order.order.is_grilling_shash:
