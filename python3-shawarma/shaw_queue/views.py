@@ -4651,6 +4651,12 @@ def statistic_page(request):
     max_preparation_time = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
                                                 is_canceled=False).values(
         'open_time', 'close_time').aggregate(preparation_time=Max(F('close_time') - F('open_time')))
+    paid_with_cash_count = len(Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
+                                                is_canceled=False, is_paid=True, paid_with_cash=True))
+    paid_with_card_count = len(Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
+                                                is_canceled=False, is_paid=True, paid_with_cash=False))
+    not_paid_count = len(Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
+                                                is_canceled=False, is_paid=False))
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_orders': len(Order.objects.filter(open_time__contains=datetime.date.today())),
@@ -4659,6 +4665,9 @@ def statistic_page(request):
         'avg_prep_time': str(avg_preparation_time['preparation_time']).split('.', 2)[0],
         'min_prep_time': str(min_preparation_time['preparation_time']).split('.', 2)[0],
         'max_prep_time': str(max_preparation_time['preparation_time']).split('.', 2)[0],
+        'paid_with_cash_count': paid_with_cash_count,
+        'paid_with_card_count': paid_with_card_count,
+        'not_paid_count': not_paid_count,
         'cooks': [{'person': cook,
                    'prepared_orders_count': len(
                        Order.objects.filter(prepared_by=cook, open_time__contains=datetime.date.today(),
@@ -4732,6 +4741,38 @@ def statistic_page_ajax(request):
         return JsonResponse(data)
 
     try:
+        paid_with_cash_count = len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv,
+                                                        close_time__isnull=False, is_canceled=False, is_paid=True,
+                                                        paid_with_cash=True))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении количества заказов оплаченных наличными!'
+        }
+        return JsonResponse(data)
+
+    try:
+        paid_with_card_count = len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv,
+                                                        close_time__isnull=False, is_canceled=False, is_paid=True,
+                                                        paid_with_cash=False))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении количества заказов оплаченных картой!'
+        }
+        return JsonResponse(data)
+
+    try:
+        not_paid_count = len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv,
+                                                  close_time__isnull=False, is_canceled=False, is_paid=False))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении количества неоплаченных заказов !'
+        }
+        return JsonResponse(data)
+
+    try:
         context = {
             'staff_category': StaffCategory.objects.get(staff__user=request.user),
             'total_orders': len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv)),
@@ -4740,6 +4781,9 @@ def statistic_page_ajax(request):
             'avg_prep_time': str(avg_preparation_time['preparation_time']).split('.', 2)[0],
             'min_prep_time': str(min_preparation_time['preparation_time']).split('.', 2)[0],
             'max_prep_time': str(max_preparation_time['preparation_time']).split('.', 2)[0],
+            'paid_with_cash_count': paid_with_cash_count,
+            'paid_with_card_count': paid_with_card_count,
+            'not_paid_count': not_paid_count,
             'cooks': [{'person': cook,
                        'prepared_orders_count': len(Order.objects.filter(prepared_by=cook,
                                                                          open_time__gte=start_date_conv,

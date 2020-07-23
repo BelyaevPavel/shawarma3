@@ -4,6 +4,11 @@
     Мин. время выполнения: {{ min_prep_time }}
     Ср. время выполнения: {{ avg_prep_time }}
     Макс. время: {{ max_prep_time }}
+    <div class="stat-sect-container">
+        Оплачено наличными: {{ paid_with_cash_count }}
+        Оплачено картой: {{ paid_with_card_count }}
+        Неоплачено: {{ not_paid_count }}
+    </div>
     <div class="stat-cook-table-header">
         <div class="stat-cook-name">
             Имя повара
