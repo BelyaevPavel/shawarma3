@@ -3,7 +3,8 @@ from django.core.files import temp
 from django.http.response import HttpResponseRedirect
 
 from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker, \
-    ServicePoint, Printer, Customer, CallData, DiscountCard, Delivery, DeliveryOrder
+    ServicePoint, Printer, Customer, CallData, DiscountCard, Delivery, DeliveryOrder, ContentOption, SizeOption, \
+    MacroProduct, ProductOption, ProductVariant, OrderContentOption
 from django.template import loader
 from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist, \
     ValidationError
@@ -19,6 +20,7 @@ from django.utils.safestring import SafeText
 from django.utils import timezone
 from django.core.mail import send_mail
 from threading import Thread
+from unidecode import unidecode
 from hashlib import md5
 from shawarma.settings import TIME_ZONE, LISTNER_URL, LISTNER_PORT, PRINTER_URL, SERVER_1C_PORT, SERVER_1C_IP, \
     GETLIST_URL, SERVER_1C_USER, SERVER_1C_PASS, ORDER_URL, FORCE_TO_LISTNER, DEBUG_SERVERY, RETURN_URL, \
@@ -921,6 +923,71 @@ def menu(request):
             data['order_content'] = order_content
 
         return JsonResponse(data)
+
+
+def new_menu(request):
+    device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        device_ip = '127.0.0.1'
+    try:
+        menu_items = Menu.objects.order_by('title')
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске последней паузы!'
+        }
+        client.captureException()
+        return JsonResponse(data)
+    result = define_service_point(device_ip)
+    if result['success']:
+        # try:
+        macro_products = MacroProduct.objects.all().order_by('title')
+        context = {
+            'user': request.user,
+            'available_cookers': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                                      service_point=result['service_point']),
+            'staff_category': StaffCategory.objects.get(staff__user=request.user),
+            'macro_products':
+                [
+                    {
+                        'item': macro_product,
+                        'id': unidecode(macro_product.title),
+                        'content_options': [
+                            {
+                                'item': content_option,
+                                'id': unidecode(macro_product.title + "_" + content_option.title),
+                                'size_options': [
+                                    {
+                                        'item': size_option,
+                                        'id': unidecode(
+                                            macro_product.title + "_" + content_option.title + "_" + size_option.title),
+                                        'product_variant': ProductVariant.objects.get(
+                                            content_option_id=content_option, size_option=size_option,
+                                            macro_product=macro_product),
+                                        'product_options': [{'item': product_option} for product_option in
+                                                            ProductOption.objects.filter(
+                                                                product_variants__macro_product=macro_product,
+                                                                product_variants__content_option=content_option,
+                                                                product_variants__size_option=size_option)],
+                                    } for size_option in
+                                    SizeOption.objects.filter(productvariant__macro_product=macro_product,
+                                                              productvariant__content_option=content_option).distinct()]
+                            }
+                            for content_option in
+                            ContentOption.objects.filter(productvariant__macro_product=macro_product).distinct()],
+                    }
+                    for macro_product in macro_products]
+
+        }
+        # except:
+        #     data = {
+        #         'success': False,
+        #         'message': 'Что-то пошло не так при поиске генерации меню!'
+        #     }
+        #     client.captureException()
+        #     return JsonResponse(data)
+    template = loader.get_template('shaw_queue/new_menu.html')
+    return HttpResponse(template.render(context, request))
 
 
 def search_comment(request: HttpRequest) -> JsonResponse:
@@ -1890,25 +1957,34 @@ def cook_interface(request):
             display_number = new_order.daily_number % 100
             taken_order_content = OrderContent.objects.filter(order=new_order,
                                                               menu_item__can_be_prepared_by__title__iexact='Cook',
+                                                              menu_item__productvariant__size_option__isnull=False,
                                                               finish_timestamp__isnull=True).order_by('id')
             if len(taken_order_content) > 0:
                 has_order = True
 
         taken_order_content = OrderContent.objects.filter(order=new_order,
-                                                          menu_item__can_be_prepared_by__title__iexact='Cook').order_by(
+                                                          menu_item__can_be_prepared_by__title__iexact='Cook',
+                                                          menu_item__productvariant__size_option__isnull=False).order_by(
             'id')
         taken_order_in_grill_content = OrderContent.objects.filter(order=new_order,
                                                                    grill_timestamp__isnull=False,
-                                                                   menu_item__can_be_prepared_by__title__iexact='Cook').order_by(
+                                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
+                                                                   menu_item__productvariant__size_option__isnull=False).order_by(
             'id')
 
         context = {
             'free_order': new_order,
             'display_number': display_number,
             'order_content': [{'number': number,
-                               'item': item} for number, item in enumerate(taken_order_content, start=1)],
+                               'item': item,
+                               'note': ', '.join([item.content_item_option.menu_item.title for item in
+                                                  OrderContentOption.objects.filter(content_item=item)]), } for
+                              number, item in enumerate(taken_order_content, start=1)],
             'in_grill_content': [{'number': number,
-                                  'item': item} for number, item in
+                                  'item': item,
+                                  'note': ', '.join([item.content_item_option.menu_item.title for item in
+                                                     OrderContentOption.objects.filter(content_item=item)]), } for
+                                 number, item in
                                  enumerate(taken_order_in_grill_content, start=1)],
             'cooks_orders': [{'order': cooks_order,
                               'display_number': cooks_order.daily_number % 100,
@@ -2066,6 +2142,7 @@ def c_i_a(request):
             try:
                 taken_order_content = OrderContent.objects.filter(order=new_order,
                                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
+                                                                  menu_item__productvariant__size_option__isnull=False,
                                                                   finish_timestamp__isnull=True).order_by('id')
             except:
                 data = {
@@ -2079,7 +2156,8 @@ def c_i_a(request):
 
         try:
             taken_order_content = OrderContent.objects.filter(order=new_order,
-                                                              menu_item__can_be_prepared_by__title__iexact='Cook').order_by(
+                                                              menu_item__can_be_prepared_by__title__iexact='Cook',
+                                                              menu_item__productvariant__size_option__isnull=False).order_by(
                 'id')
         except:
             data = {
@@ -2105,7 +2183,11 @@ def c_i_a(request):
             'selected_order': new_order,
             'display_number': display_number,
             'order_content': [{'number': number,
-                               'item': item} for number, item in enumerate(taken_order_content, start=1)],
+                               'item': item,
+                               'note': (item.note + ', ' if len(item.note) > 0 else '') + ', '.join(
+                                   [item.content_item_option.menu_item.title for item in
+                                    OrderContentOption.objects.filter(content_item=item)]),
+                               } for number, item in enumerate(taken_order_content, start=1)],
             'staff_category': staff.staff_category,
             'staff': staff
         }
@@ -2969,10 +3051,13 @@ def select_order(request):
                 'selected_order': get_object_or_404(Order, id=order_id),
                 'display_number': get_object_or_404(Order, id=order_id).daily_number % 100,
                 'order_content': [{'number': number,
-                                   'item': item} for number, item in
-                                  enumerate(OrderContent.objects.filter(order__id=order_id,
-                                                                        menu_item__can_be_prepared_by__title__iexact='Cook'),
-                                            start=1)],
+                                   'item': item,
+                                   'note': ', '.join([item.content_item_option.menu_item.title for item in
+                                                      OrderContentOption.objects.filter(content_item=item)])} for
+                                  number, item in enumerate(OrderContent.objects.filter(order__id=order_id,
+                                                                                        menu_item__can_be_prepared_by__title__iexact='Cook',
+                                                                                        menu_item__productvariant__size_option__isnull=False),
+                                                            start=1)],
                 'staff_category': staff.staff_category
             }
         except:
@@ -3479,6 +3564,7 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
         menu_item = Menu.objects.get(id=item['id'])
         if menu_item.can_be_prepared_by.title == 'Cook':
             has_cook_content = True
+            break
     if has_cook_content and cook_choose != 'delivery':
         try:
             cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
@@ -3552,6 +3638,7 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
     shashlyk_presence = False
     supplement_presence = False
     for item in content:
+        item['toppings']=item.get('toppings', [])
         if item['quantity'] - int(item['quantity']) != 0:
             try:
                 new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'],
@@ -3560,7 +3647,7 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
                 order.delete()
                 data = {
                     'success': False,
-                    'message': 'Something wrong happened while creating new order!'
+                    'message': 'Something wrong happened while adding order item!'
                 }
                 client.captureException()
                 return data
@@ -3573,6 +3660,24 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
             if menu_item.can_be_prepared_by.title == 'Operator':
                 supplement_presence = True
             total += menu_item.price * item['quantity']
+            for topping in item['toppings']:
+                try:
+                    new_item_topping = OrderContent(order=order, menu_item_id=topping['id'])
+                except:
+                    order.delete()
+                    data = {
+                        'success': False,
+                        'message': 'Something wrong happened while adding topping {}!'.format(topping['title'])
+                    }
+                    client.captureException()
+                    return data
+                new_item_topping.save()
+                new_order_content_option = OrderContentOption(content_item=new_order_content,
+                                                              content_item_option=new_item_topping)
+                new_order_content_option.save()
+                topping_menu_item = Menu.objects.get(id=topping['id'])
+                total += topping_menu_item.price
+
 
         else:
             for i in range(0, int(item['quantity'])):
@@ -3595,6 +3700,24 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
                 if menu_item.can_be_prepared_by.title == 'Operator':
                     supplement_presence = True
                 total += menu_item.price
+
+                for topping in item['toppings']:
+                    try:
+                        new_item_topping = OrderContent(order=order, menu_item_id=topping['id'])
+                    except:
+                        order.delete()
+                        data = {
+                            'success': False,
+                            'message': 'Something wrong happened while adding topping {}!'.format(topping['title'])
+                        }
+                        client.captureException()
+                        return data
+                    new_item_topping.save()
+                    new_order_content_option = OrderContentOption(content_item=new_order_content,
+                                                                  content_item_option=new_item_topping)
+                    new_order_content_option.save()
+                    topping_menu_item = Menu.objects.get(id=topping['id'])
+                    total += topping_menu_item.price
 
         content_to_send.append(
             {
@@ -5433,7 +5556,7 @@ def send_order_to_1c(order, is_return):
         'Discount': order.discount,
         'Goods': []
     }
-    curr_order_content = OrderContent.objects.filter(order=order).values('menu_item__title',
+    curr_order_content = OrderContent.objects.filter(order=order, menu_item__price__gt=0).values('menu_item__title',
                                                                          'menu_item__guid_1c').annotate(
         count=Sum('quantity'))
     for item in curr_order_content:

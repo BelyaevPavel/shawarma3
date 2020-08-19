@@ -1,0 +1,176 @@
+{% extends "shaw_queue/base.html" %}
+<title>Меню</title>
+
+{% block content %}
+    {% load static %}
+    <input hidden id="menu-urls" data-status-refresh-url="{% url 'status_refresh' %}"
+           data-search-comment="{% url 'search_comment' %}"/>
+    <div class="modal" id="modal-status">
+        <div class="modal-content">
+            {#            <span class="close" id="close-modal-status">&times;</span>#}
+            <div class="loader-container" id="loader-container">
+                <div class="loader" id="loading-indicator"></div>
+            </div>
+            <p class="status-display" id="status-display">
+                Статус...
+            </p>
+            <p class="modal-cash-input-container">
+                <label for="order-change" class="modal-label" id="order-change-label" hidden>Наличные</label>
+                <input type="text" value="" class="modal-quantity-input" id="order-change"
+                       onclick="this.setSelectionRange(0, this.value.length)" onkeyup="CalculateChange()" hidden>
+            </p>
+            <p class="status-display" id="change-display" hidden>
+                Сдача...
+            </p>
+            <p class="modal-buttons-container">
+                <button class="btn success" id="status-OK-button" onclick="OKHandeler()">OK</button>
+                <button class="btn danger" id="status-cancel-button" onclick="CancelHandler()">Отмена</button>
+                <button class="btn warning" id="status-retry-button" onclick="RetryHandler()">Повторить</button>
+                <button class="btn warning" id="status-retry-cash-button" onclick="RetryCashHandler()">Оплатить
+                    наличными
+                </button>
+            </p>
+        </div>
+    </div>
+    <div class="container">
+        <div class="new-menu__container">
+            <div class="sidemenu">
+                <div class="sidemenu__container">
+                    {% for macro_product in macro_products %}
+                        <div class="sidemenu__button">
+                            <a class="sidemenu__icon" href="#{{ macro_product.id|slugify }}" onclick="ClearToppings()">
+                                <img src="{% static 'img/btns/spicy30.png' %}" alt="icon"/>
+                            </a>
+                            <div class="sidemenu__title">
+                                <a class="sidemenu__category-title" href="#{{ macro_product.id|slugify }}"
+                                   onclick="ClearToppings()">
+                                    {{ macro_product.item.title }}
+                                </a>
+                                <div class="sidemenu__subcategories">
+                                    {% for content_option in macro_product.content_options %}
+                                        <a class="sidemenu__subcategory" href="#{{ content_option.id|slugify }}"
+                                           onclick="ClearToppings()">
+                                            {{ content_option.item.title }}
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="pad-menu-container">
+                {% include "shaw_queue/pad_menu_block.html" with collection=macro_products top="top" previous="top" current="top" %}
+                {% for macro_product in macro_products %}
+                    {% include "shaw_queue/pad_menu_block.html" with collection=macro_product.content_options top="top" previous="top" current=macro_product.id %}
+                    {% for content_option in macro_product.content_options %}
+                        {% include "shaw_queue/pad_menu_block.html" with collection=content_option.size_options top="top" previous=macro_product.id current=content_option.id %}
+                        {% for size_option in content_option.size_options %}
+                            {% include "shaw_queue/pad_menu_block.html" with collection=size_option.product_options top="top" previous=content_option.id current=size_option.id product_variant=size_option.product_variant %}
+                        {% endfor %}
+                    {% endfor %}
+                {% endfor %}
+                <div class="pad-menu__note-container">
+                    <label for="item-note" class="modal-label">Комментарий</label>
+                    <input type="text" value="" class="live-search-box" id="item-note">
+                    <div id="dropdown-list-container"></div>
+                </div>
+            </div>
+            <div class="new-menu__rightside">
+                <div class="new-menu__actions">
+                    <button type="button" class="subm small-btn success" data-send-url="{% url 'make_order' %}"
+                            onclick="SendOrder()">
+                        Принять
+                    </button>
+                    <div class="shadowed">
+                        <p>
+                            <input type="radio" id="not_paid" checked value="not_paid" name="payment_choose">
+                            <label for="not_paid">Не Оплачен</label>
+                        </p>
+                        <p>
+                            <input type="radio" id="paid_with_cash" value="paid_with_cash" name="payment_choose">
+                            <label for="paid_with_cash">Наличные</label>
+                        </p>
+                        <p>
+                            <input type="radio" id="paid_without_cash" value="paid_without_cash" name="payment_choose">
+                            <label for="paid_without_cash">Безналичный</label>
+                        </p>
+                    </div>
+                    <div class="shadowed">
+                        <p>
+                            <input type="radio" id="cook_auto" checked name="cook_choose" value="auto">
+                            <label for="cook_auto">Автоназначение</label>
+                        </p>
+                        {% for available_cooker in available_cookers %}
+                            <p>
+                                <input type="radio" id="cook_{{ available_cooker.id }}" name="cook_choose"
+                                       value="{{ available_cooker.id }}">
+                                <label for="cook_{{ available_cooker.id }}">{{ available_cooker.user.first_name }} {{ available_cooker.user.last_name }}</label>
+                            </p>
+                        {% endfor %}
+                    </div>
+                    <div class="shadowed">
+                        <p>
+                            <input type="checkbox" id="metro_discount" name="discount" value="20">
+                            <label for="metro_discount">Скидка METRO 20%</label>
+                        </p>
+                    </div>
+                </div>
+                <div class="new-menu__info"><span>Заказ:</span><span id="total-display"></span></div>
+                <div class="new-menu__basket">
+                    <div class="new-menu__basket-item">
+                        <div class="new-menu__basket-title"><span>{% lorem %}</span><span>x5</span><span>1000 p.</span>
+                            <button class="small-btn danger">-1</button>
+                        </div>
+                        <div class="new-menu__basket-toppings">
+                            <div class="new-menu__basket-topping">
+                                <span>{% lorem %}</span><span>1000 p.</span>
+                                <button class="small-btn danger">-1</button>
+                            </div>
+                            <div class="new-menu__basket-topping">
+                                <span>{% lorem %}</span><span>1000 p.</span>
+                                <button class="small-btn danger">-1</button>
+                            </div>
+                            <div class="new-menu__basket-topping">
+                                <span>{% lorem %}</span><span>1000 p.</span>
+                                <button class="small-btn danger">-1</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="new-menu__basket-item">
+                        <div class="new-menu__basket-title"><span>{% lorem %}</span><span>x1</span><span>1000 p.</span>
+                            <button class="small-btn danger">-1</button>
+                        </div>
+                        <div class="new-menu__basket-toppings">
+                        </div>
+                    </div>
+                    <div class="new-menu__basket-item">
+                        <div class="new-menu__basket-title"><span>{% lorem %}</span><span>x3</span><span>1000 p.</span>
+                            <button class="small-btn danger">-1</button>
+                        </div>
+                        <div class="new-menu__basket-toppings">
+                            <div class="new-menu__basket-topping">
+                                <span>{% lorem %}</span><span>1000 p.</span>
+                                <button class="small-btn danger">-1</button>
+                            </div>
+                            <div class="new-menu__basket-topping">
+                                <span>{% lorem %}</span><span>1000 p.</span>
+                                <button class="small-btn danger">-1</button>
+                            </div>
+                            <div class="new-menu__basket-topping">
+                                <span>{% lorem %}</span><span>1000 p.</span>
+                                <button class="small-btn danger">-1</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+{% block aditional_static %}
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'queue/pad_menu_style.css' %}">
+    <script type="text/javascript" src="{% static 'js/pad_menu_handlers.js' %}"></script>
+{% endblock %}

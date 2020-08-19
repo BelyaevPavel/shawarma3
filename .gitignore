@@ -1,6 +1,7 @@
 # Django
 my_settings.py
 img/carousel/
+media/
 static_content/
 audio/
 log/
