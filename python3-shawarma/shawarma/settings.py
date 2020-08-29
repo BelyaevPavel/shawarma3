@@ -261,6 +261,9 @@ LOGIN_REDIRECT_URL = '/shaw_queue/'
 
 STATIC_ROOT = '/home/admintrud/shawarma3/static_content/static/'
 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+
 RAVEN_CONFIG = {
     'dsn': raven_dsn,
     # If you are using git, you can also automatically configure the

@@ -1,0 +1,32 @@
+<div class="pad-menu__block" id="{{ current|slugify }}">
+    {% if current != "top" %}
+        <div class="pad-menu__button" {% comment %}onclick="GoToSubmenu('{{ top|slugify }}')"{% endcomment %} onclick="ClearToppings()"><a
+                href="#{{ top|slugify }}">Наверх</a></div>
+        <div class="pad-menu__button" {% comment %}onclick="GoToSubmenu('{{ previous|slugify }}')"{% endcomment %} onclick="ClearToppings()"><a
+                href="#{{ previous|slugify }}">Назад</a></div>
+    {% endif %}
+    {% for item in collection %}
+        {% comment %}  {% if item.product_variant %}
+            <div class="pad-menu__button"
+                 onclick="AddToOrder({{ item.product_variant.menu_item.id }}, '{{ item.product_variant.menu_item.title }}', {{ item.product_variant.menu_item.price }})">{{ item.item.title }}</div>
+        {% else %}{% endcomment %}
+        {% if product_variant %}
+            <div class="pad-menu__button" topping_id="{{ item.item.menu_item.id }}" onclick="RegisterTopping({{ item.item.menu_item.id }}, '{{ item.item.title }}', {{ item.item.menu_item.price }})">
+                {% if item.item.menu_item.icon %}
+                    <img src="{{ item.item.menu_item.icon.url }}" alt="{{ item.item.menu_item.icon.url }}"/>
+                {% else %}
+                    <span>{{ item.item.title }}</span>
+                {% endif %} </div>
+        {% else %}
+            <div class="pad-menu__button" {% comment %}onclick="GoToSubmenu('{{ item.id|slugify }}')"{% endcomment %}><a
+                    href="#{{ item.id|slugify }}"><span>{{ item.item.title }}</span></a></div>
+        {% endif %}
+        {% comment %}{% endif %}{% endcomment %}
+    {% endfor %}
+    {% if product_variant %}
+        <div class="pad-menu__button pad-menu__button_add"
+             onclick="AddToOrder({{ product_variant.menu_item.id }}, '{{ product_variant.menu_item.title }}', {{ product_variant.menu_item.price }})">
+            <span>+</span>
+        </div>
+    {% endif %}
+</div>

@@ -1,6 +1,8 @@
 # Django
 my_settings.py
 python3-shawarma/shaw_queue/static/img/carousel/
+img/carousel/
+media/
 static_content/
 audio/
 log/

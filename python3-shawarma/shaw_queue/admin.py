@@ -2,7 +2,7 @@
 
 from .models import Menu, Staff, Order, StaffCategory, \
     MenuCategory, Servery, ServicePoint, Printer, CallData, Customer, Delivery, DeliveryOrder, ServiceAreaPolygon, \
-    ServiceAreaPolyCoord
+    ServiceAreaPolyCoord, MacroProduct, ProductOption, ProductVariant, SizeOption, ContentOption
 from django.contrib import admin
 
 # Register your models here.
@@ -20,3 +20,8 @@ admin.site.register(Delivery)
 admin.site.register(DeliveryOrder)
 admin.site.register(ServiceAreaPolygon)
 admin.site.register(ServiceAreaPolyCoord)
+admin.site.register(MacroProduct)
+admin.site.register(ProductOption)
+admin.site.register(ProductVariant)
+admin.site.register(SizeOption)
+admin.site.register(ContentOption)

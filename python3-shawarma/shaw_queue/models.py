@@ -97,12 +97,59 @@ class Menu(models.Model):
     category = models.ForeignKey(MenuCategory, on_delete=models.SET_NULL, null=True)
     is_by_weight = models.BooleanField(verbose_name="На развес", default=False)
     customer_appropriate = models.BooleanField(verbose_name="Подходит для демонстрации покупателю", default=False)
+    icon = models.ImageField(upload_to="img/icons", blank=True, null=True, verbose_name="Иконка")
 
     def __str__(self):
         return u"{}".format(self.title)
 
     def __unicode__(self):
         return "{}".format(self.title)
+
+
+class MacroProduct(models.Model):
+    title = models.CharField(max_length=200)
+    customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
+
+    def __str__(self):
+        return u"{}".format(self.title)
+
+
+class SizeOption(models.Model):
+    title = models.CharField(max_length=200)
+    customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
+
+    def __str__(self):
+        return u"{}".format(self.title)
+
+
+class ContentOption(models.Model):
+    title = models.CharField(max_length=200)
+    customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
+
+    def __str__(self):
+        return u"{}".format(self.title)
+
+
+class ProductVariant(models.Model):
+    title = models.CharField(max_length=200)
+    customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
+    menu_item = models.ForeignKey(Menu, on_delete=models.CASCADE, verbose_name="Товар из меню 1С")
+    size_option = models.ForeignKey(SizeOption, on_delete=models.CASCADE, verbose_name="Вариант размера")
+    content_option = models.ForeignKey(ContentOption, on_delete=models.CASCADE, verbose_name="Вариант содержимого")
+    macro_product = models.ForeignKey(MacroProduct, on_delete=models.CASCADE, verbose_name="Макротовар")
+
+    def __str__(self):
+        return u"{}".format(self.title)
+
+
+class ProductOption(models.Model):
+    title = models.CharField(max_length=200)
+    customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
+    menu_item = models.ForeignKey(Menu, on_delete=models.CASCADE, verbose_name="Товар из меню 1С")
+    product_variants = models.ManyToManyField(ProductVariant, verbose_name="Вариант товара")
+
+    def __str__(self):
+        return u"{}".format(self.title)
 
 
 class Servery(models.Model):
@@ -202,6 +249,15 @@ class OrderContent(models.Model):
             ('can_cancel', 'User can cancel order content.'),
             ('can_cook', 'User can cook order content'),
         )
+
+
+class OrderContentOption(models.Model):
+    content_item = models.ForeignKey(OrderContent, on_delete=models.CASCADE, related_name="content_item", verbose_name="Товар из заказа")
+    content_item_option = models.ForeignKey(OrderContent, on_delete=models.CASCADE, related_name="content_item_option",
+                                            verbose_name="Доп к товару из заказа")
+
+    def __str__(self):
+        return u"{}-to-{}".format(self.content_item.menu_item.title, self.content_item_option.menu_item.title)
 
 
 class OrderOpinion(models.Model):
