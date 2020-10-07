@@ -1952,24 +1952,29 @@ def cook_interface(request):
         other_orders = regular_other_orders | today_delivery_other_orders
         has_order = False
         display_number = ''
+
+# TODO: Uncomment, when product variants will be ready.
+
         if len(new_order) > 0:
             new_order = new_order[0]
             display_number = new_order.daily_number % 100
             taken_order_content = OrderContent.objects.filter(order=new_order,
                                                               menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                              menu_item__productvariant__size_option__isnull=False,
+                                                              #menu_item__productvariant__size_option__isnull=False,
                                                               finish_timestamp__isnull=True).order_by('id')
             if len(taken_order_content) > 0:
                 has_order = True
 
         taken_order_content = OrderContent.objects.filter(order=new_order,
                                                           menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                          menu_item__productvariant__size_option__isnull=False).order_by(
+                                                          #menu_item__productvariant__size_option__isnull=False
+).order_by(
             'id')
         taken_order_in_grill_content = OrderContent.objects.filter(order=new_order,
                                                                    grill_timestamp__isnull=False,
                                                                    menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                                   menu_item__productvariant__size_option__isnull=False).order_by(
+                                                                   #menu_item__productvariant__size_option__isnull=False
+).order_by(
             'id')
 
         context = {
@@ -1977,15 +1982,16 @@ def cook_interface(request):
             'display_number': display_number,
             'order_content': [{'number': number,
                                'item': item,
-                               'note': ', '.join([item.content_item_option.menu_item.title for item in
-                                                  OrderContentOption.objects.filter(content_item=item)]), } for
-                              number, item in enumerate(taken_order_content, start=1)],
+                               'note': (item.note + ', ' if len(item.note) > 0 else '') + ', '.join(
+                                   [item.content_item_option.menu_item.title for item in
+                                    OrderContentOption.objects.filter(content_item=item)]),
+                               } for number, item in enumerate(taken_order_content, start=1)],
             'in_grill_content': [{'number': number,
                                   'item': item,
-                                  'note': ', '.join([item.content_item_option.menu_item.title for item in
-                                                     OrderContentOption.objects.filter(content_item=item)]), } for
-                                 number, item in
-                                 enumerate(taken_order_in_grill_content, start=1)],
+                                  'note': (item.note + ', ' if len(item.note) > 0 else '') + ', '.join(
+                                   [item.content_item_option.menu_item.title for item in
+                                    OrderContentOption.objects.filter(content_item=item)]),
+                               } for number, item in enumerate(taken_order_in_grill_content, start=1)],
             'cooks_orders': [{'order': cooks_order,
                               'display_number': cooks_order.daily_number % 100,
                               'cook_content_count': len(OrderContent.objects.filter(order=cooks_order,
@@ -2136,13 +2142,16 @@ def c_i_a(request):
 
         has_order = False
         display_number = ''
+
+# TODO: Uncomment, when product variants will be ready.
+
         if len(new_order) > 0:
             new_order = new_order[0]
             display_number = new_order.daily_number % 100
             try:
                 taken_order_content = OrderContent.objects.filter(order=new_order,
                                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                                  menu_item__productvariant__size_option__isnull=False,
+                                                                  #menu_item__productvariant__size_option__isnull=False,
                                                                   finish_timestamp__isnull=True).order_by('id')
             except:
                 data = {
@@ -2157,8 +2166,8 @@ def c_i_a(request):
         try:
             taken_order_content = OrderContent.objects.filter(order=new_order,
                                                               menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                              menu_item__productvariant__size_option__isnull=False).order_by(
-                'id')
+                                                              # menu_item__productvariant__size_option__isnull=False
+).order_by('id')
         except:
             data = {
                 'success': False,
@@ -3047,16 +3056,18 @@ def select_order(request):
     }
     if order_id:
         try:
+# TODO: Uncomment, when product variants will be ready.
             context = {
                 'selected_order': get_object_or_404(Order, id=order_id),
                 'display_number': get_object_or_404(Order, id=order_id).daily_number % 100,
                 'order_content': [{'number': number,
                                    'item': item,
-                                   'note': ', '.join([item.content_item_option.menu_item.title for item in
+                                   'note': (item.note + ', ' if len(item.note) > 0 else '') + ', '.join([item.content_item_option.menu_item.title for item in
                                                       OrderContentOption.objects.filter(content_item=item)])} for
                                   number, item in enumerate(OrderContent.objects.filter(order__id=order_id,
                                                                                         menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                                                        menu_item__productvariant__size_option__isnull=False),
+                                                                                        # menu_item__productvariant__size_option__isnull=False
+),
                                                             start=1)],
                 'staff_category': staff.staff_category
             }
