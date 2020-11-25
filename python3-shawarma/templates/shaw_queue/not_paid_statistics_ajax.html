@@ -1,0 +1,50 @@
+<div id="statistics-content">
+    <div class="stat-cook-table-header">
+        <div class="stat-cook-table-cell">
+            Номер заказа
+        </div>
+        <div class="stat-cook-table-cell">
+            Время открытия
+        </div>
+        <div class="stat-cook-table-cell">
+            Время закрытия
+        </div>
+        <div class="stat-cook-table-cell">
+            Доставка
+        </div>
+        <div class="stat-cook-table-cell">
+            Сумма
+        </div>
+        <div class="stat-cook-table-cell">
+            С учетом скидки
+        </div>
+    </div>
+    {% for order in not_paid_orders %}
+        <div class="stat-view-container">
+            <div class="stat-view" id="person-prod-cooked">
+                <div class="stat-cook-table-cell">
+                    {{ order.daily_number }}
+                </div>
+                <div class="stat-cook-table-cell">
+                    {{ order.open_time }}
+                </div>
+                <div class="stat-cook-table-cell">
+                    {{ order.close_time }}
+                </div>
+                <div class="stat-cook-table-cell">
+                    {% if order.is_delivery %}
+                        Да
+                    {% else %}
+                        Нет
+                    {% endif %}
+                </div>
+                <div class="stat-cook-table-cell">
+                    {{ order.total }}
+                </div>
+                <div class="stat-cook-table-cell">
+                    {{ order.discounted_total }}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
