@@ -4955,6 +4955,7 @@ def not_paid_statistics(request):
     template = loader.get_template('shaw_queue/not_paid_orders_statistics.html')
     not_paid_orders = Order.objects.filter(open_time__contains=datetime.date.today(), is_paid=False)
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'not_paid_orders': [{'daily_number': order.daily_number,
                              'open_time': order.open_time,
                              'close_time': order.close_time,
@@ -4963,6 +4964,8 @@ def not_paid_statistics(request):
                              'is_ready': order.is_ready,
                              'total': order.total,
                              'discounted_total': order.discounted_total,
+                             'service_point': order.servery.service_point,
+                             'servery': order.servery,
                              'opened_by': order.opened_by,
                              'closed_by': order.closed_by,
                              'canceled_by': order.canceled_by,
@@ -4989,6 +4992,7 @@ def not_paid_statistics_ajax(request):
         }
         return JsonResponse(data)
     context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'not_paid_orders': [{'daily_number': order.daily_number,
                              'open_time': order.open_time,
                              'close_time': order.close_time,
@@ -4997,6 +5001,8 @@ def not_paid_statistics_ajax(request):
                              'is_ready': order.is_ready,
                              'total': order.total,
                              'discounted_total': order.discounted_total,
+                             'service_point': order.servery.service_point,
+                             'servery': order.servery,
                              'opened_by': order.opened_by,
                              'closed_by': order.closed_by,
                              'canceled_by': order.canceled_by,
