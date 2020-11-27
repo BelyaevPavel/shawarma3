@@ -86,6 +86,11 @@
                         Записи
                 </div>
             </a>
+            <a href="{% url 'not_paid_statistics' %}">
+                <div class="header-buttons" id="not_paid_statistics_interface">
+                        Неоплаченные
+                </div>
+            </a>
         {% endif %}
         <div class="header-who-logged" id="header-who-logged">
             {{ user.first_name }} {{ user.last_name }}

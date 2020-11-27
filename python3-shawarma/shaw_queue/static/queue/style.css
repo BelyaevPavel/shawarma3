@@ -1039,6 +1039,15 @@ div.stat-actions-container {
     float: right;
 }
 
+div.stat-not-paid-table-cell {
+    min-width: 10%;
+    width: 12%;
+    max-width: 25%;
+    font-size: larger;
+    float: left;
+    text-align: center;
+}
+
 div.stat-controls {
     width: 100%;
     height: 30px;
