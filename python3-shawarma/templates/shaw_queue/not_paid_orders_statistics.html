@@ -1,0 +1,84 @@
+{% extends 'shaw_queue/base.html' %}
+{% block aditional_static %}
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href={% static 'queue/jquery.datetimepicker.min.css' %}>
+    <script type="text/javascript" src="{% static 'js/statistics_handlers.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.datetimepicker.full.js' %}"></script>
+    <script type="text/javascript">
+        var interface_button = $("#not_paid_statistics_interface");
+    </script>
+{% endblock %}
+{% block content %}
+    <input hidden id="urls" data-update-statistics-url="{% url 'update_not_paid_statistics' %}">
+    <div class="stat-controls">
+        <label for="datetimepicker1">От:</label>
+        <input type="text" id="datetimepicker1"/>
+        <label for="datetimepicker2">До:</label>
+        <input type="text" id="datetimepicker2"/>
+    </div>
+    <div class="stat-actions-container">
+        <button onclick="UpdateStatistics()">Обновить</button>
+    </div>
+    <div id="statistics-content">
+        <div class="stat-cook-table-header">
+            <div class="stat-not-paid-table-cell">
+                Номер заказа
+            </div>
+            <div class="stat-not-paid-table-cell">
+                Время открытия
+            </div>
+            <div class="stat-not-paid-table-cell">
+                Время закрытия
+            </div>
+            <div class="stat-not-paid-table-cell">
+                Доставка
+            </div>
+            <div class="stat-not-paid-table-cell">
+                Сумма
+            </div>
+            <div class="stat-not-paid-table-cell">
+                С учетом скидки
+            </div>
+            <div class="stat-not-paid-table-cell">
+                Точка обслуживания
+            </div>
+            <div class="stat-not-paid-table-cell">
+                Касса
+            </div>
+        </div>
+        {% for order in not_paid_orders %}
+            <div class="stat-view-container">
+                <div class="stat-view" id="person-prod-cooked">
+                    <div class="stat-not-paid-table-cell">
+                        {{ order.daily_number }}
+                    </div>
+                    <div class="stat-not-paid-table-cell">
+                        {{ order.open_time }}
+                    </div>
+                    <div class="stat-not-paid-table-cell">
+                        {{ order.close_time }}
+                    </div>
+                    <div class="stat-not-paid-table-cell">
+                        {% if order.is_delivery %}
+                            Да
+                        {% else %}
+                            Нет
+                        {% endif %}
+                    </div>
+                    <div class="stat-not-paid-table-cell">
+                        {{ order.total }}
+                    </div>
+                    <div class="stat-not-paid-table-cell">
+                        {{ order.discounted_total }}
+                    </div>
+                    <div class="stat-not-paid-table-cell">
+                        {{ order.service_point }}
+                    </div>
+                    <div class="stat-not-paid-table-cell">
+                        {{ order.servery }}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

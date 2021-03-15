@@ -4965,6 +4965,70 @@ def statistic_page_ajax(request):
 
 @login_required()
 @permission_required('shaw_queue.view_statistics')
+def not_paid_statistics(request):
+    template = loader.get_template('shaw_queue/not_paid_orders_statistics.html')
+    not_paid_orders = Order.objects.filter(open_time__contains=datetime.date.today(), is_paid=False)
+    context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'not_paid_orders': [{'daily_number': order.daily_number,
+                             'open_time': order.open_time,
+                             'close_time': order.close_time,
+                             'is_canceled': order.is_canceled,
+                             'is_delivery': order.is_delivery,
+                             'is_ready': order.is_ready,
+                             'total': order.total,
+                             'discounted_total': order.discounted_total,
+                             'service_point': order.servery.service_point,
+                             'servery': order.servery,
+                             'opened_by': order.opened_by,
+                             'closed_by': order.closed_by,
+                             'canceled_by': order.canceled_by,
+                             } for order in not_paid_orders],
+    }
+
+    return HttpResponse(template.render(context, request))
+
+
+@login_required()
+@permission_required('shaw_queue.view_statistics')
+def not_paid_statistics_ajax(request):
+    start_date = request.POST.get('start_date', None)
+    start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+    end_date = request.POST.get('end_date', None)
+    end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+    template = loader.get_template('shaw_queue/not_paid_statistics_ajax.html')
+    try:
+        not_paid_orders = Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv, is_paid=False)
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при поиске заказов!'
+        }
+        return JsonResponse(data)
+    context = {
+        'staff_category': StaffCategory.objects.get(staff__user=request.user),
+        'not_paid_orders': [{'daily_number': order.daily_number,
+                             'open_time': order.open_time,
+                             'close_time': order.close_time,
+                             'is_canceled': order.is_canceled,
+                             'is_delivery': order.is_delivery,
+                             'is_ready': order.is_ready,
+                             'total': order.total,
+                             'discounted_total': order.discounted_total,
+                             'service_point': order.servery.service_point,
+                             'servery': order.servery,
+                             'opened_by': order.opened_by,
+                             'closed_by': order.closed_by,
+                             'canceled_by': order.canceled_by,
+                             } for order in not_paid_orders],
+    }
+    data = {
+        'html': template.render(context, request)
+    }
+    return JsonResponse(data=data)
+
+@login_required()
+@permission_required('shaw_queue.view_statistics')
 def opinion_statistics(request):
     template = loader.get_template('shaw_queue/opinion_statistics.html')
     avg_mark = OrderOpinion.objects.filter(post_time__contains=datetime.date.today()).values('mark').aggregate(
