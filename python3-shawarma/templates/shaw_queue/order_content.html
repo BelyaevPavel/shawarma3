@@ -40,47 +40,47 @@
     {% if order_content %}
         {% for order_item in order_content %}
             <div class="order-item-container">
-                <div class="order-item-title {% if order_item.finish_timestamp %}ready
-                {% endif %} {% if order_item.is_in_grill %}inGrill
+                <div class="order-item-title {% if order_item.obj.finish_timestamp %}ready
+                {% endif %} {% if order_item.obj.is_in_grill %}inGrill
                 {% endif %}">
-                    {{ order_item.menu_item }}
+                    {{ order_item.obj.menu_item }}
                 </div>
-                <div class="order-item-note {% if order_item.finish_timestamp %}ready
-                {% endif %} {% if order_item.is_in_grill %}inGrill
+                <div class="order-item-note {% if order_item.obj.finish_timestamp %}ready
+                {% endif %} {% if order_item.obj.is_in_grill %}inGrill
                 {% endif %}">
                     "{{ order_item.note }}"
                 </div>
-                <div class="order-item-maker {% if order_item.finish_timestamp %}ready
-                {% endif %} {% if order_item.is_in_grill %}inGrill
+                <div class="order-item-maker {% if order_item.obj.finish_timestamp %}ready
+                {% endif %} {% if order_item.obj.is_in_grill %}inGrill
                 {% endif %}">
-                    {{ order_item.staff_maker.user.first_name }} {{ order_item.staff_maker.user.last_name }}
+                    {{ order_item.obj.staff_maker.user.first_name }} {{ order_item.obj.taff_maker.user.last_name }}
                 </div>
-                <div class="order-item-maker {% if order_item.finish_timestamp %}ready
-                {% endif %} {% if order_item.is_in_grill %}inGrill
+                <div class="order-item-maker {% if order_item.obj.finish_timestamp %}ready
+                {% endif %} {% if order_item.obj.is_in_grill %}inGrill
                 {% endif %}">
                     <input class="quantityInput" {% comment %}type="number" required step="any" min="0.001" max="100"{% endcomment %}
-                           value="{{ order_item.quantity|floatformat:3 }}"
-                           cost="{{ order_item.menu_item.price }}"
-                           item-id="{{ order_item.id }}"
-                           {% if order_info.is_paid or order_item.finish_timestamp or not order_item.menu_item.is_by_weight %}disabled{% endif %}
+                           value="{{ order_item.obj.quantity|floatformat:3 }}"
+                           cost="{{ order_item.obj.menu_item.price }}"
+                           item-id="{{ order_item.obj.id }}"
+                           {% if order_info.is_paid or order_item.obj.finish_timestamp or not order_item.obj.menu_item.is_by_weight %}disabled{% endif %}
                            onblur="UpdateItemQuantity(event)">
                 </div>
                 <div class="order-item-actions">
-                    {% if not order_info.is_paid and not order_item.finish_timestamp %}
-                        {% if order_item.menu_item.can_be_prepared_by.title == 'Operator' or order_item.menu_item.can_be_prepared_by.title == staff_category.title %}
-                            <button class="small-btn success" onclick="FinishCooking({{ order_item.id }})">
+                    {% if not order_info.is_paid and not order_item.obj.finish_timestamp %}
+                        {% if order_item.obj.menu_item.can_be_prepared_by.title == 'Operator' or order_item.obj.menu_item.can_be_prepared_by.title == staff_category.title %}
+                            <button class="small-btn success" onclick="FinishCooking({{ order_item.obj.id }})">
                                 Закончить
                             </button>
                         {% endif %}
-                        <button class="small-btn danger" onclick="CancelItem({{ order_item.id }})">
+                        <button class="small-btn danger" onclick="CancelItem({{ order_item.obj.id }})">
                             Отменить
                         </button>
                     {% else %}
-			{% if order_info.is_paid %}
-                        	Оплачено.
-                    	{% else %}
-                        	Закончено.
-                    	{% endif %}
+                        {% if order_info.is_paid %}
+                            Оплачено.
+                        {% else %}
+                            Закончено.
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -93,16 +93,18 @@
         <label for="servery_auto">Автоназначение</label>
     </p>
     {% for servery in serveries %}
-{% if servery.payment_kiosk %}
-        <p>
-            <input type="radio" id="servery_{{ servery.id }}" name="servery_choose" value="{{ servery.id }}">
-            <label for="servery_{{ servery.id }}">{{ servery.title }}</label>
-        </p>
-{% endif %}
+        {% if servery.payment_kiosk %}
+            <p>
+                <input type="radio" id="servery_{{ servery.id }}" name="servery_choose" value="{{ servery.id }}">
+                <label for="servery_{{ servery.id }}">{{ servery.title }}</label>
+            </p>
+        {% endif %}
     {% empty %}
         Места выдачи внесены.
     {% endfor %}
-    <button class="small-btn success" onclick="ReadyOrder({{ order_info.id }})" {% if not ready %}disabled{% endif %}>Заказ готов</button>
+    <button class="small-btn success" onclick="ReadyOrder({{ order_info.id }})" {% if not ready %}disabled{% endif %}>
+        Заказ готов
+    </button>
     {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryAdmin' or staff_category.title == 'DeliveryOperator' %}
         <button class="small-btn warning {% if enlight_payment == "CSH" or enlight_payment == "MXD" %}
         success-aura
@@ -116,7 +118,8 @@
         </button>
     {% endif %}
     {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryAdmin' or staff_category.title == 'DeliveryOperator' %}
-        <button class="small-btn info" onclick="EditOrder({{ order_info.id }})" {% if order_info.is_paid %}disabled{% endif %}>Редактировать
+        <button class="small-btn info" onclick="EditOrder({{ order_info.id }})"
+                {% if order_info.is_paid %}disabled{% endif %}>Редактировать
         </button>
     {% endif %}
 
@@ -136,11 +139,11 @@
     {% else %}
         {#        {% if staff_category.title == 'Operator' and not order_info.with_shashlyk and not order_info.supplement_completed %}#}
         {% if not order_info.with_shashlyk and not order_info.supplement_completed %}
-            <button class="small-btn success"  onclick="FinishAllContent({{ order_info.id }})">
+            <button class="small-btn success" onclick="FinishAllContent({{ order_info.id }})">
                 Закончить всё
             </button>
         {% endif %}
     {% endif %}
-    <button class="small-btn info"  onclick="PrintOrder({{ order_info.id }})">Печать</button>
-    <button class="small-btn info"  onclick="CalculateCurrentCost()">Рассчитать текующую стоимость</button>
+    <button class="small-btn info" onclick="PrintOrder({{ order_info.id }})">Печать</button>
+    <button class="small-btn info" onclick="CalculateCurrentCost()">Рассчитать текующую стоимость</button>
 {% endblock %}

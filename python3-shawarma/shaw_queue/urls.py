@@ -102,5 +102,6 @@ urlpatterns = [
     url(r'^cooks_content_info', views.cooks_content_info, name='cooks_content_info'),
     url(r'^check_order_status', views.check_order_status, name='check_order_status'),
     url(r'^get_customers_menu', views.get_customers_menu, name='get_customers_menu'),
+    url(r'^send_customers_menu', views.send_customers_menu, name='get_customers_menu'),
     url(r'^register_customer_order', views.register_customer_order, name='register_customer_order'),
 ]

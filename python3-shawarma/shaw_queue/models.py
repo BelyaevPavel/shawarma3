@@ -130,13 +130,31 @@ class ContentOption(models.Model):
         return u"{}".format(self.title)
 
 
+class MacroProductContent(models.Model):
+    """
+    Шаурма со свининой, Говяжий шашлык, Coca-cola...
+    """
+    title = models.CharField(max_length=200)
+    customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
+    picture = models.ImageField(upload_to="img/category_pictures", blank=True, null=True, verbose_name="Иконка")
+    customer_appropriate = models.BooleanField(verbose_name="Подходит для демонстрации покупателю", default=False)
+    content_option = models.ForeignKey(ContentOption, on_delete=models.CASCADE, verbose_name="Вариант содержимого",
+                                       null=True)
+    macro_product = models.ForeignKey(MacroProduct, on_delete=models.CASCADE, verbose_name="Макротовар", null=True)
+
+    def __str__(self):
+        return u"{}".format(self.title) if bool(self.picture) else u"{} [No Photo]".format(self.title)
+
+
 class ProductVariant(models.Model):
     title = models.CharField(max_length=200)
     customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
     menu_item = models.ForeignKey(Menu, on_delete=models.CASCADE, verbose_name="Товар из меню 1С")
     size_option = models.ForeignKey(SizeOption, on_delete=models.CASCADE, verbose_name="Вариант размера")
-    content_option = models.ForeignKey(ContentOption, on_delete=models.CASCADE, verbose_name="Вариант содержимого")
-    macro_product = models.ForeignKey(MacroProduct, on_delete=models.CASCADE, verbose_name="Макротовар")
+    # content_option = models.ForeignKey(ContentOption, on_delete=models.CASCADE, verbose_name="Вариант содержимого")
+    # macro_product = models.ForeignKey(MacroProduct, on_delete=models.CASCADE, verbose_name="Макротовар")
+    macro_product_content = models.ForeignKey(MacroProductContent, on_delete=models.CASCADE,
+                                              verbose_name="Содержимое макротовара", null=True)
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -252,7 +270,8 @@ class OrderContent(models.Model):
 
 
 class OrderContentOption(models.Model):
-    content_item = models.ForeignKey(OrderContent, on_delete=models.CASCADE, related_name="content_item", verbose_name="Товар из заказа")
+    content_item = models.ForeignKey(OrderContent, on_delete=models.CASCADE, related_name="content_item",
+                                     verbose_name="Товар из заказа")
     content_item_option = models.ForeignKey(OrderContent, on_delete=models.CASCADE, related_name="content_item_option",
                                             verbose_name="Доп к товару из заказа")
 
