@@ -4,7 +4,7 @@ from django.http.response import HttpResponseRedirect
 
 from .models import Menu, Order, Staff, StaffCategory, MenuCategory, OrderContent, Servery, OrderOpinion, PauseTracker, \
     ServicePoint, Printer, Customer, CallData, DiscountCard, Delivery, DeliveryOrder, ContentOption, SizeOption, \
-    MacroProduct, ProductOption, ProductVariant, OrderContentOption
+    MacroProduct, MacroProductContent, ProductOption, ProductVariant, OrderContentOption
 from django.template import loader
 from django.core.exceptions import EmptyResultSet, MultipleObjectsReturned, PermissionDenied, ObjectDoesNotExist, \
     ValidationError
@@ -241,11 +241,11 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
 
         service_points = ServicePoint.objects.all()
         context['coordinates'] = [{
-            'service_point_id': service_point.id,
-            'latitude': service_point.latitude,
-            'longitude': service_point.longitude,
-            'address': service_point.title
-        } for service_point in service_points]
+                                      'service_point_id': service_point.id,
+                                      'latitude': service_point.latitude,
+                                      'longitude': service_point.longitude,
+                                      'address': service_point.title
+                                  } for service_point in service_points]
 
         data = {
             'success': True,
@@ -425,7 +425,7 @@ class IncomingCall(View):
                         'delivery_order': delivery_order,
                         'content': OrderContent.objects.filter(order=delivery_order.order)
                     } for delivery_order in customer_orders
-                ]
+                    ]
             }
             for field in context['form'].fields:
                 context['form'].fields[field].widget.attrs['class'] = 'form-control'
@@ -535,7 +535,7 @@ class DeliveryView(View):
                         'delivery_order': delivery_order,
                         'content': OrderContent.objects.filter(order=delivery_order.order)
                     } for delivery_order in delivery_orders
-                ]
+                    ]
             }
             for field in context['form'].fields:
                 context['form'].fields[field].widget.attrs['class'] = 'form-control'
@@ -674,7 +674,8 @@ def ats_listner(request):
                 call_data = CallData.objects.get(ats_id=call_uid)
             except CallData.DoesNotExist:
                 if not (event_code == 4 and tel == "s"):
-                    logger.error('Failed to find call data for uid {}!'.format(call_uid))
+                    # This error logging is currently silenced to stop spam.
+                    # logger.error('Failed to find call data for uid {}!'.format(call_uid))
                     return HttpResponse('Failed to find call data.')
             except CallData.MultipleObjectsReturned:
                 client.captureException()
@@ -2436,7 +2437,13 @@ def order_content(request, order_id):
         order_info.content_completed = True
         order_info.supplement_completed = True
     order_info.save()
-    current_order_content = OrderContent.objects.filter(order=order_id)
+    content_items_count = OrderContentOption.objects.filter(content_item__order=order_id).count()
+    current_order_content = []
+    if content_items_count == 0:
+        current_order_content = OrderContent.objects.filter(order=order_id)
+    else:
+        current_order_content = OrderContent.objects.filter(order=order_id,
+                                                            menu_item__productvariant__size_option__isnull=False)  # OrderContent.objects.filter(content_item__in=content_items)
     template = loader.get_template('shaw_queue/order_content.html')
     delivery_order = None
     if order_info.is_delivery:
@@ -2466,7 +2473,12 @@ def order_content(request, order_id):
                 'display_number': order_info.daily_number % 100,
                 'maker': order_info.prepared_by,
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
-                'order_content': current_order_content,
+                'order_content': [{
+                                      'obj': order_item,
+                                      'note': (order_item.note + ', ' if len(order_item.note) > 0 else '') + ', '.join(
+                                          [item.content_item_option.menu_item.title for item in
+                                           OrderContentOption.objects.filter(content_item=order_item)]),
+                                  } for order_item in current_order_content],
                 'ready': order_info.content_completed and order_info.supplement_completed and order_info.shashlyk_completed,
                 'serveries': Servery.objects.filter(service_point=result['service_point'])
             }
@@ -2728,23 +2740,23 @@ def delivery_interface(request):
             'can_be_started': False if len(
                 DeliveryOrder.objects.filter(delivery=delivery, is_ready=False)) > 0 else True
         } for delivery in deliveries
-    ]
+        ]
     processed_d_orders = [
         {
             'order': delivery_order,
             'show_date': delivery_order.delivered_timepoint.date() == delivery_order.obtain_timepoint.date(),
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                    delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
                 minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                    delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point),
             'available_shashlychniks': Staff.objects.filter(available=True,
                                                             staff_category__title__iexact='Shashlychnik',
                                                             service_point=delivery_order.order.servery.service_point)
         } for delivery_order in delivery_orders
-    ]
+        ]
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'delivery_order_form': DeliveryOrderForm,
@@ -2784,25 +2796,25 @@ def delivery_workspace_update(request):
         {
             'order': delivery_order,
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                    delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
                 minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                    delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and
                                      delivery_order.prep_start_timepoint is None or
                                      delivery_order.moderation_needed else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point)
         } for delivery_order in delivery_orders
-    ]
+        ]
 
     for delivery_order in delivery_orders:
         diction = {
             'order': delivery_order,
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                    delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
                 minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                    delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now()
+                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now()
                                      and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point)
@@ -2831,7 +2843,7 @@ def delivery_workspace_update(request):
             'can_be_started': False if len(
                 DeliveryOrder.objects.filter(delivery=delivery, is_ready=False)) > 0 else True
         } for delivery in deliveries
-    ]
+        ]
 
     delivery_context = {
         'delivery_info': delivery_info
@@ -3408,15 +3420,15 @@ def cooks_content_info(request):
     template = loader.get_template('shaw_queue/cooks_content_info.html')
     context = {
         'items': [{
-            'cook_name': cook.user.first_name,
-            'content_count': OrderContent.objects.filter(order__prepared_by=cook,
-                                                         order__open_time__contains=datetime.date.today(),
-                                                         order__is_canceled=False,
-                                                         order__close_time__isnull=True,
-                                                         order__is_ready=False,
-                                                         menu_item__can_be_prepared_by__title__iexact='Cook'
-                                                         ).aggregate(count=Count('id')),
-        } for cook in cooks],
+                      'cook_name': cook.user.first_name,
+                      'content_count': OrderContent.objects.filter(order__prepared_by=cook,
+                                                                   order__open_time__contains=datetime.date.today(),
+                                                                   order__is_canceled=False,
+                                                                   order__close_time__isnull=True,
+                                                                   order__is_ready=False,
+                                                                   menu_item__can_be_prepared_by__title__iexact='Cook'
+                                                                   ).aggregate(count=Count('id')),
+                  } for cook in cooks],
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
     }
 
@@ -3445,15 +3457,15 @@ def cooks_content_info_ajax(request):
     template = loader.get_template('shaw_queue/cooks_content_info_ajax.html')
     context = {
         'items': [{
-            'cook_name': cook.user.first_name,
-            'content_count': OrderContent.objects.filter(order__prepared_by=cook,
-                                                         order__open_time__contains=datetime.date.today(),
-                                                         order__is_canceled=False,
-                                                         order__close_time__isnull=True,
-                                                         order__is_ready=False,
-                                                         menu_item__can_be_prepared_by__title__iexact='Cook'
-                                                         ).aggregate(count=Count('id')),
-        } for cook in cooks],
+                      'cook_name': cook.user.first_name,
+                      'content_count': OrderContent.objects.filter(order__prepared_by=cook,
+                                                                   order__open_time__contains=datetime.date.today(),
+                                                                   order__is_canceled=False,
+                                                                   order__close_time__isnull=True,
+                                                                   order__is_ready=False,
+                                                                   menu_item__can_be_prepared_by__title__iexact='Cook'
+                                                                   ).aggregate(count=Count('id')),
+                  } for cook in cooks],
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
     }
 
@@ -3649,7 +3661,8 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
     shashlyk_presence = False
     supplement_presence = False
     for item in content:
-        item['toppings']=item.get('toppings', [])
+        item['toppings'] = item.get('toppings', [])
+        item['note'] = item.get('note', "")
         if item['quantity'] - int(item['quantity']) != 0:
             try:
                 new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'],
@@ -3692,9 +3705,17 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
 
         else:
             for i in range(0, int(item['quantity'])):
+                menu_item = Menu.objects.get(id=item['id'])
+                if menu_item.can_be_prepared_by.title == 'Cook':
+                    content_presence = True
+                if menu_item.can_be_prepared_by.title == 'Shashlychnik':
+                    shashlyk_presence = True
+                if menu_item.can_be_prepared_by.title == 'Operator':
+                    supplement_presence = True
+
                 try:
-                    new_order_content = OrderContent(order=order, menu_item_id=item['id'], note=item['note'])
-                except:
+                    new_order_content = OrderContent(order=order, menu_item=menu_item, note=item['note'])
+                except Exception as e:
                     order.delete()
                     data = {
                         'success': False,
@@ -3703,13 +3724,6 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
                     client.captureException()
                     return data
                 new_order_content.save()
-                menu_item = Menu.objects.get(id=item['id'])
-                if menu_item.can_be_prepared_by.title == 'Cook':
-                    content_presence = True
-                if menu_item.can_be_prepared_by.title == 'Shashlychnik':
-                    shashlyk_presence = True
-                if menu_item.can_be_prepared_by.title == 'Operator':
-                    supplement_presence = True
                 total += menu_item.price
 
                 for topping in item['toppings']:
@@ -4786,11 +4800,11 @@ def statistic_page(request):
                                                 is_canceled=False).values(
         'open_time', 'close_time').aggregate(preparation_time=Max(F('close_time') - F('open_time')))
     paid_with_cash_count = len(Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
-                                                is_canceled=False, is_paid=True, paid_with_cash=True))
+                                                    is_canceled=False, is_paid=True, paid_with_cash=True))
     paid_with_card_count = len(Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
-                                                is_canceled=False, is_paid=True, paid_with_cash=False))
+                                                    is_canceled=False, is_paid=True, paid_with_cash=False))
     not_paid_count = len(Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
-                                                is_canceled=False, is_paid=False))
+                                              is_canceled=False, is_paid=False))
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_orders': len(Order.objects.filter(open_time__contains=datetime.date.today())),
@@ -5137,13 +5151,13 @@ def pause_statistic_page(request):
         'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
         'pauses': [{
-            'staff': pause.staff,
-            'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-            'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-            'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-        }
-            for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
-                                                     end_timestamp__contains=datetime.date.today()).order_by(
+                       'staff': pause.staff,
+                       'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+                       'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+                       'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+                   }
+                   for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
+                                                            end_timestamp__contains=datetime.date.today()).order_by(
                 'start_timestamp')]
     }
     return HttpResponse(template.render(context, request))
@@ -5224,21 +5238,21 @@ def pause_statistic_page_ajax(request):
         #                                                     end_timestamp__lte=end_date_conv).order_by(
         #         'start_timestamp')],
         'pause_info': [{
-            'total_duration': PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
-                                                          end_timestamp__lte=end_date_conv,
-                                                          staff=staff).aggregate(
-                duration=Sum(F('end_timestamp') - F('start_timestamp'))),
-            'staff': staff,
-            'pauses': [{
-                'staff': pause.staff,
-                'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-                'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-                'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-            }
-                for pause in PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
-                                                         end_timestamp__lte=end_date_conv,
-                                                         staff=staff).order_by('start_timestamp')]
-        } for staff in engaged_staff]
+                           'total_duration': PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+                                                                         end_timestamp__lte=end_date_conv,
+                                                                         staff=staff).aggregate(
+                               duration=Sum(F('end_timestamp') - F('start_timestamp'))),
+                           'staff': staff,
+                           'pauses': [{
+                                          'staff': pause.staff,
+                                          'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+                                          'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+                                          'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+                                      }
+                                      for pause in PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+                                                                               end_timestamp__lte=end_date_conv,
+                                                                               staff=staff).order_by('start_timestamp')]
+                       } for staff in engaged_staff]
     }
     # except:
     #     data = {
@@ -5315,21 +5329,21 @@ def call_record_page(request):
         'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
         'records_info': [{
-            'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
-                                                      call_manager=staff).aggregate(
-                duration=Sum('duration')),
-            'call_manager': staff,
-            'records': [{
-                'call_manager': record.call_manager,
-                'customer': record.customer,
-                'timepoint': record.timepoint,
-                'duration': str(record.duration).split('.', 2)[0],
-                'record_url': record.record
-            }
-                for record in
-                CallData.objects.filter(timepoint__contains=datetime.date.today(),
-                                        call_manager=staff).order_by('timepoint')]
-        } for staff in engaged_staff]
+                             'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                       call_manager=staff).aggregate(
+                                 duration=Sum('duration')),
+                             'call_manager': staff,
+                             'records': [{
+                                             'call_manager': record.call_manager,
+                                             'customer': record.customer,
+                                             'timepoint': record.timepoint,
+                                             'duration': str(record.duration).split('.', 2)[0],
+                                             'record_url': record.record
+                                         }
+                                         for record in
+                                         CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                                 call_manager=staff).order_by('timepoint')]
+                         } for staff in engaged_staff]
     }
     for index, info in enumerate(context['records_info']):
         if len(info['records']) == 0:
@@ -5413,23 +5427,23 @@ def call_record_page_ajax(request):
         'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
         'records_info': [{
-            'total_duration': CallData.objects.filter(timepoint__gte=start_date_conv,
-                                                      timepoint__lte=end_date_conv,
-                                                      call_manager=staff).aggregate(
-                duration=Sum('duration')),
-            'call_manager': staff,
-            'records': [{
-                'call_manager': record.call_manager,
-                'customer': record.customer,
-                'timepoint': record.timepoint,
-                'duration': str(record.duration).split('.', 2)[0],
-                'record_url': record.record
-            }
-                for record in CallData.objects.filter(timepoint__gte=start_date_conv,
-                                                      timepoint__lte=end_date_conv,
-                                                      call_manager=staff).order_by(
-                    'timepoint')]
-        } for staff in engaged_staff]
+                             'total_duration': CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                                       timepoint__lte=end_date_conv,
+                                                                       call_manager=staff).aggregate(
+                                 duration=Sum('duration')),
+                             'call_manager': staff,
+                             'records': [{
+                                             'call_manager': record.call_manager,
+                                             'customer': record.customer,
+                                             'timepoint': record.timepoint,
+                                             'duration': str(record.duration).split('.', 2)[0],
+                                             'record_url': record.record
+                                         }
+                                         for record in CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                                               timepoint__lte=end_date_conv,
+                                                                               call_manager=staff).order_by(
+                                     'timepoint')]
+                         } for staff in engaged_staff]
     }
     for index, info in enumerate(context['records_info']):
         if len(info['records']) == 0:
@@ -5676,7 +5690,7 @@ def send_order_to_1c(order, is_return):
         'Goods': []
     }
     curr_order_content = OrderContent.objects.filter(order=order, menu_item__price__gt=0).values('menu_item__title',
-                                                                         'menu_item__guid_1c').annotate(
+                                                                                                 'menu_item__guid_1c').annotate(
         count=Sum('quantity'))
     for item in curr_order_content:
         order_dict['Goods'].append(
@@ -6201,9 +6215,77 @@ def get_customers_menu(request):
                         'price': item.price
                     } for item in
                     Menu.objects.filter(category=category, customer_appropriate=True).order_by('customer_title')
-                ]
+                    ]
             } for category in menu_categories
-        ]
+            ]
+    }
+    return JsonResponse(data=data)
+
+
+def send_customers_menu(request):
+    menu_categories = MacroProduct.objects.all()
+    data = {
+        'categories': [
+            {
+                'id': category.id,
+                'title': category.title,
+                'customer_title': category.customer_title
+            } for category in menu_categories
+            ],
+        'menu_items': [
+            {
+                'id': item.id,
+                'name': item.customer_title,
+                'price': item.price
+            } for item in
+            Menu.objects.filter(customer_appropriate=True).order_by('customer_title') | Menu.objects.filter(
+                productoption__in=ProductOption.objects.all())
+            ],
+        'product_variants': [
+            {
+                'id': product_variant.id,
+                'title': product_variant.title,
+                'customer_title': product_variant.customer_title,
+                'menu_item_id': product_variant.menu_item.id,
+                'size_option_id': product_variant.size_option.id,
+                'macro_product_content_id': product_variant.macro_product_content.id,
+                'product_options_ids': [
+                    product_option.id for product_option in
+                    ProductOption.objects.filter(product_variants=product_variant)
+                    ]
+            } for product_variant in ProductVariant.objects.filter(menu_item__customer_appropriate=True)
+            ],
+        'product_options': [
+            {
+                'id': product_option.id,
+                'menu_item_id': product_option.menu_item.id,
+                'title': product_option.title,
+                'customer_title': product_option.customer_title,
+            } for product_option in ProductOption.objects.all()
+            ],
+        'size_options': [
+            {
+                'id': size_option.id,
+                'title': size_option.title,
+                'customer_title': size_option.customer_title,
+            } for size_option in SizeOption.objects.all()
+            ],
+        'content_options': [
+            {
+                'id': content_option.id,
+                'title': content_option.title,
+                'customer_title': content_option.customer_title,
+            } for content_option in ContentOption.objects.all()
+            ],
+        'macro_product_content': [
+            {
+                'id': macro_product_content.id,
+                'title': macro_product_content.title,
+                'customer_title': macro_product_content.customer_title,
+                'content_option_id': macro_product_content.content_option.id,
+                'macro_product_id': macro_product_content.macro_product.id
+            } for macro_product_content in MacroProductContent.objects.filter(customer_appropriate=True)
+            ]
     }
     return JsonResponse(data=data)
 
@@ -6213,16 +6295,32 @@ def register_customer_order(request):
     phone_number = request.GET.get('phone_number', None)
     comment = request.GET.get('comment', None)
     order_content_str = request.GET.get('order_content', None)
+    payment = request.GET.get('payment', None)
+    service_point_id = request.GET.get('delivery_place', None)
+    address = request.GET.get('address', None)
+    cash_amount = request.GET.get('cash_amount', None)
+    deliver_to_time = request.GET.get('deliver_to_time', None)
+    time = request.GET.get('time', '')
+    is_delivery = request.GET.get('is_delivery', False)
+
+    is_delivery = json.loads(is_delivery) if is_delivery is not False else False
+    order_datetime = datetime.datetime.strptime(time, '%H:%M:%S').time() if time != '' else ''
+    timezone_date = timezone.datetime.today().date()
+    corrected_order_datetime = timezone.datetime.combine(timezone_date, order_datetime)
+
     customer_order_content = {}
     if order_content_str is not None and order_content_str != "":
         customer_order_content = json.loads(order_content_str)
         try:
-            service_point = ServicePoint.objects.get(default_remote_order_acceptor=True)
+            if not is_delivery:
+                service_point = ServicePoint.objects.get(id=service_point_id)
+            else:
+                service_point = ServicePoint.objects.get(default_remote_order_acceptor=True)
         except MultipleObjectsReturned:
             service_point = ServicePoint.objects.filter(default_remote_order_acceptor=True).first()
         except ServicePoint.DoesNotExist:
             service_point = ServicePoint.objects.all().first()
-        except:
+        except Exception as e:
             data = {
                 'success': False,
                 'message': 'Something gone wrong while searching service points!'
@@ -6245,6 +6343,8 @@ def register_customer_order(request):
             return JsonResponse(data)
 
         data = make_order_func(customer_order_content, 'delivery', False, None, False, servery, service_point)
+        if not data['success']:
+            return JsonResponse(data)
 
         customer = None
         try:
@@ -6260,10 +6360,18 @@ def register_customer_order(request):
             customer = Customer(phone_number=phone_number)
             customer.save()
 
-        delivery_order = DeliveryOrder(address=service_point.title, customer=customer, note=comment,
+        if name is not None:
+            customer.name = name
+            customer.save()
+
+        if not is_delivery:
+            address = service_point.title
+
+        delivery_order = DeliveryOrder(address=address, customer=customer, note=comment,
                                        obtain_timepoint=timezone.datetime.now(),
-                                       delivered_timepoint=timezone.datetime.now(),
-                                       order=Order.objects.get(pk=data['pk']), moderation_needed=True)
+                                       delivered_timepoint=timezone.datetime.now() if deliver_to_time == 'nearest_time' else corrected_order_datetime,
+                                       order=Order.objects.get(pk=data['pk']), moderation_needed=True,
+                                       prefered_payment=payment)
         try:
             order_last_daily_number = DeliveryOrder.objects.filter(
                 obtain_timepoint__contains=timezone.datetime.today().date(),
@@ -6284,6 +6392,6 @@ def register_customer_order(request):
                 daily_number = 1
         delivery_order.daily_number = daily_number
         delivery_order.save()
-        return JsonResponse(data={'success': True})
+        return JsonResponse(data={'success': True, 'order_number': daily_number})
     else:
         return Http404()
