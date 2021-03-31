@@ -963,19 +963,16 @@ def new_menu(request):
                                         'id': unidecode(
                                             macro_product.title + "_" + content_option.title + "_" + size_option.title),
                                         'product_variant': ProductVariant.objects.get(
-                                            content_option_id=content_option, size_option=size_option,
-                                            macro_product=macro_product),
+                                            macro_product_content=content_option, size_option=size_option),
                                         'product_options': [{'item': product_option} for product_option in
                                                             ProductOption.objects.filter(
-                                                                product_variants__macro_product=macro_product,
-                                                                product_variants__content_option=content_option,
+                                                                product_variants__macro_product_content=content_option,
                                                                 product_variants__size_option=size_option)],
                                     } for size_option in
-                                    SizeOption.objects.filter(productvariant__macro_product=macro_product,
-                                                              productvariant__content_option=content_option).distinct()]
+                                    SizeOption.objects.filter(productvariant__macro_product_content=content_option).distinct()]
                             }
                             for content_option in
-                            ContentOption.objects.filter(productvariant__macro_product=macro_product).distinct()],
+                            MacroProductContent.objects.filter(macro_product=macro_product).distinct()],
                     }
                     for macro_product in macro_products]
 
