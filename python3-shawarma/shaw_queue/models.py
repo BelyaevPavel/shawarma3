@@ -109,6 +109,7 @@ class Menu(models.Model):
 class MacroProduct(models.Model):
     title = models.CharField(max_length=200)
     customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
+    icon = models.ImageField(upload_to="img/icons", blank=True, null=True, verbose_name="Иконка")
 
     def __str__(self):
         return u"{}".format(self.title)
@@ -135,6 +136,7 @@ class MacroProductContent(models.Model):
     Шаурма со свининой, Говяжий шашлык, Coca-cola...
     """
     title = models.CharField(max_length=200)
+    menu_title = models.CharField(max_length=200, default="", verbose_name="Название для меню")
     customer_title = models.CharField(max_length=200, default="", verbose_name="Название для покупателя")
     picture = models.ImageField(upload_to="img/category_pictures", blank=True, null=True, verbose_name="Иконка")
     customer_appropriate = models.BooleanField(verbose_name="Подходит для демонстрации покупателю", default=False)

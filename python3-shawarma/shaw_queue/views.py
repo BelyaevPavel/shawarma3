@@ -926,6 +926,7 @@ def menu(request):
         return JsonResponse(data)
 
 
+@login_required()
 def new_menu(request):
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
@@ -957,6 +958,8 @@ def new_menu(request):
                             {
                                 'item': content_option,
                                 'id': unidecode(macro_product.title + "_" + content_option.title),
+                                'display_title': content_option.menu_title if content_option.menu_title
+                                else content_option.title,
                                 'size_options': [
                                     {
                                         'item': size_option,
@@ -969,7 +972,8 @@ def new_menu(request):
                                                                 product_variants__macro_product_content=content_option,
                                                                 product_variants__size_option=size_option)],
                                     } for size_option in
-                                    SizeOption.objects.filter(productvariant__macro_product_content=content_option).distinct()]
+                                    SizeOption.objects.filter(
+                                        productvariant__macro_product_content=content_option).distinct()]
                             }
                             for content_option in
                             MacroProductContent.objects.filter(macro_product=macro_product).distinct()],
@@ -5006,7 +5010,8 @@ def not_paid_statistics_ajax(request):
     end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
     template = loader.get_template('shaw_queue/not_paid_statistics_ajax.html')
     try:
-        not_paid_orders = Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv, is_paid=False)
+        not_paid_orders = Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv,
+                                               is_paid=False)
     except:
         data = {
             'success': False,
@@ -5034,6 +5039,7 @@ def not_paid_statistics_ajax(request):
         'html': template.render(context, request)
     }
     return JsonResponse(data=data)
+
 
 @login_required()
 @permission_required('shaw_queue.view_statistics')

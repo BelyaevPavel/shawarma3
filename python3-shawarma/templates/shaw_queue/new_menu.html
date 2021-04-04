@@ -39,7 +39,11 @@
                     {% for macro_product in macro_products %}
                         <div class="sidemenu__button">
                             <a class="sidemenu__icon" href="#{{ macro_product.id|slugify }}" onclick="ClearToppings()">
-                                <img src="{% static 'img/btns/spicy30.png' %}" alt="icon"/>
+                                {% if macro_product.item.icon %}
+                                    <img src="{% static macro_product.item.icon.url %}" alt="icon"/>
+                                {% else %}
+                                    <img src="" alt="icon"/>
+                                {% endif %}
                             </a>
                             <div class="sidemenu__title">
                                 <a class="sidemenu__category-title" href="#{{ macro_product.id|slugify }}"
@@ -50,13 +54,84 @@
                                     {% for content_option in macro_product.content_options %}
                                         <a class="sidemenu__subcategory" href="#{{ content_option.id|slugify }}"
                                            onclick="ClearToppings()">
-                                            {{ content_option.item.title }}
+                                            {{ content_option.display_title }}
                                         </a>
                                     {% endfor %}
                                 </div>
                             </div>
                         </div>
                     {% endfor %}
+                    <div class="sidemenu__button">
+                        <a class="sidemenu__icon" href="#shashlyk" onclick="ClearToppings()">
+                            <img src="/static/img/btns/spicy30.png" alt="icon">
+                        </a>
+                        <div class="sidemenu__title">
+                            <a class="sidemenu__category-title" href="#shashlyk" onclick="ClearToppings()">
+                                Шашлык
+                            </a>
+                            <div class="sidemenu__subcategories">
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_sous-ostryi" onclick="ClearToppings()">
+                                    Соус острый
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_kuritsa-bk-bedro-1kg"
+                                   onclick="ClearToppings()">
+                                    Курица б/к бедро 1кг
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_baranina-spinka-1kg"
+                                   onclick="ClearToppings()">
+                                    Баранина спинка 1кг
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_ryba-semga-1kg"
+                                   onclick="ClearToppings()">
+                                    Рыба семга 1кг
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_goviadina-miakot-1kg"
+                                   onclick="ClearToppings()">
+                                    Говядина мякоть 1кг
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-baranina"
+                                   onclick="ClearToppings()">
+                                    Люля-Кебаб баранина
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-kuritsa"
+                                   onclick="ClearToppings()">
+                                    Люля-Кебаб курица
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-goviadina"
+                                   onclick="ClearToppings()">
+                                    Люля-Кебаб говядина
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_sheika-marinovannaia-1kg"
+                                   onclick="ClearToppings()">
+                                    Шейка маринованная 1кг
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_sous-krasnyi"
+                                   onclick="ClearToppings()">
+                                    Соус красный
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_goviadina-miakot-mram-1kg"
+                                   onclick="ClearToppings()">
+                                    Говядина мякоть мрам 1кг
+                                </a>
+
+                                <a class="sidemenu__subcategory" href="#shashlyk_sous-belyi" onclick="ClearToppings()">
+                                    Соус Белый
+                                </a>
+
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="pad-menu-container">

@@ -112,6 +112,8 @@
     display: flex;
     border: solid 1px #D8D8D8;
     background: white;
+    max-width: 330px;
+    overflow: hidden;
 }
 
 .sidemenu__icon {
@@ -138,10 +140,16 @@
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    max-width: 230px;
+    overflow-x: auto;
 }
 
 .sidemenu__subcategory:first-child {
     margin-left: 0;
+}
+
+.sidemenu__subcategory:nth-child(n+4) {
+    display: none;
 }
 
 .sidemenu__subcategory:last-child {
