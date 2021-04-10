@@ -1002,6 +1002,10 @@ div.stat-cook-name {
     padding-left: 20px;
 }
 
+.alert-background {
+    background-color: #ff7129 !important;
+}
+
 div.stat-cook-prepared-orders .stat-cook-prepared-products .stat-cook-avg-prep-times .stat-cook-max-prep-times .stat-cook-min-prep-times {
     min-width: 10%;
     width: 200px;
