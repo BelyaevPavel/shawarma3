@@ -221,6 +221,7 @@ class Order(models.Model):
     is_ready = models.BooleanField(default=False, verbose_name="Is Ready")
     is_voiced = models.BooleanField(default=False, verbose_name="Is Voiced")
     is_delivery = models.BooleanField(default=False, verbose_name="Is Delivery Order")
+    is_preorder = models.BooleanField(default=False, verbose_name="Предзаказ")
     # True - if paid with cash, False - if paid with card.
     paid_with_cash = models.BooleanField(default=True, verbose_name="Paid With Cash")
     servery = models.ForeignKey(Servery, verbose_name="Servery", on_delete=models.CASCADE)
