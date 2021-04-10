@@ -1,11 +1,15 @@
 /**
  * Created by paul on 15.07.17.
  */
+var preorder_checkbox;
+
 $(document).ready(function () {
     $('#menu').addClass('header-active');
     $('.menu-item').hide();
     $('.subm').prop('disabled', false);
     $('#cook_auto').prop('checked', true);
+    preorder_checkbox = $('[name=preorder_checkbox]');
+    preorder_checkbox.prop("checked", false);
 
     // Get the modal
     var modal = document.getElementById('modal-edit');
@@ -81,11 +85,12 @@ function SendOrder() {
                 "order_content": JSON.stringify(currOrder),
                 "payment": $('[name=payment_choose]:checked').val(),
                 "cook_choose": $('[name=cook_choose]:checked').val(),
-                "discount": $('[name=discount]:checked').val()?parseFloat($('[name=discount]:checked').val()):0
+                "discount": $('[name=discount]:checked').val() ? parseFloat($('[name=discount]:checked').val()) : 0,
+                "is_preorder": preorder_checkbox.prop("checked") ? 1 : 0
             };
             var order_id = $('#order_id').val();
             if (order_id)
-                order_data["order_id"]=order_id;
+                order_data["order_id"] = order_id;
 
             $('.subm').prop('disabled', true);
             $.ajaxSetup({
@@ -202,9 +207,9 @@ function StatusRefresher(guid) {
                             case 393:
                             case 392:
                                 if (payment_choose == "paid_with_cash")
-                                    status.text('Заказ №' + data.daily_number + '. ' + data['message']+ ' Введите полученную сумму, отдайте клиенту сдачу и нажмите ОК');
+                                    status.text('Заказ №' + data.daily_number + '. ' + data['message'] + ' Введите полученную сумму, отдайте клиенту сдачу и нажмите ОК');
                                 else
-                                    status.text('Заказ №' + data.daily_number + '. ' + data['message']+ ' проведён в 1С! Операция безналичного расчёта завершена успешно! Нажмите ОК');
+                                    status.text('Заказ №' + data.daily_number + '. ' + data['message'] + ' проведён в 1С! Операция безналичного расчёта завершена успешно! Нажмите ОК');
                                 OK.prop('disabled', false);
                                 cancel.prop('disabled', true);
                                 retry.prop('disabled', true);
@@ -523,7 +528,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Сыр';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -535,7 +540,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Зелень';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -547,7 +552,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Острая';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -559,7 +564,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Чуть-Острая';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -571,7 +576,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Ж';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -583,7 +588,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Без лука';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -595,7 +600,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Больше соуса';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -607,7 +612,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Меньше соуса';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -619,7 +624,7 @@ function ShowModalEdit(index) {
         function () {
             var str = ' Без овощей';
             if (note.val().includes(str)) {
-                note.val(note.val().replace(str,''));
+                note.val(note.val().replace(str, ''));
             }
             else {
                 note.val(note.val() + str);
@@ -796,7 +801,7 @@ function ss(index, id) {
         }
     ).fail(function (jqXHR, textStatus) {
         alert('Необработанное искюение!' + textStatus);
-        console.log(jqXHR+' '+textStatus);
+        console.log(jqXHR + ' ' + textStatus);
     });
 
 

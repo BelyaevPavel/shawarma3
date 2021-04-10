@@ -3489,6 +3489,7 @@ def cooks_content_info_ajax(request):
 def make_order(request):
     order_id = request.POST.get('order_id', None)
     delivery_order_pk = request.POST.get('delivery_order_pk', None)
+    is_preorder = True if int(request.POST.get('is_preorder', 0)) == 1 else False
     servery_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         servery_ip = '127.0.0.1'
@@ -3535,13 +3536,13 @@ def make_order(request):
     if result['success']:
         service_point = result['service_point']
         return JsonResponse(data=make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash,
-                                                 servery, service_point, discount))
+                                                 servery, service_point, discount, is_preorder))
     else:
         return JsonResponse(result)
 
 
 def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, servery,
-                    service_point, discount=0):
+                    service_point, discount=0, is_preorder=False):
     file = open('log/cook_choose.log', 'a')
     try:
         order_last_daily_number = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
@@ -3576,7 +3577,7 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
             order.discount = discount
         else:
             order = Order(open_time=timezone.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
-                          paid_with_cash=paid_with_cash, status_1c=0, discount=discount)
+                          paid_with_cash=paid_with_cash, status_1c=0, discount=discount, is_preorder=is_preorder)
     except:
         data = {
             'success': False,
@@ -4813,6 +4814,7 @@ def statistic_page(request):
                                                     is_canceled=False, is_paid=True, paid_with_cash=False))
     not_paid_count = len(Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
                                               is_canceled=False, is_paid=False))
+    preorder_count = len(Order.objects.filter(open_time__contains=datetime.date.today(), is_preorder=True))
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'total_orders': len(Order.objects.filter(open_time__contains=datetime.date.today())),
@@ -4824,6 +4826,7 @@ def statistic_page(request):
         'paid_with_cash_count': paid_with_cash_count,
         'paid_with_card_count': paid_with_card_count,
         'not_paid_count': not_paid_count,
+        'preorder_count': preorder_count,
         'cooks': [{'person': cook,
                    'prepared_orders_count': len(
                        Order.objects.filter(prepared_by=cook, open_time__contains=datetime.date.today(),
@@ -4929,6 +4932,16 @@ def statistic_page_ajax(request):
         return JsonResponse(data)
 
     try:
+        preorder_count = len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv,
+                                                  is_preorder=True))
+    except:
+        data = {
+            'success': False,
+            'message': 'Что-то пошло не так при вычислении количества неоплаченных заказов !'
+        }
+        return JsonResponse(data)
+
+    try:
         context = {
             'staff_category': StaffCategory.objects.get(staff__user=request.user),
             'total_orders': len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv)),
@@ -4940,6 +4953,7 @@ def statistic_page_ajax(request):
             'paid_with_cash_count': paid_with_cash_count,
             'paid_with_card_count': paid_with_card_count,
             'not_paid_count': not_paid_count,
+            'preorder_count': preorder_count,
             'cooks': [{'person': cook,
                        'prepared_orders_count': len(Order.objects.filter(prepared_by=cook,
                                                                          open_time__gte=start_date_conv,
