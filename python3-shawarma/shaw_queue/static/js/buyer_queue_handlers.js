@@ -7,24 +7,29 @@ var csrftoken = $("[name=csrfmiddlewaretoken]").val();
 
 var carousels = document.querySelectorAll('div.carousel');
 var currentCarousel = 0;
-var carouselInterval = setInterval(nextCarousel,20000); /* Интервал между картинками */
+//var carouselInterval = setInterval(nextCarousel, 20000);
+/* Интервал между картинками */
 
 $(document).ready(function () {
+        is_voicing = is_voicing_page;
         refresher();
         carousels = document.querySelectorAll('div.carousel');
     }
 );
 
-function nextCarousel(){
-	carousels[currentCarousel].className = 'carousel';
-	currentCarousel = (currentCarousel+1)%carousels.length;
-	carousels[currentCarousel].className = 'carousel demonstration';
+function nextCarousel() {
+    carousels[currentCarousel].className = 'carousel';
+    currentCarousel = (currentCarousel + 1) % carousels.length;
+    carousels[currentCarousel].className = 'carousel demonstration';
 }
 
 function refresher() {
     //console.log('Refreshed');
     $.ajax({
         url: $('#urls').attr('data-refresh-url'),
+        data: {
+            'is_voicing': is_voicing ? 1 : 0
+        },
         success: function (data) {
             $('#page-content').html(data['html']);
             var updated_ready_numbers = JSON.parse(data['ready']);
@@ -100,7 +105,7 @@ function process_numbers(updated_ready_numbers, voiced_flags) {
     });
     setTimeout(function () {
         is_voicing = false;
-    }, 3500*updated_ready_numbers.length);
+    }, 3500 * updated_ready_numbers.length);
 }
 
 function sound_number(value) {

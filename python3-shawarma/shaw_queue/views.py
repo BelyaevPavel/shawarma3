@@ -1099,6 +1099,7 @@ def evaluate(request):
 
 
 def buyer_queue(request):
+    is_voicing = int(request.GET.get('is_voicing', 0))
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
@@ -1131,12 +1132,14 @@ def buyer_queue(request):
         try:
             carousel_images = [CAROUSEL_IMG_URL + name for name in os.listdir(CAROUSEL_IMG_DIR)]
         except:
+            carousel_images = list()
+            carousel_images.clear()
             data = {
                 'success': False,
                 'message': 'Что-то пошло не так при загрузке изображений для карусели!'
             }
             client.captureException()
-            return JsonResponse(data)
+            # return JsonResponse(data)
     else:
         return JsonResponse(result)
     context = {
@@ -1149,13 +1152,15 @@ def buyer_queue(request):
         'display_ready_orders': [{'servery': order.servery.display_title, 'daily_number': order.daily_number % 100} for
                                  order in
                                  ready_orders],
-        'carousel_images': carousel_images
+        'carousel_images': carousel_images,
+        'is_voicing': True if is_voicing == 1 else False
     }
     template = loader.get_template('shaw_queue/buyer_queue.html')
     return HttpResponse(template.render(context, request))
 
 
 def buyer_queue_ajax(request):
+    is_voicing = request.GET.get('is_voicing', 0)
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
@@ -1203,8 +1208,10 @@ def buyer_queue_ajax(request):
     template = loader.get_template('shaw_queue/buyer_queue_ajax.html')
     data = {
         'html': template.render(context, request),
-        'ready': json.dumps([order.daily_number for order in ready_orders.filter(is_voiced=False)]),
-        'voiced': json.dumps([order.is_voiced for order in ready_orders.filter(is_voiced=False)])
+        'ready': json.dumps(
+            [order.daily_number for order in ready_orders.filter(is_voiced=False)] if is_voicing == 0 else list()),
+        'voiced': json.dumps(
+            [order.is_voiced for order in ready_orders.filter(is_voiced=False)] if is_voicing == 0 else list())
     }
     # for order in ready_orders:
     #     order.is_voiced = True
