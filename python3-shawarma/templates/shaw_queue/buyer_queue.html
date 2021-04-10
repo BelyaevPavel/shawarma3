@@ -4,32 +4,39 @@
 <link rel="stylesheet" type="text/css" href="{% static 'queue/style.css' %}">
 <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/buyer_queue_handlers.js' %}"></script>
+<script type="text/javascript">
+    {% if is_voicing %}
+        var is_voicing_page = true;
+    {% else %}
+        var is_voicing_page = false;
+    {% endif %}
+</script>
 <input hidden id="urls" data-refresh-url="{% url 'buyer_queue_ajax' %}" data-unvoice-url="{% url 'unvoice_order' %}">
 <div id="page-content">
     <div class="open-orders-container">
         <div class="open-order-display">
             Жарим
         </div>
-    {% for open_order in display_open_orders %}
-        <div class="open-order-display">
-            {{ open_order.daily_number }}
-        </div>
-    {% empty %}
-    {% endfor %}
+        {% for open_order in display_open_orders %}
+            <div class="open-order-display">
+                {{ open_order.daily_number }}
+            </div>
+        {% empty %}
+        {% endfor %}
     </div>
     <div class="ready-orders-container">
-    <div class="open-order-display">
-        Готовы
-    </div>
-    {% for ready_order in display_ready_orders %}
-        <div class="ready-order-display">
+        <div class="open-order-display">
+            Готовы
+        </div>
+        {% for ready_order in display_ready_orders %}
+            <div class="ready-order-display">
             <span class="ready-order-display-number">
                 {{ ready_order.daily_number }}
             </span>
-            {{ ready_order.servery }}
-        </div>
-    {% empty %}
-    {% endfor %}
+                {{ ready_order.servery }}
+            </div>
+        {% empty %}
+        {% endfor %}
     </div>
 </div>
 
