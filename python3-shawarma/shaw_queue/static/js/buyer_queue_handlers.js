@@ -7,7 +7,7 @@ var csrftoken = $("[name=csrfmiddlewaretoken]").val();
 
 var carousels = document.querySelectorAll('div.carousel');
 var currentCarousel = 0;
-//var carouselInterval = setInterval(nextCarousel, 20000);
+var carouselInterval = setInterval(nextCarousel, 20000);
 /* Интервал между картинками */
 
 $(document).ready(function () {
