@@ -1209,9 +1209,9 @@ def buyer_queue_ajax(request):
     data = {
         'html': template.render(context, request),
         'ready': json.dumps(
-            [order.daily_number for order in ready_orders.filter(is_voiced=False)] if is_voicing == 0 else list()),
+            [order.daily_number for order in ready_orders.filter(is_voiced=False)]),
         'voiced': json.dumps(
-            [order.is_voiced for order in ready_orders.filter(is_voiced=False)] if is_voicing == 0 else list())
+            [order.is_voiced for order in ready_orders.filter(is_voiced=False)])
     }
     # for order in ready_orders:
     #     order.is_voiced = True
