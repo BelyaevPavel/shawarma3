@@ -4798,6 +4798,16 @@ def cancel_item(request):
 @login_required()
 @permission_required('shaw_queue.view_statistics')
 def statistic_page(request):
+    ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        ip = '127.0.0.1'
+
+    service_point_by_ip = define_service_point(ip=ip)
+    serveries = Servery.objects.filter(service_point=service_point_by_ip['service_point'])
+    current_staff = Staff.objects.get(user=request.user)
+    if current_staff.super_guy:
+        serveries = Servery.objects.all()
+
     template = loader.get_template('shaw_queue/statistics.html')
     avg_preparation_time = Order.objects.filter(open_time__contains=datetime.date.today(), close_time__isnull=False,
                                                 is_canceled=False).values(
@@ -4826,7 +4836,24 @@ def statistic_page(request):
         'paid_with_cash_count': paid_with_cash_count,
         'paid_with_card_count': paid_with_card_count,
         'not_paid_count': not_paid_count,
-        'preorder_count': preorder_count,
+        'serveries_data': [
+            {
+                'servery': servery,
+                'paid_with_cash_count': len(Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                                 close_time__isnull=False, is_canceled=False,
+                                                                 is_paid=True, paid_with_cash=True,
+                                                                 servery=servery)),
+                'paid_without_cash_count': len(Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                                    close_time__isnull=False, is_canceled=False,
+                                                                    is_paid=True, paid_with_cash=False,
+                                                                    servery=servery)),
+                'preorder_count': len(Order.objects.filter(open_time__contains=datetime.date.today(), is_preorder=True,
+                                                           is_canceled=False, servery=servery)),
+                'not_paid_count': len(Order.objects.filter(open_time__contains=datetime.date.today(),
+                                                           close_time__isnull=False,is_canceled=False,
+                                                           is_paid=False, servery=servery))
+            } for servery in serveries
+        ],
         'cooks': [{'person': cook,
                    'prepared_orders_count': len(
                        Order.objects.filter(prepared_by=cook, open_time__contains=datetime.date.today(),
@@ -4864,6 +4891,17 @@ def statistic_page_ajax(request):
     start_date_conv = datetime.datetime.strptime(start_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
     end_date = request.POST.get('end_date', None)
     end_date_conv = datetime.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
+
+    ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if DEBUG_SERVERY:
+        ip = '127.0.0.1'
+
+    service_point_by_ip = define_service_point(ip=ip)
+    serveries = Servery.objects.filter(service_point=service_point_by_ip['service_point'])
+    current_staff = Staff.objects.get(user=request.user)
+    if current_staff.super_guy:
+        serveries = Servery.objects.all()
+
     template = loader.get_template('shaw_queue/statistics_ajax.html')
     try:
         avg_preparation_time = Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv,
@@ -4953,7 +4991,27 @@ def statistic_page_ajax(request):
             'paid_with_cash_count': paid_with_cash_count,
             'paid_with_card_count': paid_with_card_count,
             'not_paid_count': not_paid_count,
-            'preorder_count': preorder_count,
+            'serveries_data': [
+                {
+                    'servery': servery,
+                    'paid_with_cash_count': len(Order.objects.filter(open_time__gte=start_date_conv,
+                                                                     open_time__lte=end_date_conv,
+                                                                     close_time__isnull=False, is_canceled=False,
+                                                                     is_paid=True, paid_with_cash=True,
+                                                                     servery=servery)),
+                    'paid_without_cash_count': len(Order.objects.filter(open_time__gte=start_date_conv,
+                                                                        open_time__lte=end_date_conv,
+                                                                        close_time__isnull=False, is_canceled=False,
+                                                                        is_paid=True, paid_with_cash=False,
+                                                                        servery=servery)),
+                    'preorder_count': len(Order.objects.filter(open_time__gte=start_date_conv,
+                                                               open_time__lte=end_date_conv, is_preorder=True,
+                                                               is_canceled=False, servery=servery)),
+                    'not_paid_count': len(Order.objects.filter(open_time__gte=start_date_conv,
+                                                               open_time__lte=end_date_conv, close_time__isnull=False,
+                                                               is_canceled=False, is_paid=False, servery=servery))
+                } for servery in serveries
+            ],
             'cooks': [{'person': cook,
                        'prepared_orders_count': len(Order.objects.filter(prepared_by=cook,
                                                                          open_time__gte=start_date_conv,

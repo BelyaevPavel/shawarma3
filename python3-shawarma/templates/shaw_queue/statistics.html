@@ -24,10 +24,13 @@
             Ср. время выполнения: {{ avg_prep_time }}
             Макс. время: {{ max_prep_time }}
             <div class="stat-sect-container">
-                Оплачено наличными: {{ paid_with_cash_count }}
-                Оплачено картой: {{ paid_with_card_count }}
-                Неоплачено: {{ not_paid_count }}
-                Предзаказы: {{ preorder_count }}
+                {% for servery_datum in serveries_data %}
+                    <p>{{ servery_datum.servery.title }}
+                        Наличными: {{ servery_datum.paid_with_cash_count }}
+                        Картой:{{ servery_datum.paid_without_cash_count }}
+                        Предзаказы:{{ servery_datum.preorder_count }}
+                        Неоплачено: {{ servery_datum.not_paid_count }}</p>
+                {% endfor %}
             </div>
             <div class="stat-cook-table-header">
                 <div class="stat-cook-name">
