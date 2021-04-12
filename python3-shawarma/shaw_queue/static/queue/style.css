@@ -988,7 +988,7 @@ div.stat-sect-container {
     float: left;
     width: 100%;
     line-height: 60px;
-    height: 60px;
+    /*height: 60px;*/
     border-bottom: solid 2px #D8D8D8;
     border-top: solid 1px #D8D8D8;
     font-size: large;

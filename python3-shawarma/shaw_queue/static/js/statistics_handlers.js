@@ -31,7 +31,7 @@ function UpdateStatistics() {
 
             }
         }
-    ).fail(function () {
+    ).fail(function (xhr, status, error) {
         alert('У вас нет прав!');
     });
 }
