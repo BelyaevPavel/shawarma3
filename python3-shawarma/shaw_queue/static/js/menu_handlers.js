@@ -482,6 +482,11 @@ function ShowModalEdit(index) {
     var saucePlus = $('#saucePlus-button');
     var sauceMinus = $('#sauceMinus-button');
     var noVegetables = $('#noVegetables-button');
+    var frenchFries = $('#frenchFries-button');
+    var chile = $('#chile-button');
+    var mushrooms = $('#mushrooms-button');
+    var jalapeno = $('#jalapeno-button');
+    var bellPepper = $('#bellPepper-button');
 
     title.text(currOrder[index]['title']);
     quantity.val(currOrder[index]['quantity']);
@@ -623,6 +628,66 @@ function ShowModalEdit(index) {
     noVegetables.click(
         function () {
             var str = ' Без овощей';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str, ''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    frenchFries.click(
+        function () {
+            var str = ' Фри';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str, ''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    chile.click(
+        function () {
+            var str = ' Чили';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str, ''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    mushrooms.click(
+        function () {
+            var str = ' Грибы';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str, ''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    jalapeno.click(
+        function () {
+            var str = ' Халапеньо';
+            if (note.val().includes(str)) {
+                note.val(note.val().replace(str, ''));
+            }
+            else {
+                note.val(note.val() + str);
+            }
+            SelectSuggestion(index, note.val());
+        }
+    );
+    bellPepper.click(
+        function () {
+            var str = ' Болгарский перец';
             if (note.val().includes(str)) {
                 note.val(note.val().replace(str, ''));
             }
