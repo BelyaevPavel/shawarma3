@@ -721,6 +721,11 @@ function CloseModalEdit() {
     var saucePlus = $('#saucePlus-button');
     var sauceMinus = $('#sauceMinus-button');
     var noVegetables = $('#noVegetables-button');
+    var frenchFries = $('#frenchFries-button');
+    var chile = $('#chile-button');
+    var mushrooms = $('#mushrooms-button');
+    var jalapeno = $('#jalapeno-button');
+    var bellPepper = $('#bellPepper-button');
 
     var modal = document.getElementById('modal-edit');
 
@@ -740,6 +745,11 @@ function CloseModalEdit() {
     saucePlus.off("click");
     sauceMinus.off("click");
     noVegetables.off("click");
+    frenchFries.off("click");
+    chile.off("click");
+    mushrooms.off("click");
+    jalapeno.off("click");
+    bellPepper.off("click");
 
     modal.style.display = "none";
 }
