@@ -965,6 +965,20 @@ div.cook-order-queue-display {
     border-left: solid 2px #D8D8D8;
 }
 
+.finished_orders_count_display{
+    color: white;
+    background-color: #ff7129 !important;
+    height: 3rem;
+    bottom: 0;
+    right: 0;
+    position: fixed;
+    line-height: 3rem;
+    border-radius: 0.5rem;
+}
+.finished_orders_count_display span{
+    padding: 1rem;
+}
+
 div.selected-order-display {
     width: calc(100% - 235px);
     height: 100%;

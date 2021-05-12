@@ -2210,7 +2210,10 @@ def c_i_a(request):
             'staff': staff
         }
         template = loader.get_template('shaw_queue/selected_order_content.html')
+        finished_orders_count = Order.objects.filter(prepared_by=staff, is_canceled=False,
+                                                     close_time__contains=timezone.datetime.now().date()).count()
         context_other = {
+            'finished_orders_count': finished_orders_count if finished_orders_count > 0 else 0,
             'cooks_orders': [{'order': cooks_order,
                               'display_number': cooks_order.daily_number % 100,
                               'cook_content_count': len(OrderContent.objects.filter(order=cooks_order,
