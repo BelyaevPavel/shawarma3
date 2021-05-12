@@ -241,11 +241,11 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
 
         service_points = ServicePoint.objects.all()
         context['coordinates'] = [{
-                                      'service_point_id': service_point.id,
-                                      'latitude': service_point.latitude,
-                                      'longitude': service_point.longitude,
-                                      'address': service_point.title
-                                  } for service_point in service_points]
+            'service_point_id': service_point.id,
+            'latitude': service_point.latitude,
+            'longitude': service_point.longitude,
+            'address': service_point.title
+        } for service_point in service_points]
 
         data = {
             'success': True,
@@ -425,7 +425,7 @@ class IncomingCall(View):
                         'delivery_order': delivery_order,
                         'content': OrderContent.objects.filter(order=delivery_order.order)
                     } for delivery_order in customer_orders
-                    ]
+                ]
             }
             for field in context['form'].fields:
                 context['form'].fields[field].widget.attrs['class'] = 'form-control'
@@ -535,7 +535,7 @@ class DeliveryView(View):
                         'delivery_order': delivery_order,
                         'content': OrderContent.objects.filter(order=delivery_order.order)
                     } for delivery_order in delivery_orders
-                    ]
+                ]
             }
             for field in context['form'].fields:
                 context['form'].fields[field].widget.attrs['class'] = 'form-control'
@@ -1962,28 +1962,28 @@ def cook_interface(request):
         has_order = False
         display_number = ''
 
-# TODO: Uncomment, when product variants will be ready.
+        # TODO: Uncomment, when product variants will be ready.
 
         if len(new_order) > 0:
             new_order = new_order[0]
             display_number = new_order.daily_number % 100
             taken_order_content = OrderContent.objects.filter(order=new_order,
                                                               menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                              #menu_item__productvariant__size_option__isnull=False,
+                                                              # menu_item__productvariant__size_option__isnull=False,
                                                               finish_timestamp__isnull=True).order_by('id')
             if len(taken_order_content) > 0:
                 has_order = True
 
         taken_order_content = OrderContent.objects.filter(order=new_order,
                                                           menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                          #menu_item__productvariant__size_option__isnull=False
-).order_by(
+                                                          # menu_item__productvariant__size_option__isnull=False
+                                                          ).order_by(
             'id')
         taken_order_in_grill_content = OrderContent.objects.filter(order=new_order,
                                                                    grill_timestamp__isnull=False,
                                                                    menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                                   #menu_item__productvariant__size_option__isnull=False
-).order_by(
+                                                                   # menu_item__productvariant__size_option__isnull=False
+                                                                   ).order_by(
             'id')
 
         context = {
@@ -1998,9 +1998,9 @@ def cook_interface(request):
             'in_grill_content': [{'number': number,
                                   'item': item,
                                   'note': (item.note + ', ' if len(item.note) > 0 else '') + ', '.join(
-                                   [item.content_item_option.menu_item.title for item in
-                                    OrderContentOption.objects.filter(content_item=item)]),
-                               } for number, item in enumerate(taken_order_in_grill_content, start=1)],
+                                      [item.content_item_option.menu_item.title for item in
+                                       OrderContentOption.objects.filter(content_item=item)]),
+                                  } for number, item in enumerate(taken_order_in_grill_content, start=1)],
             'cooks_orders': [{'order': cooks_order,
                               'display_number': cooks_order.daily_number % 100,
                               'cook_content_count': len(OrderContent.objects.filter(order=cooks_order,
@@ -2152,7 +2152,7 @@ def c_i_a(request):
         has_order = False
         display_number = ''
 
-# TODO: Uncomment, when product variants will be ready.
+        # TODO: Uncomment, when product variants will be ready.
 
         if len(new_order) > 0:
             new_order = new_order[0]
@@ -2160,7 +2160,7 @@ def c_i_a(request):
             try:
                 taken_order_content = OrderContent.objects.filter(order=new_order,
                                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                                  #menu_item__productvariant__size_option__isnull=False,
+                                                                  # menu_item__productvariant__size_option__isnull=False,
                                                                   finish_timestamp__isnull=True).order_by('id')
             except:
                 data = {
@@ -2176,7 +2176,7 @@ def c_i_a(request):
             taken_order_content = OrderContent.objects.filter(order=new_order,
                                                               menu_item__can_be_prepared_by__title__iexact='Cook',
                                                               # menu_item__productvariant__size_option__isnull=False
-).order_by('id')
+                                                              ).order_by('id')
         except:
             data = {
                 'success': False,
@@ -2210,10 +2210,12 @@ def c_i_a(request):
             'staff': staff
         }
         template = loader.get_template('shaw_queue/selected_order_content.html')
-        finished_orders_count = Order.objects.filter(prepared_by=staff, is_canceled=False,
-                                                     close_time__contains=timezone.datetime.now().date()).count()
+        finished_orders = OrderContent.objects.filter(prepared_by=staff, is_canceled=False,
+                                                      close_time__contains=timezone.datetime.now().date())
+        finished_content_count = OrderContent.objects.filter(order__in=finished_orders,
+                                                             menu_item__can_be_prepared_by__title__iexact='cook').count()
         context_other = {
-            'finished_orders_count': finished_orders_count if finished_orders_count > 0 else 0,
+            'finished_content_count': finished_content_count if finished_content_count > 0 else 0,
             'cooks_orders': [{'order': cooks_order,
                               'display_number': cooks_order.daily_number % 100,
                               'cook_content_count': len(OrderContent.objects.filter(order=cooks_order,
@@ -2485,11 +2487,11 @@ def order_content(request, order_id):
                 'maker': order_info.prepared_by,
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
                 'order_content': [{
-                                      'obj': order_item,
-                                      'note': (order_item.note + ', ' if len(order_item.note) > 0 else '') + ', '.join(
-                                          [item.content_item_option.menu_item.title for item in
-                                           OrderContentOption.objects.filter(content_item=order_item)]),
-                                  } for order_item in current_order_content],
+                    'obj': order_item,
+                    'note': (order_item.note + ', ' if len(order_item.note) > 0 else '') + ', '.join(
+                        [item.content_item_option.menu_item.title for item in
+                         OrderContentOption.objects.filter(content_item=order_item)]),
+                } for order_item in current_order_content],
                 'ready': order_info.content_completed and order_info.supplement_completed and order_info.shashlyk_completed,
                 'serveries': Servery.objects.filter(service_point=result['service_point'])
             }
@@ -2751,23 +2753,23 @@ def delivery_interface(request):
             'can_be_started': False if len(
                 DeliveryOrder.objects.filter(delivery=delivery, is_ready=False)) > 0 else True
         } for delivery in deliveries
-        ]
+    ]
     processed_d_orders = [
         {
             'order': delivery_order,
             'show_date': delivery_order.delivered_timepoint.date() == delivery_order.obtain_timepoint.date(),
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                    delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
                 minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
+                    delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point),
             'available_shashlychniks': Staff.objects.filter(available=True,
                                                             staff_category__title__iexact='Shashlychnik',
                                                             service_point=delivery_order.order.servery.service_point)
         } for delivery_order in delivery_orders
-        ]
+    ]
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'delivery_order_form': DeliveryOrderForm,
@@ -2807,25 +2809,25 @@ def delivery_workspace_update(request):
         {
             'order': delivery_order,
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                    delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
                 minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and
+                    delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now() and
                                      delivery_order.prep_start_timepoint is None or
                                      delivery_order.moderation_needed else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point)
         } for delivery_order in delivery_orders
-        ]
+    ]
 
     for delivery_order in delivery_orders:
         diction = {
             'order': delivery_order,
             'enlight_warning': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
+                    delivery_order.delivery_duration + delivery_order.preparation_duration) - datetime.timedelta(
                 minutes=5) < timezone.now() and delivery_order.prep_start_timepoint is None else False,
             'enlight_alert': True if delivery_order.delivered_timepoint - (
-                delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now()
+                    delivery_order.delivery_duration + delivery_order.preparation_duration) < timezone.now()
                                      and delivery_order.prep_start_timepoint is None else False,
             'available_cooks': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
                                                     service_point=delivery_order.order.servery.service_point)
@@ -2854,7 +2856,7 @@ def delivery_workspace_update(request):
             'can_be_started': False if len(
                 DeliveryOrder.objects.filter(delivery=delivery, is_ready=False)) > 0 else True
         } for delivery in deliveries
-        ]
+    ]
 
     delivery_context = {
         'delivery_info': delivery_info
@@ -3079,18 +3081,19 @@ def select_order(request):
     }
     if order_id:
         try:
-# TODO: Uncomment, when product variants will be ready.
+            # TODO: Uncomment, when product variants will be ready.
             context = {
                 'selected_order': get_object_or_404(Order, id=order_id),
                 'display_number': get_object_or_404(Order, id=order_id).daily_number % 100,
                 'order_content': [{'number': number,
                                    'item': item,
-                                   'note': (item.note + ', ' if len(item.note) > 0 else '') + ', '.join([item.content_item_option.menu_item.title for item in
-                                                      OrderContentOption.objects.filter(content_item=item)])} for
+                                   'note': (item.note + ', ' if len(item.note) > 0 else '') + ', '.join(
+                                       [item.content_item_option.menu_item.title for item in
+                                        OrderContentOption.objects.filter(content_item=item)])} for
                                   number, item in enumerate(OrderContent.objects.filter(order__id=order_id,
                                                                                         menu_item__can_be_prepared_by__title__iexact='Cook',
                                                                                         # menu_item__productvariant__size_option__isnull=False
-),
+                                                                                        ),
                                                             start=1)],
                 'staff_category': staff.staff_category
             }
@@ -3431,15 +3434,15 @@ def cooks_content_info(request):
     template = loader.get_template('shaw_queue/cooks_content_info.html')
     context = {
         'items': [{
-                      'cook_name': cook.user.first_name,
-                      'content_count': OrderContent.objects.filter(order__prepared_by=cook,
-                                                                   order__open_time__contains=datetime.date.today(),
-                                                                   order__is_canceled=False,
-                                                                   order__close_time__isnull=True,
-                                                                   order__is_ready=False,
-                                                                   menu_item__can_be_prepared_by__title__iexact='Cook'
-                                                                   ).aggregate(count=Count('id')),
-                  } for cook in cooks],
+            'cook_name': cook.user.first_name,
+            'content_count': OrderContent.objects.filter(order__prepared_by=cook,
+                                                         order__open_time__contains=datetime.date.today(),
+                                                         order__is_canceled=False,
+                                                         order__close_time__isnull=True,
+                                                         order__is_ready=False,
+                                                         menu_item__can_be_prepared_by__title__iexact='Cook'
+                                                         ).aggregate(count=Count('id')),
+        } for cook in cooks],
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
     }
 
@@ -3468,15 +3471,15 @@ def cooks_content_info_ajax(request):
     template = loader.get_template('shaw_queue/cooks_content_info_ajax.html')
     context = {
         'items': [{
-                      'cook_name': cook.user.first_name,
-                      'content_count': OrderContent.objects.filter(order__prepared_by=cook,
-                                                                   order__open_time__contains=datetime.date.today(),
-                                                                   order__is_canceled=False,
-                                                                   order__close_time__isnull=True,
-                                                                   order__is_ready=False,
-                                                                   menu_item__can_be_prepared_by__title__iexact='Cook'
-                                                                   ).aggregate(count=Count('id')),
-                  } for cook in cooks],
+            'cook_name': cook.user.first_name,
+            'content_count': OrderContent.objects.filter(order__prepared_by=cook,
+                                                         order__open_time__contains=datetime.date.today(),
+                                                         order__is_canceled=False,
+                                                         order__close_time__isnull=True,
+                                                         order__is_ready=False,
+                                                         menu_item__can_be_prepared_by__title__iexact='Cook'
+                                                         ).aggregate(count=Count('id')),
+        } for cook in cooks],
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
     }
 
@@ -4853,7 +4856,7 @@ def statistic_page(request):
                 'preorder_count': len(Order.objects.filter(open_time__contains=datetime.date.today(), is_preorder=True,
                                                            is_canceled=False, servery=servery)),
                 'not_paid_count': len(Order.objects.filter(open_time__contains=datetime.date.today(),
-                                                           close_time__isnull=False,is_canceled=False,
+                                                           close_time__isnull=False, is_canceled=False,
                                                            is_paid=False, servery=servery))
             } for servery in serveries
         ],
@@ -5236,13 +5239,13 @@ def pause_statistic_page(request):
         'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
         'pauses': [{
-                       'staff': pause.staff,
-                       'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-                       'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-                       'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-                   }
-                   for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
-                                                            end_timestamp__contains=datetime.date.today()).order_by(
+            'staff': pause.staff,
+            'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+            'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+            'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+        }
+            for pause in PauseTracker.objects.filter(start_timestamp__contains=datetime.date.today(),
+                                                     end_timestamp__contains=datetime.date.today()).order_by(
                 'start_timestamp')]
     }
     return HttpResponse(template.render(context, request))
@@ -5323,21 +5326,21 @@ def pause_statistic_page_ajax(request):
         #                                                     end_timestamp__lte=end_date_conv).order_by(
         #         'start_timestamp')],
         'pause_info': [{
-                           'total_duration': PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
-                                                                         end_timestamp__lte=end_date_conv,
-                                                                         staff=staff).aggregate(
-                               duration=Sum(F('end_timestamp') - F('start_timestamp'))),
-                           'staff': staff,
-                           'pauses': [{
-                                          'staff': pause.staff,
-                                          'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
-                                          'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
-                                          'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
-                                      }
-                                      for pause in PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
-                                                                               end_timestamp__lte=end_date_conv,
-                                                                               staff=staff).order_by('start_timestamp')]
-                       } for staff in engaged_staff]
+            'total_duration': PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+                                                          end_timestamp__lte=end_date_conv,
+                                                          staff=staff).aggregate(
+                duration=Sum(F('end_timestamp') - F('start_timestamp'))),
+            'staff': staff,
+            'pauses': [{
+                'staff': pause.staff,
+                'start_timestamp': str(pause.start_timestamp).split('.', 2)[0],
+                'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
+                'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
+            }
+                for pause in PauseTracker.objects.filter(start_timestamp__gte=start_date_conv,
+                                                         end_timestamp__lte=end_date_conv,
+                                                         staff=staff).order_by('start_timestamp')]
+        } for staff in engaged_staff]
     }
     # except:
     #     data = {
@@ -5414,21 +5417,21 @@ def call_record_page(request):
         'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
         'records_info': [{
-                             'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
-                                                                       call_manager=staff).aggregate(
-                                 duration=Sum('duration')),
-                             'call_manager': staff,
-                             'records': [{
-                                             'call_manager': record.call_manager,
-                                             'customer': record.customer,
-                                             'timepoint': record.timepoint,
-                                             'duration': str(record.duration).split('.', 2)[0],
-                                             'record_url': record.record
-                                         }
-                                         for record in
-                                         CallData.objects.filter(timepoint__contains=datetime.date.today(),
-                                                                 call_manager=staff).order_by('timepoint')]
-                         } for staff in engaged_staff]
+            'total_duration': CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                                      call_manager=staff).aggregate(
+                duration=Sum('duration')),
+            'call_manager': staff,
+            'records': [{
+                'call_manager': record.call_manager,
+                'customer': record.customer,
+                'timepoint': record.timepoint,
+                'duration': str(record.duration).split('.', 2)[0],
+                'record_url': record.record
+            }
+                for record in
+                CallData.objects.filter(timepoint__contains=datetime.date.today(),
+                                        call_manager=staff).order_by('timepoint')]
+        } for staff in engaged_staff]
     }
     for index, info in enumerate(context['records_info']):
         if len(info['records']) == 0:
@@ -5512,23 +5515,23 @@ def call_record_page_ajax(request):
         'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
         'records_info': [{
-                             'total_duration': CallData.objects.filter(timepoint__gte=start_date_conv,
-                                                                       timepoint__lte=end_date_conv,
-                                                                       call_manager=staff).aggregate(
-                                 duration=Sum('duration')),
-                             'call_manager': staff,
-                             'records': [{
-                                             'call_manager': record.call_manager,
-                                             'customer': record.customer,
-                                             'timepoint': record.timepoint,
-                                             'duration': str(record.duration).split('.', 2)[0],
-                                             'record_url': record.record
-                                         }
-                                         for record in CallData.objects.filter(timepoint__gte=start_date_conv,
-                                                                               timepoint__lte=end_date_conv,
-                                                                               call_manager=staff).order_by(
-                                     'timepoint')]
-                         } for staff in engaged_staff]
+            'total_duration': CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                      timepoint__lte=end_date_conv,
+                                                      call_manager=staff).aggregate(
+                duration=Sum('duration')),
+            'call_manager': staff,
+            'records': [{
+                'call_manager': record.call_manager,
+                'customer': record.customer,
+                'timepoint': record.timepoint,
+                'duration': str(record.duration).split('.', 2)[0],
+                'record_url': record.record
+            }
+                for record in CallData.objects.filter(timepoint__gte=start_date_conv,
+                                                      timepoint__lte=end_date_conv,
+                                                      call_manager=staff).order_by(
+                    'timepoint')]
+        } for staff in engaged_staff]
     }
     for index, info in enumerate(context['records_info']):
         if len(info['records']) == 0:
@@ -6300,9 +6303,9 @@ def get_customers_menu(request):
                         'price': item.price
                     } for item in
                     Menu.objects.filter(category=category, customer_appropriate=True).order_by('customer_title')
-                    ]
+                ]
             } for category in menu_categories
-            ]
+        ]
     }
     return JsonResponse(data=data)
 
@@ -6316,7 +6319,7 @@ def send_customers_menu(request):
                 'title': category.title,
                 'customer_title': category.customer_title
             } for category in menu_categories
-            ],
+        ],
         'menu_items': [
             {
                 'id': item.id,
@@ -6325,7 +6328,7 @@ def send_customers_menu(request):
             } for item in
             Menu.objects.filter(customer_appropriate=True).order_by('customer_title') | Menu.objects.filter(
                 productoption__in=ProductOption.objects.all())
-            ],
+        ],
         'product_variants': [
             {
                 'id': product_variant.id,
@@ -6337,9 +6340,9 @@ def send_customers_menu(request):
                 'product_options_ids': [
                     product_option.id for product_option in
                     ProductOption.objects.filter(product_variants=product_variant)
-                    ]
+                ]
             } for product_variant in ProductVariant.objects.filter(menu_item__customer_appropriate=True)
-            ],
+        ],
         'product_options': [
             {
                 'id': product_option.id,
@@ -6347,21 +6350,21 @@ def send_customers_menu(request):
                 'title': product_option.title,
                 'customer_title': product_option.customer_title,
             } for product_option in ProductOption.objects.all()
-            ],
+        ],
         'size_options': [
             {
                 'id': size_option.id,
                 'title': size_option.title,
                 'customer_title': size_option.customer_title,
             } for size_option in SizeOption.objects.all()
-            ],
+        ],
         'content_options': [
             {
                 'id': content_option.id,
                 'title': content_option.title,
                 'customer_title': content_option.customer_title,
             } for content_option in ContentOption.objects.all()
-            ],
+        ],
         'macro_product_content': [
             {
                 'id': macro_product_content.id,
@@ -6370,7 +6373,7 @@ def send_customers_menu(request):
                 'content_option_id': macro_product_content.content_option.id,
                 'macro_product_id': macro_product_content.macro_product.id
             } for macro_product_content in MacroProductContent.objects.filter(customer_appropriate=True)
-            ]
+        ]
     }
     return JsonResponse(data=data)
 
