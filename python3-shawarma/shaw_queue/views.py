@@ -1963,28 +1963,26 @@ def cook_interface(request):
         display_number = ''
 
         # TODO: Uncomment, when product variants will be ready.
-
+        taken_order_content = []
+        taken_order_in_grill_content = []
         if len(new_order) > 0:
             new_order = new_order[0]
             display_number = new_order.daily_number % 100
+            # taken_order_content = OrderContent.objects.filter(order=new_order,
+            #                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
+            #                                                   # menu_item__productvariant__size_option__isnull=False,
+            #                                                   finish_timestamp__isnull=True).order_by('id')
             taken_order_content = OrderContent.objects.filter(order=new_order,
                                                               menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                              # menu_item__productvariant__size_option__isnull=False,
-                                                              finish_timestamp__isnull=True).order_by('id')
+                                                              # menu_item__productvariant__size_option__isnull=False
+                                                              ).order_by('id')
+            taken_order_in_grill_content = OrderContent.objects.filter(order=new_order,
+                                                                       grill_timestamp__isnull=False,
+                                                                       menu_item__can_be_prepared_by__title__iexact='Cook',
+                                                                       # menu_item__productvariant__size_option__isnull=False
+                                                                       ).order_by('id')
             if len(taken_order_content) > 0:
                 has_order = True
-
-        taken_order_content = OrderContent.objects.filter(order=new_order,
-                                                          menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                          # menu_item__productvariant__size_option__isnull=False
-                                                          ).order_by(
-            'id')
-        taken_order_in_grill_content = OrderContent.objects.filter(order=new_order,
-                                                                   grill_timestamp__isnull=False,
-                                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                                   # menu_item__productvariant__size_option__isnull=False
-                                                                   ).order_by(
-            'id')
 
         context = {
             'free_order': new_order,
@@ -2153,15 +2151,34 @@ def c_i_a(request):
         display_number = ''
 
         # TODO: Uncomment, when product variants will be ready.
-
+        taken_order_content = []
+        taken_order_in_grill_content = []
         if len(new_order) > 0:
             new_order = new_order[0]
             display_number = new_order.daily_number % 100
             try:
+                # taken_order_content = OrderContent.objects.filter(order=new_order,
+                #                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
+                #                                                   # menu_item__productvariant__size_option__isnull=False,
+                #                                                   finish_timestamp__isnull=True).order_by('id')
+
                 taken_order_content = OrderContent.objects.filter(order=new_order,
                                                                   menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                                  # menu_item__productvariant__size_option__isnull=False,
-                                                                  finish_timestamp__isnull=True).order_by('id')
+                                                                  # menu_item__productvariant__size_option__isnull=False
+                                                                  ).order_by('id')
+            except:
+                data = {
+                    'success': False,
+                    'message': 'Что-то пошло не так при поиске продуктов!'
+                }
+                client.captureException()
+                return JsonResponse(data)
+
+            try:
+                taken_order_in_grill_content = OrderContent.objects.filter(order=new_order,
+                                                                           grill_timestamp__isnull=False,
+                                                                           menu_item__can_be_prepared_by__title__iexact='Cook').order_by(
+                    'id')
             except:
                 data = {
                     'success': False,
@@ -2172,30 +2189,18 @@ def c_i_a(request):
             if len(taken_order_content) > 0:
                 has_order = True
 
-        try:
-            taken_order_content = OrderContent.objects.filter(order=new_order,
-                                                              menu_item__can_be_prepared_by__title__iexact='Cook',
-                                                              # menu_item__productvariant__size_option__isnull=False
-                                                              ).order_by('id')
-        except:
-            data = {
-                'success': False,
-                'message': 'Что-то пошло не так при поиске продуктов!'
-            }
-            client.captureException()
-            return JsonResponse(data)
-        try:
-            taken_order_in_grill_content = OrderContent.objects.filter(order=new_order,
-                                                                       grill_timestamp__isnull=False,
-                                                                       menu_item__can_be_prepared_by__title__iexact='Cook').order_by(
-                'id')
-        except:
-            data = {
-                'success': False,
-                'message': 'Что-то пошло не так при поиске продуктов!'
-            }
-            client.captureException()
-            return JsonResponse(data)
+        # try:
+        #     taken_order_content = OrderContent.objects.filter(order__in=new_order,
+        #                                                       menu_item__can_be_prepared_by__title__iexact='Cook',
+        #                                                       # menu_item__productvariant__size_option__isnull=False
+        #                                                       ).order_by('id')
+        # except Exception as ex:
+        #     data = {
+        #         'success': False,
+        #         'message': 'Что-то пошло не так при поиске продуктов! {0}'.format(ex)
+        #     }
+        #     client.captureException()
+        #     return JsonResponse(data)
 
         context = {
             'selected_order': new_order,
