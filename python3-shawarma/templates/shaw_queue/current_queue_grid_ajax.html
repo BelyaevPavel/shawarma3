@@ -66,6 +66,9 @@ voice-all-url="{% url 'voice_all' %}" close-all-url="{% url 'close_all' %}" orde
         <button class="btn warning" onclick="CloseAll()">
             Закрыть всё
         </button>
+        <div style="line-height: 2rem"><input type="checkbox" id="close-unpaid"
+                                              style="margin: 0rem 0.5rem 0 0.5rem;"><label for="close-unpaid">Закрывать
+            неоплаченные</label></div>
     </div>
     {% for open_order in ready_orders %}
         {% include 'shaw_queue/open_order_block.html' with open_order=open_order %}

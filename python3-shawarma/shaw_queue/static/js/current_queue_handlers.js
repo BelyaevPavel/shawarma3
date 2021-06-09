@@ -158,19 +158,19 @@ function CloseAll() {
             }
         });
         $.ajax({
-                type: 'POST',
-                url: $('#urls').attr('close-all-url'),
-                data: {},
-                dataType: 'json',
-                success: function (data) {
-                    if(!data['success'])
-                        alert(data['message']);
-                        
-                    //alert('Заказ закрыт!');
-                },
-                complete: function () {
-                    location.reload();
-                }
+            type: 'POST',
+            url: $('#urls').attr('close-all-url'),
+            data: {'close_unpaid': $('#close-unpaid').is(':checked')},
+            dataType: 'json',
+            success: function (data) {
+                if (!data['success'])
+                    alert(data['message']);
+
+                //alert('Заказ закрыт!');
+            },
+            complete: function () {
+                location.reload();
+            }
             }
         ).fail(function () {
             alert('У вас нет прав!');

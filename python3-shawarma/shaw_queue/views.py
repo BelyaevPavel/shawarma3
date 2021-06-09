@@ -151,7 +151,7 @@ class DeliveryOrderView(DetailView):
 class DeliveryOrderCreate(CreateView):
     model = DeliveryOrder
     initial = {
-        'obtain_timepoint': timezone.datetime.now()
+        'obtain_timepoint': timezone.now()
     }
     # form_class = DeliveryOrderForm
     fields = '__all__'
@@ -217,7 +217,7 @@ class DeliveryOrderViewAJAX(AjaxableResponseMixin, CreateView):
                 'form': DeliveryOrderForm(instance=delivery_order)
             }
         else:
-            initial_data['obtain_timepoint'] = timezone.datetime.now()
+            initial_data['obtain_timepoint'] = timezone.now()
             customer_display = ""
             if customer_pk is not None:
                 found_customer = Customer.objects.get(pk=customer_pk)
@@ -557,7 +557,7 @@ class DeliveryView(View):
                 delivery = form.save(commit=False)
                 try:
                     delivery_last_daily_number = Delivery.objects.filter(
-                        creation_timepoint__contains=timezone.datetime.now().date()).aggregate(Max('daily_number'))
+                        creation_timepoint__contains=timezone.now().date()).aggregate(Max('daily_number'))
                 except EmptyResultSet:
                     data = {
                         'success': False,
@@ -716,7 +716,7 @@ def ats_listner(request):
 def check_incoming_calls(request):
     call_manager = Staff.objects.get(user=request.user)
     last_call = CallData.objects.filter(call_manager=call_manager, accepted=False).order_by(
-        '-timepoint').last()  # , accepted=False, timepoint__contains=timezone.datetime.now().date()
+        '-timepoint').last()  # , accepted=False, timepoint__contains=timezone.now().date()
     print(last_call)
 
     if last_call is not None:
@@ -779,7 +779,7 @@ def cook_pause(request):
     else:
         try:
             last_pause = PauseTracker.objects.filter(staff=staff,
-                                                     start_timestamp__contains=timezone.datetime.now().date()).order_by(
+                                                     start_timestamp__contains=timezone.now().date()).order_by(
                 'start_timestamp')
         except:
             data = {
@@ -1043,7 +1043,7 @@ def evaluate(request):
             daily_number = int(daily_number)
             try:
                 current_daily_number = Order.objects.filter(
-                    open_time__contains=timezone.datetime.now().date()).aggregate(
+                    open_time__contains=timezone.now().date()).aggregate(
                     Max('daily_number'))
             except:
                 data = {
@@ -1057,7 +1057,7 @@ def evaluate(request):
             if daily_number + hundreds * 100 <= current_daily_number:
                 if hundreds * 100 <= daily_number + hundreds * 100:
                     try:
-                        order = Order.objects.get(open_time__contains=timezone.datetime.now().date(),
+                        order = Order.objects.get(open_time__contains=timezone.now().date(),
                                                   daily_number=daily_number + hundreds * 100)
                     except:
                         data = {
@@ -1071,7 +1071,7 @@ def evaluate(request):
                     order_opinion.save()
                 else:
                     try:
-                        order = Order.objects.get(open_time__contains=timezone.datetime.now().date(),
+                        order = Order.objects.get(open_time__contains=timezone.now().date(),
                                                   daily_number=daily_number + (hundreds - 1) * 100)
                     except:
                         data = {
@@ -1108,7 +1108,7 @@ def buyer_queue(request):
     result = define_service_point(device_ip)
     if result['success']:
         try:
-            open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                close_time__isnull=True,
                                                is_canceled=False, is_ready=False,
                                                servery__service_point=result['service_point']).order_by('open_time')
@@ -1120,7 +1120,7 @@ def buyer_queue(request):
             client.captureException()
             return JsonResponse(data)
         try:
-            ready_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                 close_time__isnull=True,
                                                 content_completed=True, supplement_completed=True, is_ready=True,
                                                 is_canceled=False,
@@ -1172,7 +1172,7 @@ def buyer_queue_ajax(request):
 
     if result['success']:
         try:
-            open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                close_time__isnull=True,
                                                is_canceled=False, is_ready=False,
                                                servery__service_point=result['service_point']).order_by('open_time')
@@ -1184,7 +1184,7 @@ def buyer_queue_ajax(request):
             client.captureException()
             return JsonResponse(data)
         try:
-            ready_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                 close_time__isnull=True,
                                                 content_completed=True, supplement_completed=True, is_ready=True,
                                                 is_canceled=False,
@@ -1248,7 +1248,7 @@ def current_queue(request):
 
     result = define_service_point(device_ip)
     if result['success']:
-        regular_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+        regular_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                               close_time__isnull=True,
                                               is_canceled=False, is_delivery=False,
                                               is_ready=False, servery__service_point=result['service_point']).order_by(
@@ -1256,7 +1256,7 @@ def current_queue(request):
         today_delivery_orders = Order.objects.filter(is_delivery=True, close_time__isnull=True, is_canceled=False,
                                                      deliveryorder__moderation_needed=False,
                                                      is_ready=False, servery__service_point=result['service_point'],
-                                                     deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date()).order_by(
+                                                     deliveryorder__delivered_timepoint__contains=timezone.now().date()).order_by(
             'open_time')
         current_day_orders = regular_orders | today_delivery_orders
         serveries = Servery.objects.filter(service_point=result['service_point'])
@@ -1270,13 +1270,13 @@ def current_queue(request):
             #     if not_paid_filter:
             #         if shawarma_filter:
             #             if shashlyk_filter:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True,
             #                                                    is_canceled=False, is_ready=False,
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #             else:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True,
             #                                                    with_shawarma=shawarma_filter,
             #                                                    with_shashlyk=shashlyk_filter,
@@ -1284,7 +1284,7 @@ def current_queue(request):
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #         else:
-            #             open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #             open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                close_time__isnull=True, with_shawarma=shawarma_filter,
             #                                                with_shashlyk=shashlyk_filter,
             #                                                is_canceled=False, is_ready=False,
@@ -1293,13 +1293,13 @@ def current_queue(request):
             #     else:
             #         if shawarma_filter:
             #             if shashlyk_filter:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True, is_paid=True,
             #                                                    is_canceled=False, is_ready=False,
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #             else:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True, is_paid=True,
             #                                                    with_shawarma=shawarma_filter,
             #                                                    with_shashlyk=shashlyk_filter,
@@ -1307,7 +1307,7 @@ def current_queue(request):
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #         else:
-            #             open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #             open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                close_time__isnull=True, with_shawarma=shawarma_filter,
             #                                                with_shashlyk=shashlyk_filter, is_paid=True,
             #                                                is_canceled=False, is_ready=False,
@@ -1317,13 +1317,13 @@ def current_queue(request):
             #     if not_paid_filter:
             #         if shawarma_filter:
             #             if shashlyk_filter:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True, is_paid=False,
             #                                                    is_canceled=False, is_ready=False,
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #             else:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True, is_paid=False,
             #                                                    with_shawarma=shawarma_filter,
             #                                                    with_shashlyk=shashlyk_filter,
@@ -1331,7 +1331,7 @@ def current_queue(request):
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #         else:
-            #             open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #             open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                close_time__isnull=True, with_shawarma=shawarma_filter,
             #                                                with_shashlyk=shashlyk_filter, is_paid=False,
             #                                                is_canceled=False, is_ready=False,
@@ -1351,7 +1351,7 @@ def current_queue(request):
             client.captureException()
             return JsonResponse(data)
         try:
-            ready_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                 close_time__isnull=True,
                                                 is_canceled=False, content_completed=True, shashlyk_completed=True,
                                                 supplement_completed=True, is_ready=True,
@@ -1441,7 +1441,7 @@ def order_history(request):
     result = define_service_point(device_ip)
     if result['success']:
         try:
-            open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                close_time__isnull=False,
                                                is_canceled=False, is_ready=True,
                                                servery__service_point=result['service_point']).order_by('-open_time')
@@ -1509,7 +1509,7 @@ def current_queue_ajax(request):
 
     result = define_service_point(device_ip)
     if result['success']:
-        regular_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+        regular_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                               close_time__isnull=True,
                                               is_canceled=False, is_delivery=False,
                                               is_ready=False, servery__service_point=result['service_point']).order_by(
@@ -1517,7 +1517,7 @@ def current_queue_ajax(request):
         today_delivery_orders = Order.objects.filter(is_delivery=True, close_time__isnull=True, is_canceled=False,
                                                      deliveryorder__moderation_needed=False,
                                                      is_ready=False, servery__service_point=result['service_point'],
-                                                     deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date()).order_by(
+                                                     deliveryorder__delivered_timepoint__contains=timezone.now().date()).order_by(
             'open_time')
         current_day_orders = regular_orders | today_delivery_orders
         serveries = Servery.objects.filter(service_point=result['service_point'])
@@ -1532,13 +1532,13 @@ def current_queue_ajax(request):
             #     if not_paid_filter:
             #         if shawarma_filter:
             #             if shashlyk_filter:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True,
             #                                                    is_canceled=False, is_ready=False,
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #             else:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True,
             #                                                    with_shawarma=shawarma_filter,
             #                                                    with_shashlyk=shashlyk_filter,
@@ -1546,7 +1546,7 @@ def current_queue_ajax(request):
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #         else:
-            #             open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #             open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                close_time__isnull=True, with_shawarma=shawarma_filter,
             #                                                with_shashlyk=shashlyk_filter,
             #                                                is_canceled=False, is_ready=False,
@@ -1555,13 +1555,13 @@ def current_queue_ajax(request):
             #     else:
             #         if shawarma_filter:
             #             if shashlyk_filter:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True, is_paid=True,
             #                                                    is_canceled=False, is_ready=False,
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #             else:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True, is_paid=True,
             #                                                    with_shawarma=shawarma_filter,
             #                                                    with_shashlyk=shashlyk_filter,
@@ -1569,7 +1569,7 @@ def current_queue_ajax(request):
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #         else:
-            #             open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #             open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                close_time__isnull=True, with_shawarma=shawarma_filter,
             #                                                with_shashlyk=shashlyk_filter, is_paid=True,
             #                                                is_canceled=False, is_ready=False,
@@ -1579,13 +1579,13 @@ def current_queue_ajax(request):
             #     if not_paid_filter:
             #         if shawarma_filter:
             #             if shashlyk_filter:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True, is_paid=False,
             #                                                    is_canceled=False, is_ready=False,
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #             else:
-            #                 open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #                 open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                    close_time__isnull=True, is_paid=False,
             #                                                    with_shawarma=shawarma_filter,
             #                                                    with_shashlyk=shashlyk_filter,
@@ -1593,7 +1593,7 @@ def current_queue_ajax(request):
             #                                                    servery__service_point=result[
             #                                                        'service_point']).order_by('open_time')
             #         else:
-            #             open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            #             open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
             #                                                close_time__isnull=True, with_shawarma=shawarma_filter,
             #                                                with_shashlyk=shashlyk_filter, is_paid=False,
             #                                                is_canceled=False, is_ready=False,
@@ -1613,7 +1613,7 @@ def current_queue_ajax(request):
             return JsonResponse(data)
 
         try:
-            ready_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            ready_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                 close_time__isnull=True,
                                                 is_canceled=False, content_completed=True, shashlyk_completed=True,
                                                 supplement_completed=True, is_ready=True,
@@ -1750,7 +1750,7 @@ def filter_orders(orders, shawarma_filter, shashlyk_filter, paid_filter, not_pai
 
 @login_required()
 def production_queue(request):
-    free_content = OrderContent.objects.filter(order__open_time__contains=timezone.datetime.now().date(),
+    free_content = OrderContent.objects.filter(order__open_time__contains=timezone.now().date(),
                                                order__close_time__isnull=True,
                                                menu_item__can_be_prepared_by__title__iexact='cook').order_by(
         'order__open_time')
@@ -1773,7 +1773,7 @@ def cook_interface(request):
         context = None
         taken_order_content = None
         taken_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
-                                            open_time__contains=timezone.datetime.now().date(), is_canceled=False,
+                                            open_time__contains=timezone.now().date(), is_canceled=False,
                                             content_completed=False,
                                             close_time__isnull=True).order_by('open_time'),
         has_order = False
@@ -1789,7 +1789,7 @@ def cook_interface(request):
 
         if not has_order:
             free_orders = Order.objects.filter(prepared_by__isnull=True, is_canceled=False,
-                                               open_time__contains=timezone.datetime.now().date()).order_by('open_time')
+                                               open_time__contains=timezone.now().date()).order_by('open_time')
 
             for free_order in free_orders:
                 taken_order_content = OrderContent.objects.filter(order=free_order,
@@ -1852,18 +1852,18 @@ def cook_interface(request):
             'menu_item__id').annotate(
             production_duration=Avg(F('finish_timestamp') - F('start_timestamp'))).order_by('production_duration')
 
-        available_cook_count = Staff.objects.filter(user__last_login__contains=timezone.datetime.now().date(),
+        available_cook_count = Staff.objects.filter(user__last_login__contains=timezone.now().date(),
                                                     staff_category__title__iexact='cook').aggregate(
             Count('id'))  # Change to logged.
 
-        free_content = OrderContent.objects.filter(order__open_time__contains=timezone.datetime.now().date(),
+        free_content = OrderContent.objects.filter(order__open_time__contains=timezone.now().date(),
                                                    order__close_time__isnull=True,
                                                    order__is_canceled=False,
                                                    menu_item__can_be_prepared_by__title__iexact='cook',
                                                    start_timestamp__isnull=True).order_by(
             'order__open_time')[:available_cook_count['id__count']]
 
-        in_progress_content = OrderContent.objects.filter(order__open_time__contains=timezone.datetime.now().date(),
+        in_progress_content = OrderContent.objects.filter(order__open_time__contains=timezone.now().date(),
                                                           order__close_time__isnull=True,
                                                           order__is_canceled=False,
                                                           start_timestamp__isnull=False,
@@ -1873,7 +1873,7 @@ def cook_interface(request):
                                                           is_canceled=False).order_by(
             'order__open_time')[:1]
 
-        in_grill_content = OrderContent.objects.filter(order__open_time__contains=timezone.datetime.now().date(),
+        in_grill_content = OrderContent.objects.filter(order__open_time__contains=timezone.now().date(),
                                                        order__close_time__isnull=True,
                                                        order__is_canceled=False,
                                                        start_timestamp__isnull=False,
@@ -1946,24 +1946,24 @@ def cook_interface(request):
         context = None
         taken_order_content = None
         regular_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
-                                                 open_time__contains=timezone.datetime.now().date(),
+                                                 open_time__contains=timezone.now().date(),
                                                  is_canceled=False, content_completed=False, is_grilling=False,
                                                  start_shawarma_cooking=True, close_time__isnull=True).order_by(
             'open_time')
         today_delivery_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
-                                                        deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                        deliveryorder__delivered_timepoint__contains=timezone.now().date(),
                                                         is_canceled=False, content_completed=False, is_grilling=False,
                                                         start_shawarma_cooking=True, close_time__isnull=True).order_by(
             'open_time')
         new_order = regular_new_order | today_delivery_new_order
         regular_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
                                                     start_shawarma_cooking=True,
-                                                    open_time__contains=timezone.datetime.now().date(),
+                                                    open_time__contains=timezone.now().date(),
                                                     is_canceled=False,
                                                     close_time__isnull=True).order_by('open_time')
         today_delivery_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
                                                            start_shawarma_cooking=True,
-                                                           deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                           deliveryorder__delivered_timepoint__contains=timezone.now().date(),
                                                            is_canceled=False,
                                                            close_time__isnull=True).order_by('open_time')
         other_orders = regular_other_orders | today_delivery_other_orders
@@ -2036,7 +2036,7 @@ def c_i_a(request):
         context = None
         taken_order_content = None
         taken_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
-                                            open_time__contains=timezone.datetime.now().date(), is_canceled=False,
+                                            open_time__contains=timezone.now().date(), is_canceled=False,
                                             content_completed=False,
                                             close_time__isnull=True).order_by('open_time'),
         has_order = False
@@ -2052,7 +2052,7 @@ def c_i_a(request):
 
         if not has_order:
             free_orders = Order.objects.filter(prepared_by__isnull=True, is_canceled=False,
-                                               open_time__contains=timezone.datetime.now().date()).order_by('open_time')
+                                               open_time__contains=timezone.now().date()).order_by('open_time')
 
             for free_order in free_orders:
                 taken_order_content = OrderContent.objects.filter(order=free_order,
@@ -2116,36 +2116,36 @@ def c_i_a(request):
 
         regular_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
                                                     start_shawarma_cooking=True, is_delivery=False,
-                                                    open_time__contains=timezone.datetime.now().date(),
+                                                    open_time__contains=timezone.now().date(),
                                                     is_canceled=False,
                                                     close_time__isnull=True).order_by('open_time')
         today_delivery_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, is_delivery=True,
-                                                           deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                           deliveryorder__delivered_timepoint__contains=timezone.now().date(),
                                                            is_canceled=False,
                                                            close_time__isnull=True).filter(
             Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         other_orders = regular_other_orders | today_delivery_other_orders
         # other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_preparation=True,
-        #                                     open_time__contains=timezone.datetime.now().date(),
+        #                                     open_time__contains=timezone.now().date(),
         #                                     is_canceled=False, close_time__isnull=True).filter(
         #     Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         try:
             regular_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
-                                                     open_time__contains=timezone.datetime.now().date(),
+                                                     open_time__contains=timezone.now().date(),
                                                      is_delivery=False,
                                                      is_canceled=False, content_completed=False, is_grilling=False,
                                                      start_shawarma_cooking=True, close_time__isnull=True).order_by(
                 'open_time')
             today_delivery_new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
                                                             is_delivery=True,
-                                                            deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                            deliveryorder__delivered_timepoint__contains=timezone.now().date(),
                                                             is_canceled=False, content_completed=False,
                                                             is_grilling=False,
                                                             close_time__isnull=True).filter(
                 Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
             new_order = regular_new_order | today_delivery_new_order
             # new_order = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
-            #                                  open_time__contains=timezone.datetime.now().date(),
+            #                                  open_time__contains=timezone.now().date(),
             #                                  is_canceled=False, content_completed=False, is_grilling=False,
             #                                  close_time__isnull=True).filter(
             #     Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
@@ -2226,7 +2226,7 @@ def c_i_a(request):
         }
         template = loader.get_template('shaw_queue/selected_order_content.html')
         finished_orders = Order.objects.filter(prepared_by=staff, is_canceled=False,
-                                               close_time__contains=timezone.datetime.now().date())
+                                               close_time__contains=timezone.now().date())
         finished_content_count = OrderContent.objects.filter(order__in=finished_orders,
                                                              menu_item__can_be_prepared_by__title__iexact='cook').count()
         context_other = {
@@ -2260,11 +2260,11 @@ def shashlychnik_interface(request):
         context = None
         taken_order_content = None
         new_orders = Order.objects.filter(open_time__isnull=False,
-                                          open_time__contains=timezone.datetime.now().date(), is_canceled=False,
+                                          open_time__contains=timezone.now().date(), is_canceled=False,
                                           shashlyk_completed=False, is_grilling_shash=False,
                                           close_time__isnull=True).order_by('open_time')
         other_orders = Order.objects.filter(open_time__isnull=False,
-                                            open_time__contains=timezone.datetime.now().date(), is_canceled=False,
+                                            open_time__contains=timezone.now().date(), is_canceled=False,
                                             close_time__isnull=True).order_by('open_time')
         has_order = False
         selected_order = None
@@ -2311,7 +2311,7 @@ def shashlychnik_interface(request):
 
         result = define_service_point(device_ip)
         if result['success']:
-            open_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            open_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                close_time__isnull=True,
                                                with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
                                                is_ready=False,
@@ -2345,7 +2345,7 @@ def s_i_a(request):
         context = None
         taken_order_content = None
         new_order = Order.objects.filter(open_time__isnull=False,
-                                         open_time__contains=timezone.datetime.now().date(), is_canceled=False,
+                                         open_time__contains=timezone.now().date(), is_canceled=False,
                                          shashlyk_completed=False, is_grilling_shash=False,
                                          close_time__isnull=True).order_by('open_time')
         has_order = False
@@ -2388,14 +2388,14 @@ def s_i_a(request):
 
         result = define_service_point(device_ip)
         if result['success']:
-            regular_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            regular_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                   close_time__isnull=True,
                                                   with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
                                                   is_ready=False,
                                                   servery__service_point=result['service_point'],
                                                   is_delivery=False).order_by('open_time')
             today_delivery_orders = Order.objects.filter(is_delivery=True,
-                                                         deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
+                                                         deliveryorder__delivered_timepoint__contains=timezone.now().date(),
                                                          close_time__isnull=True,
                                                          with_shashlyk=True, is_canceled=False, is_grilling_shash=True,
                                                          is_ready=False,
@@ -2745,7 +2745,7 @@ def long_poll_handler(request):
 def delivery_interface(request):
     utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_main.html')
-    print("{} {}".format(timezone.datetime.now(), datetime.datetime.now()))
+    print("{} {}".format(timezone.now(), datetime.datetime.now()))
     staff = Staff.objects.get(user=request.user)
     print("staff_id = {}".format(staff.id))
     delivery_orders = DeliveryOrder.objects.filter(obtain_timepoint__contains=timezone.datetime.today().date(),
@@ -2799,7 +2799,7 @@ def delivery_interface(request):
 @login_required()
 def delivery_workspace_update(request):
     start_date = request.GET.get('start_date', None)
-    timezone_date_now = timezone.datetime.now().date()
+    timezone_date_now = timezone.now().date()
     if start_date is None or start_date == '':
         start_date_conv = timezone.datetime.combine(date=timezone_date_now, time=datetime.time(hour=0, minute=1))
     else:
@@ -2811,7 +2811,7 @@ def delivery_workspace_update(request):
         end_date_conv = timezone.datetime.strptime(end_date, "%Y/%m/%d %H:%M")  # u'2018/01/04 22:31'
     utc = pytz.UTC
     template = loader.get_template('shaw_queue/delivery_workspace.html')
-    # print("{} {} {}".format(timezone.datetime.now(), datetime.datetime.now(), utc.localize(datetime.datetime.now())))
+    # print("{} {} {}".format(timezone.now(), datetime.datetime.now(), utc.localize(datetime.datetime.now())))
     # timezone_now = timezone.now().date()
     # datetime_datetime_now = datetime.datetime.now().date()
     delivery_orders = DeliveryOrder.objects.filter(delivered_timepoint__gte=start_date_conv,
@@ -3061,7 +3061,7 @@ def unvoice_order(request):
         result = define_service_point(device_ip)
         if result['success']:
             try:
-                order = Order.objects.get(daily_number=daily_number, open_time__contains=timezone.datetime.now().date(),
+                order = Order.objects.get(daily_number=daily_number, open_time__contains=timezone.now().date(),
                                           servery__service_point=result['service_point'])
             except:
                 data = {
@@ -3411,7 +3411,7 @@ def voice_all(request):
     result = define_service_point(device_ip)
     if result['success']:
         try:
-            today_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+            today_orders = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                 close_time__isnull=True,
                                                 is_ready=True, servery__service_point=result['service_point'])
         except:
@@ -3454,7 +3454,7 @@ def cooks_content_info(request):
         'items': [{
             'cook_name': cook.user.first_name,
             'content_count': OrderContent.objects.filter(order__prepared_by=cook,
-                                                         order__open_time__contains=timezone.datetime.now().date(),
+                                                         order__open_time__contains=timezone.now().date(),
                                                          order__is_canceled=False,
                                                          order__close_time__isnull=True,
                                                          order__is_ready=False,
@@ -3491,7 +3491,7 @@ def cooks_content_info_ajax(request):
         'items': [{
             'cook_name': cook.user.first_name,
             'content_count': OrderContent.objects.filter(order__prepared_by=cook,
-                                                         order__open_time__contains=timezone.datetime.now().date(),
+                                                         order__open_time__contains=timezone.now().date(),
                                                          order__is_canceled=False,
                                                          order__close_time__isnull=True,
                                                          order__is_ready=False,
@@ -3569,7 +3569,7 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
                     service_point, discount=0, is_preorder=False):
     file = open('log/cook_choose.log', 'a')
     try:
-        order_last_daily_number = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+        order_last_daily_number = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                        servery__service_point=service_point).aggregate(
             Max('daily_number'))
     except EmptyResultSet:
@@ -3600,7 +3600,7 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
             order.paid_with_cash = paid_with_cash
             order.discount = discount
         else:
-            order = Order(open_time=timezone.datetime.now(), daily_number=order_next_number, is_paid=is_paid,
+            order = Order(open_time=timezone.now(), daily_number=order_next_number, is_paid=is_paid,
                           paid_with_cash=paid_with_cash, status_1c=0, discount=discount, is_preorder=is_preorder)
     except:
         data = {
@@ -3610,7 +3610,7 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
         client.captureException()
         return data
 
-    # cooks = Staff.objects.filter(user__last_login__contains=timezone.datetime.now().date(), staff_category__title__iexact='Cook')
+    # cooks = Staff.objects.filter(user__last_login__contains=timezone.now().date(), staff_category__title__iexact='Cook')
     data = {
         "daily_number": order.daily_number,
         "display_number": order.daily_number % 100
@@ -3648,7 +3648,7 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
             for cook_index in range(0, len(cooks)):
                 try:
                     cooks_order_content = OrderContent.objects.filter(order__prepared_by=cooks[cook_index],
-                                                                      order__open_time__contains=timezone.datetime.now().date(),
+                                                                      order__open_time__contains=timezone.now().date(),
                                                                       order__is_canceled=False,
                                                                       order__close_time__isnull=True,
                                                                       order__is_ready=False,
@@ -3935,6 +3935,7 @@ def deliver_delivery_order(request) -> JsonResponse:
 @login_required()
 @permission_required('shaw_queue.change_order')
 def close_all(request):
+    delivery_order_pk = json.loads(request.POST.get('close_unpaid', None))
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
@@ -4169,18 +4170,18 @@ def next_to_prepare(request):
         'menu_item__id').annotate(
         production_duration=Avg(F('finish_timestamp') - F('start_timestamp'))).order_by('production_duration')
 
-    available_cook_count = Staff.objects.filter(user__last_login__contains=timezone.datetime.now().date(),
+    available_cook_count = Staff.objects.filter(user__last_login__contains=timezone.now().date(),
                                                 staff_category__title__iexact='cook').aggregate(
         Count('id'))  # Change to logged.
 
-    free_content = OrderContent.objects.filter(order__open_time__contains=timezone.datetime.now().date(),
+    free_content = OrderContent.objects.filter(order__open_time__contains=timezone.now().date(),
                                                order__close_time__isnull=True,
                                                order__is_canceled=False,
                                                menu_item__can_be_prepared_by__title__iexact='cook',
                                                start_timestamp__isnull=True).order_by(
         'order__open_time')[:available_cook_count['id__count']]
 
-    in_progress_content = OrderContent.objects.filter(order__open_time__contains=timezone.datetime.now().date(),
+    in_progress_content = OrderContent.objects.filter(order__open_time__contains=timezone.now().date(),
                                                       order__close_time__isnull=True,
                                                       order__is_canceled=False,
                                                       start_timestamp__isnull=False,
@@ -4316,7 +4317,7 @@ def to_grill(request):
 
 @login_required()
 def grill_timer(request):
-    grilling = OrderContent.objects.filter(order__open_time__contains=timezone.datetime.now().date(),
+    grilling = OrderContent.objects.filter(order__open_time__contains=timezone.now().date(),
                                            order__close_time__isnull=True,
                                            order__is_canceled=False,
                                            start_timestamp__isnull=False,
@@ -4833,33 +4834,33 @@ def statistic_page(request):
         serveries = Servery.objects.all()
 
     template = loader.get_template('shaw_queue/statistics.html')
-    avg_preparation_time = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+    avg_preparation_time = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                 close_time__isnull=False,
                                                 is_canceled=False).values(
         'open_time', 'close_time').aggregate(preparation_time=Avg(F('close_time') - F('open_time')))
-    min_preparation_time = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+    min_preparation_time = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                 close_time__isnull=False,
                                                 is_canceled=False).values(
         'open_time', 'close_time').aggregate(preparation_time=Min(F('close_time') - F('open_time')))
-    max_preparation_time = Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+    max_preparation_time = Order.objects.filter(open_time__contains=timezone.now().date(),
                                                 close_time__isnull=False,
                                                 is_canceled=False).values(
         'open_time', 'close_time').aggregate(preparation_time=Max(F('close_time') - F('open_time')))
     paid_with_cash_count = len(
-        Order.objects.filter(open_time__contains=timezone.datetime.now().date(), close_time__isnull=False,
+        Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=False,
                              is_canceled=False, is_paid=True, paid_with_cash=True))
     paid_with_card_count = len(
-        Order.objects.filter(open_time__contains=timezone.datetime.now().date(), close_time__isnull=False,
+        Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=False,
                              is_canceled=False, is_paid=True, paid_with_cash=False))
     not_paid_count = len(
-        Order.objects.filter(open_time__contains=timezone.datetime.now().date(), close_time__isnull=False,
+        Order.objects.filter(open_time__contains=timezone.now().date(), close_time__isnull=False,
                              is_canceled=False, is_paid=False))
-    preorder_count = len(Order.objects.filter(open_time__contains=timezone.datetime.now().date(), is_preorder=True))
+    preorder_count = len(Order.objects.filter(open_time__contains=timezone.now().date(), is_preorder=True))
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
-        'total_orders': len(Order.objects.filter(open_time__contains=timezone.datetime.now().date())),
+        'total_orders': len(Order.objects.filter(open_time__contains=timezone.now().date())),
         'canceled_orders': len(
-            Order.objects.filter(open_time__contains=timezone.datetime.now().date(), is_canceled__isnull=True)),
+            Order.objects.filter(open_time__contains=timezone.now().date(), is_canceled__isnull=True)),
         'avg_prep_time': str(avg_preparation_time['preparation_time']).split('.', 2)[0],
         'min_prep_time': str(min_preparation_time['preparation_time']).split('.', 2)[0],
         'max_prep_time': str(max_preparation_time['preparation_time']).split('.', 2)[0],
@@ -4869,43 +4870,43 @@ def statistic_page(request):
         'serveries_data': [
             {
                 'servery': servery,
-                'paid_with_cash_count': len(Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+                'paid_with_cash_count': len(Order.objects.filter(open_time__contains=timezone.now().date(),
                                                                  close_time__isnull=False, is_canceled=False,
                                                                  is_paid=True, paid_with_cash=True,
                                                                  servery=servery)),
-                'paid_without_cash_count': len(Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+                'paid_without_cash_count': len(Order.objects.filter(open_time__contains=timezone.now().date(),
                                                                     close_time__isnull=False, is_canceled=False,
                                                                     is_paid=True, paid_with_cash=False,
                                                                     servery=servery)),
                 'preorder_count': len(
-                    Order.objects.filter(open_time__contains=timezone.datetime.now().date(), is_preorder=True,
+                    Order.objects.filter(open_time__contains=timezone.now().date(), is_preorder=True,
                                          is_canceled=False, servery=servery)),
-                'not_paid_count': len(Order.objects.filter(open_time__contains=timezone.datetime.now().date(),
+                'not_paid_count': len(Order.objects.filter(open_time__contains=timezone.now().date(),
                                                            close_time__isnull=False, is_canceled=False,
                                                            is_paid=False, servery=servery))
             } for servery in serveries
         ],
         'cooks': [{'person': cook,
                    'prepared_orders_count': len(
-                       Order.objects.filter(prepared_by=cook, open_time__contains=timezone.datetime.now().date(),
+                       Order.objects.filter(prepared_by=cook, open_time__contains=timezone.now().date(),
                                             close_time__isnull=False, is_canceled=False)),
                    'prepared_products_count': len(OrderContent.objects.filter(order__prepared_by=cook,
-                                                                              order__open_time__contains=timezone.datetime.now().date(),
+                                                                              order__open_time__contains=timezone.now().date(),
                                                                               order__close_time__isnull=False,
                                                                               order__is_canceled=False,
                                                                               menu_item__can_be_prepared_by__title__iexact='Cook')),
                    'avg_prep_time': str(
-                       Order.objects.filter(prepared_by=cook, open_time__contains=timezone.datetime.now().date(),
+                       Order.objects.filter(prepared_by=cook, open_time__contains=timezone.now().date(),
                                             close_time__isnull=False, is_canceled=False).values(
                            'open_time', 'close_time').aggregate(preparation_time=Avg(F('close_time') - F('open_time')))[
                            'preparation_time']).split('.', 2)[0],
                    'min_prep_time': str(
-                       Order.objects.filter(prepared_by=cook, open_time__contains=timezone.datetime.now().date(),
+                       Order.objects.filter(prepared_by=cook, open_time__contains=timezone.now().date(),
                                             close_time__isnull=False, is_canceled=False).values(
                            'open_time', 'close_time').aggregate(preparation_time=Min(F('close_time') - F('open_time')))[
                            'preparation_time']).split('.', 2)[0],
                    'max_prep_time': str(
-                       Order.objects.filter(prepared_by=cook, open_time__contains=timezone.datetime.now().date(),
+                       Order.objects.filter(prepared_by=cook, open_time__contains=timezone.now().date(),
                                             close_time__isnull=False, is_canceled=False).values(
                            'open_time', 'close_time').aggregate(preparation_time=Max(F('close_time') - F('open_time')))[
                            'preparation_time']).split('.', 2)[0]
@@ -5015,7 +5016,7 @@ def statistic_page_ajax(request):
             'staff_category': StaffCategory.objects.get(staff__user=request.user),
             'total_orders': len(Order.objects.filter(open_time__gte=start_date_conv, open_time__lte=end_date_conv)),
             'canceled_orders': len(
-                Order.objects.filter(open_time__contains=timezone.datetime.now().date(), is_canceled__isnull=True)),
+                Order.objects.filter(open_time__contains=timezone.now().date(), is_canceled__isnull=True)),
             'avg_prep_time': str(avg_preparation_time['preparation_time']).split('.', 2)[0],
             'min_prep_time': str(min_preparation_time['preparation_time']).split('.', 2)[0],
             'max_prep_time': str(max_preparation_time['preparation_time']).split('.', 2)[0],
@@ -5089,7 +5090,7 @@ def statistic_page_ajax(request):
 @permission_required('shaw_queue.view_statistics')
 def not_paid_statistics(request):
     template = loader.get_template('shaw_queue/not_paid_orders_statistics.html')
-    not_paid_orders = Order.objects.filter(open_time__contains=timezone.datetime.now().date(), is_paid=False)
+    not_paid_orders = Order.objects.filter(open_time__contains=timezone.now().date(), is_paid=False)
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
         'not_paid_orders': [{'daily_number': order.daily_number,
@@ -5155,20 +5156,20 @@ def not_paid_statistics_ajax(request):
 @permission_required('shaw_queue.view_statistics')
 def opinion_statistics(request):
     template = loader.get_template('shaw_queue/opinion_statistics.html')
-    avg_mark = OrderOpinion.objects.filter(post_time__contains=timezone.datetime.now().date()).values('mark').aggregate(
+    avg_mark = OrderOpinion.objects.filter(post_time__contains=timezone.now().date()).values('mark').aggregate(
         avg_mark=Avg('mark'))
-    min_mark = OrderOpinion.objects.filter(post_time__contains=timezone.datetime.now().date()).values('mark').aggregate(
+    min_mark = OrderOpinion.objects.filter(post_time__contains=timezone.now().date()).values('mark').aggregate(
         min_mark=Min('mark'))
-    max_mark = OrderOpinion.objects.filter(post_time__contains=timezone.datetime.now().date()).values('mark').aggregate(
+    max_mark = OrderOpinion.objects.filter(post_time__contains=timezone.now().date()).values('mark').aggregate(
         max_mark=Max('mark'))
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
-        'total_orders': len(OrderOpinion.objects.filter(post_time__contains=timezone.datetime.now().date())),
+        'total_orders': len(OrderOpinion.objects.filter(post_time__contains=timezone.now().date())),
         'avg_mark': avg_mark['avg_mark'],
         'min_mark': min_mark['min_mark'],
         'max_mark': max_mark['max_mark'],
         'opinions': [opinion for opinion in
-                     OrderOpinion.objects.filter(post_time__contains=timezone.datetime.now().date()).order_by(
+                     OrderOpinion.objects.filter(post_time__contains=timezone.now().date()).order_by(
                          'post_time')]
     }
     return HttpResponse(template.render(context, request))
@@ -5248,19 +5249,19 @@ def opinion_statistics_ajax(request):
 @permission_required('shaw_queue.view_statistics')
 def pause_statistic_page(request):
     template = loader.get_template('shaw_queue/pause_statistics.html')
-    avg_duration_time = PauseTracker.objects.filter(start_timestamp__contains=timezone.datetime.now().date(),
-                                                    end_timestamp__contains=timezone.datetime.now().date()).values(
+    avg_duration_time = PauseTracker.objects.filter(start_timestamp__contains=timezone.now().date(),
+                                                    end_timestamp__contains=timezone.now().date()).values(
         'start_timestamp', 'end_timestamp').aggregate(duration=Avg(F('end_timestamp') - F('start_timestamp')))
-    min_duration_time = PauseTracker.objects.filter(start_timestamp__contains=timezone.datetime.now().date(),
-                                                    end_timestamp__contains=timezone.datetime.now().date()).values(
+    min_duration_time = PauseTracker.objects.filter(start_timestamp__contains=timezone.now().date(),
+                                                    end_timestamp__contains=timezone.now().date()).values(
         'start_timestamp', 'end_timestamp').aggregate(duration=Min(F('end_timestamp') - F('start_timestamp')))
-    max_duration_time = PauseTracker.objects.filter(start_timestamp__contains=timezone.datetime.now().date(),
-                                                    end_timestamp__contains=timezone.datetime.now().date()).values(
+    max_duration_time = PauseTracker.objects.filter(start_timestamp__contains=timezone.now().date(),
+                                                    end_timestamp__contains=timezone.now().date()).values(
         'start_timestamp', 'end_timestamp').aggregate(duration=Max(F('end_timestamp') - F('start_timestamp')))
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
-        'total_pauses': len(PauseTracker.objects.filter(start_timestamp__contains=timezone.datetime.now().date(),
-                                                        end_timestamp__contains=timezone.datetime.now().date())),
+        'total_pauses': len(PauseTracker.objects.filter(start_timestamp__contains=timezone.now().date(),
+                                                        end_timestamp__contains=timezone.now().date())),
         'avg_duration': str(avg_duration_time['duration']).split('.', 2)[0],
         'min_duration': str(min_duration_time['duration']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration']).split('.', 2)[0],
@@ -5270,8 +5271,8 @@ def pause_statistic_page(request):
             'end_timestamp': str(pause.end_timestamp).split('.', 2)[0],
             'duration': str(pause.end_timestamp - pause.start_timestamp).split('.', 2)[0]
         }
-            for pause in PauseTracker.objects.filter(start_timestamp__contains=timezone.datetime.now().date(),
-                                                     end_timestamp__contains=timezone.datetime.now().date()).order_by(
+            for pause in PauseTracker.objects.filter(start_timestamp__contains=timezone.now().date(),
+                                                     end_timestamp__contains=timezone.now().date()).order_by(
                 'start_timestamp')]
     }
     return HttpResponse(template.render(context, request))
@@ -5386,7 +5387,7 @@ def pause_statistic_page_ajax(request):
 def call_record_page(request):
     template = loader.get_template('shaw_queue/call_records.html')
     try:
-        avg_duration_time = CallData.objects.filter(timepoint__contains=timezone.datetime.now().date()).values(
+        avg_duration_time = CallData.objects.filter(timepoint__contains=timezone.now().date()).values(
             'duration').aggregate(duration_avg=Avg('duration'))
     except:
         data = {
@@ -5396,7 +5397,7 @@ def call_record_page(request):
         return JsonResponse(data)
 
     try:
-        min_duration_time = CallData.objects.filter(timepoint__contains=timezone.datetime.now().date()).values(
+        min_duration_time = CallData.objects.filter(timepoint__contains=timezone.now().date()).values(
             'duration').aggregate(
             duration_min=Min('duration'))
     except:
@@ -5407,7 +5408,7 @@ def call_record_page(request):
         return JsonResponse(data)
 
     try:
-        max_duration_time = CallData.objects.filter(timepoint__contains=timezone.datetime.now().date()).values(
+        max_duration_time = CallData.objects.filter(timepoint__contains=timezone.now().date()).values(
             'duration').aggregate(
             duration_max=Max('duration'))
     except:
@@ -5418,7 +5419,7 @@ def call_record_page(request):
         return JsonResponse(data)
 
     try:
-        call_managers = CallData.objects.filter(timepoint__contains=timezone.datetime.now().date()).values(
+        call_managers = CallData.objects.filter(timepoint__contains=timezone.now().date()).values(
             'call_manager__user').distinct('call_manager__user')
     except:
         data = {
@@ -5438,12 +5439,12 @@ def call_record_page(request):
 
     context = {
         'staff_category': StaffCategory.objects.get(staff__user=request.user),
-        'total_records': len(CallData.objects.filter(timepoint__contains=timezone.datetime.now().date())),
+        'total_records': len(CallData.objects.filter(timepoint__contains=timezone.now().date())),
         'avg_duration': str(avg_duration_time['duration_avg']).split('.', 2)[0],
         'min_duration': str(min_duration_time['duration_min']).split('.', 2)[0],
         'max_duration': str(max_duration_time['duration_max']).split('.', 2)[0],
         'records_info': [{
-            'total_duration': CallData.objects.filter(timepoint__contains=timezone.datetime.now().date(),
+            'total_duration': CallData.objects.filter(timepoint__contains=timezone.now().date(),
                                                       call_manager=staff).aggregate(
                 duration=Sum('duration')),
             'call_manager': staff,
@@ -5455,7 +5456,7 @@ def call_record_page(request):
                 'record_url': record.record
             }
                 for record in
-                CallData.objects.filter(timepoint__contains=timezone.datetime.now().date(),
+                CallData.objects.filter(timepoint__contains=timezone.now().date(),
                                         call_manager=staff).order_by('timepoint')]
         } for staff in engaged_staff]
     }
@@ -6252,13 +6253,13 @@ def get_queue_info(staff, device_ip):
 
     for cook in cooks:
         cooks_order = Order.objects.filter(prepared_by=cook,
-                                           open_time__contains=timezone.datetime.now().date(),
+                                           open_time__contains=timezone.now().date(),
                                            is_canceled=False,
                                            close_time__isnull=True,
                                            is_ready=False).count()
 
         cooks_order_content = OrderContent.objects.filter(order__prepared_by=cook,
-                                                          order__open_time__contains=timezone.datetime.now().date(),
+                                                          order__open_time__contains=timezone.now().date(),
                                                           order__is_canceled=False,
                                                           order__close_time__isnull=True,
                                                           order__is_ready=False,
@@ -6283,7 +6284,7 @@ def check_order_status(request):
     phone_number = request.GET.get('phone_number', None)
     if phone_number is not None:
         delivery_order = DeliveryOrder.objects.filter(customer__phone_number=phone_number,
-                                                      obtain_timepoint__contains=timezone.datetime.now().date()).order_by(
+                                                      obtain_timepoint__contains=timezone.now().date()).order_by(
             'obtain_timepoint').last()
         if delivery_order:
             if delivery_order.order.is_ready:
@@ -6482,8 +6483,8 @@ def register_customer_order(request):
             address = service_point.title
 
         delivery_order = DeliveryOrder(address=address, customer=customer, note=comment,
-                                       obtain_timepoint=timezone.datetime.now(),
-                                       delivered_timepoint=timezone.datetime.now() if deliver_to_time == 'nearest_time' else corrected_order_datetime,
+                                       obtain_timepoint=timezone.now(),
+                                       delivered_timepoint=timezone.now() if deliver_to_time == 'nearest_time' else corrected_order_datetime,
                                        order=Order.objects.get(pk=data['pk']), moderation_needed=True,
                                        prefered_payment=payment)
         try:
