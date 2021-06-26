@@ -5910,9 +5910,10 @@ def send_order_return_to_1c(order):
         'Order': order.guid_1c
     }
     try:
-        result = requests.post('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + RETURN_URL,
-                               auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
-                               json=order_dict)
+        result = requests.post(
+            'http://' + order.servery.service_point.server_1c.ip_address + ':' + order.servery.service_point.server_1c.port + RETURN_URL,
+            auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
+            json=order_dict)
     except ConnectionError:
         data = {
             'success': False,
