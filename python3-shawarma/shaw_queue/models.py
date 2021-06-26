@@ -34,9 +34,22 @@ class StaffCategory(models.Model):
         #     return "{}".format(self.title)
 
 
+class Server1C(models.Model):
+    title = models.CharField(max_length=500, default="")
+    ip_address = models.CharField(max_length=500, default="")
+    port = models.CharField(max_length=500, default="")
+
+    def __str__(self):
+        return u"{}".format(self.title)
+
+    def __unicode__(self):
+        return "{}".format(self.title)
+
+
 class ServicePoint(models.Model):
     title = models.CharField(max_length=100, default="")
     subnetwork = models.CharField(max_length=10, default="")
+    server_1c = models.ForeignKey(Server1C, default=None, null=True, on_delete=models.CASCADE)
     latitude = models.FloatField(verbose_name="Широта", default=55.196829, blank=False, null=False)
     longitude = models.FloatField(verbose_name="Долгота", default=61.395762, blank=False, null=False)
     default_remote_order_acceptor = models.BooleanField(verbose_name="Точка, принимающая интернет-заказы",

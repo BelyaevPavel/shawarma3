@@ -11,17 +11,17 @@
     {% endfor %}
     </div>
     <div class="ready-orders-container">
-    <div class="open-order-display">
-        Готовы
-    </div>
-    {% for ready_order in display_ready_orders %}
-        <div class="ready-order-display">
+        <div class="open-order-display">
+            Готовы
+        </div>
+        {% for ready_order in display_ready_orders %}
+            <div class="ready-order-display">
             <span class="ready-order-display-number">
                 {{ ready_order.daily_number }}
             </span>
-            {{ ready_order.servery }}
-        </div>
-    {% empty %}
-    {% endfor %}
+                {#            {{ ready_order.servery }}#}
+            </div>
+        {% empty %}
+        {% endfor %}
     </div>
 </div>

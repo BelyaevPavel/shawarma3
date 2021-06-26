@@ -769,7 +769,7 @@ def cook_pause(request):
         logger.error('{} Что-то пошло не так при поиске персонала!'.format(user))
         return JsonResponse(data)
     if staff.available:
-        pause = PauseTracker(staff=staff, start_timestamp=datetime.datetime.now())
+        pause = PauseTracker(staff=staff, start_timestamp=timezone.now())
         pause.save()
         staff.available = False
         staff.service_point = None
@@ -789,7 +789,7 @@ def cook_pause(request):
             return JsonResponse(data)
         if len(last_pause) > 0:
             last_pause = last_pause[len(last_pause) - 1]
-            last_pause.end_timestamp = datetime.datetime.now()
+            last_pause.end_timestamp = timezone.now()
             last_pause.save()
 
         staff.available = True
@@ -1067,7 +1067,7 @@ def evaluate(request):
                         client.captureException()
                         return JsonResponse(data)
                     order_opinion = OrderOpinion(note=note, mark=int(mark), order=order,
-                                                 post_time=datetime.datetime.now())
+                                                 post_time=timezone.now())
                     order_opinion.save()
                 else:
                     try:
@@ -1081,10 +1081,10 @@ def evaluate(request):
                         client.captureException()
                         return JsonResponse(data)
                     order_opinion = OrderOpinion(note=note, mark=int(mark), order=order,
-                                                 post_time=datetime.datetime.now())
+                                                 post_time=timezone.now())
                     order_opinion.save()
         else:
-            order_opinion = OrderOpinion(note=note, mark=int(mark), post_time=datetime.datetime.now())
+            order_opinion = OrderOpinion(note=note, mark=int(mark), post_time=timezone.now())
             order_opinion.save()
 
         data = {
@@ -1883,7 +1883,7 @@ def cook_interface(request):
                                                        is_canceled=False)
 
         in_grill_dict = [{'product': product,
-                          'time_in_grill': datetime.datetime.now().replace(
+                          'time_in_grill': timezone.now().replace(
                               tzinfo=None) - product.grill_timestamp.replace(
                               tzinfo=None)} for product in in_grill_content]
 
@@ -1903,7 +1903,7 @@ def cook_interface(request):
                     'next_product': OrderContent.objects.get(id=id_to_prepare),
                     'in_progress': None,
                     'in_grill': in_grill_dict,
-                    'current_time': datetime.datetime.now(),
+                    'current_time': timezone.now(),
                     'staff_category': StaffCategory.objects.get(staff__user=request.user),
                 }
             else:
@@ -1911,7 +1911,7 @@ def cook_interface(request):
                     'next_product': None,
                     'in_progress': in_progress_content[0],
                     'in_grill': in_grill_dict,
-                    'current_time': datetime.datetime.now(),
+                    'current_time': timezone.now(),
                     'staff_category': StaffCategory.objects.get(staff__user=request.user),
                 }
         else:
@@ -1920,7 +1920,7 @@ def cook_interface(request):
                     'next_product': None,
                     'in_progress': in_progress_content[0],
                     'in_grill': in_grill_dict,
-                    'current_time': datetime.datetime.now(),
+                    'current_time': timezone.now(),
                     'staff_category': StaffCategory.objects.get(staff__user=request.user),
 
                 }
@@ -1929,7 +1929,7 @@ def cook_interface(request):
                     'next_product': None,
                     'in_progress': None,
                     'in_grill': in_grill_dict,
-                    'current_time': datetime.datetime.now(),
+                    'current_time': timezone.now(),
                     'staff_category': StaffCategory.objects.get(staff__user=request.user),
 
                 }
@@ -3311,8 +3311,8 @@ def start_shashlyk_cooking(request):
         products = shashlychnik_products
 
         for product in products:
-            product.start_timestamp = datetime.datetime.now()
-            product.grill_timestamp = datetime.datetime.now()
+            product.start_timestamp = timezone.now()
+            product.grill_timestamp = timezone.now()
             product.is_in_grill = True
             product.staff_maker = Staff.objects.get(user=user)
             product.save()
@@ -3349,9 +3349,9 @@ def finish_shashlyk_cooking(request):
         products = shashlychnik_products
         for product in products:
             product.is_in_grill = False
-            product.finish_timestamp = datetime.datetime.now()
+            product.finish_timestamp = timezone.now()
             if product.start_timestamp is None:
-                product.start_timestamp = datetime.datetime.now()
+                product.start_timestamp = timezone.now()
             if product.staff_maker is None:
                 product.staff_maker = Staff.objects.get(user=request.user)
             product.save()
@@ -3851,7 +3851,7 @@ def close_order_method(order_id: int) -> dict:
         # TODO: Check following:
         # if order.close_time is None:
         #     order.close_time = datetime.datetime.now()
-        order.close_time = datetime.datetime.now()
+        order.close_time = timezone.now()
         order.is_ready = True
         order.save()
         data = {
@@ -3893,7 +3893,7 @@ def finish_delivery_order(request) -> JsonResponse:
         client.captureException()
         return JsonResponse(data)
 
-    order.close_time = datetime.datetime.now()
+    order.close_time = timezone.now()
     order.is_ready = True
     order.save()
     data = {
@@ -3935,7 +3935,7 @@ def deliver_delivery_order(request) -> JsonResponse:
 @login_required()
 @permission_required('shaw_queue.change_order')
 def close_all(request):
-    delivery_order_pk = json.loads(request.POST.get('close_unpaid', None))
+    close_unpaid = json.loads(request.POST.get('close_unpaid', None))
     device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
     if DEBUG_SERVERY:
         device_ip = '127.0.0.1'
@@ -3953,7 +3953,7 @@ def close_all(request):
         paid_filter = False
 
     not_paid_filter = True
-    if request.COOKIES.get('not_paid', 'True') == 'False':
+    if request.COOKIES.get('not_paid', 'True') == 'False' or not close_unpaid:
         not_paid_filter = False
 
     result = define_service_point(device_ip)
@@ -3987,7 +3987,7 @@ def close_all(request):
             client.captureException()
             return JsonResponse(data)
         for order in ready_orders:
-            order.close_time = datetime.datetime.now()
+            order.close_time = timezone.now()
             order.is_ready = True
             order.save()
     else:
@@ -4023,7 +4023,7 @@ def cancel_order_method(request, order_id: int) -> dict:
                 'message': 'Что-то пошло не так при поиске заказа!'
             }
             client.captureException()
-            return JsonResponse(data)
+            return data
         if order.is_paid:
             result = send_order_return_to_1c(order)
             if result['success']:
@@ -4206,14 +4206,14 @@ def next_to_prepare(request):
             context = {
                 'next_product': OrderContent.objects.get(id=id_to_prepare),
                 'in_progress': None,
-                'current_time': datetime.datetime.now(),
+                'current_time': timezone.now(),
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
             }
         else:
             context = {
                 'next_product': None,
                 'in_progress': in_progress_content[0],
-                'current_time': datetime.datetime.now(),
+                'current_time': timezone.now(),
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
             }
     else:
@@ -4221,7 +4221,7 @@ def next_to_prepare(request):
             context = {
                 'next_product': None,
                 'in_progress': in_progress_content[0],
-                'current_time': datetime.datetime.now(),
+                'current_time': timezone.now(),
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
 
             }
@@ -4229,7 +4229,7 @@ def next_to_prepare(request):
             context = {
                 'next_product': None,
                 'in_progress': None,
-                'current_time': datetime.datetime.now(),
+                'current_time': timezone.now(),
                 'staff_category': StaffCategory.objects.get(staff__user=request.user),
             }
 
@@ -4254,7 +4254,7 @@ def take(request):
         if product.staff_maker is None:
             staff_maker = Staff.objects.get(user=request.user)
             product.staff_maker = staff_maker
-            product.start_timestamp = datetime.datetime.now()
+            product.start_timestamp = timezone.now()
             product.save()
             data = {
                 'success': json.dumps(True)
@@ -4275,12 +4275,12 @@ def to_grill(request):
     product_id = request.POST.get('id', None)
     if product_id:
         product = OrderContent.objects.get(pk=product_id)
-        product.grill_timestamp = datetime.datetime.now()
+        product.grill_timestamp = timezone.now()
         product.is_in_grill = True
         if product.staff_maker is None:
             staff_maker = Staff.objects.get(user=request.user)
             product.staff_maker = staff_maker
-            product.start_timestamp = datetime.datetime.now()
+            product.start_timestamp = timezone.now()
         product.save()
         order_content = OrderContent.objects.filter(order_id=product.order_id)
 
@@ -4328,9 +4328,8 @@ def grill_timer(request):
     template = loader.get_template('shaw_queue/grill_slot_ajax.html')
     tzinfo = datetime.tzinfo(tzname=TIME_ZONE)
     context = {
-        'in_grill': [{'time': str(datetime.datetime.now().replace(tzinfo=tzinfo) - product.grill_timestamp.replace(
-            tzinfo=tzinfo))[:-str(datetime.datetime.now().replace(tzinfo=tzinfo) - product.grill_timestamp.replace(
-            tzinfo=tzinfo)).find('.')],
+        'in_grill': [{'time': str(timezone.now() - product.grill_timestamp)[
+                              :-str(timezone.now() - product.grill_timestamp).find('.')],
                       'product': product} for product in grilling]
     }
     data = {
@@ -4346,7 +4345,7 @@ def finish_cooking(request):
     if product_id:
         product = OrderContent.objects.get(pk=product_id)
         product.is_in_grill = False
-        product.finish_timestamp = datetime.datetime.now()
+        product.finish_timestamp = timezone.now()
         product.save()
         order_content = OrderContent.objects.filter(order_id=product.order_id)
 
@@ -4420,9 +4419,9 @@ def finish_all_content(request):
         for product in products:
             product.is_in_grill = False
             if product.finish_timestamp is None:
-                product.finish_timestamp = datetime.datetime.now()
+                product.finish_timestamp = timezone.now()
             if product.start_timestamp is None:
-                product.start_timestamp = datetime.datetime.now()
+                product.start_timestamp = timezone.now()
             if product.staff_maker is None:
                 product.staff_maker = Staff.objects.get(user=request.user)
             product.save()
@@ -4481,8 +4480,8 @@ def grill_all_content(request):
             products = OrderContent.objects.filter(order=order,
                                                    menu_item__can_be_prepared_by__title__iexact=staff.staff_category.title)
         for product in products:
-            product.start_timestamp = datetime.datetime.now()
-            product.grill_timestamp = datetime.datetime.now()
+            product.start_timestamp = timezone.now()
+            product.grill_timestamp = timezone.now()
             product.is_in_grill = True
             product.staff_maker = Staff.objects.get(user=user)
             product.save()
@@ -4521,8 +4520,8 @@ def finish_supplement(request):
     product_id = request.POST.get('id', None)
     if product_id:
         product = OrderContent.objects.get(id=product_id)
-        product.start_timestamp = datetime.datetime.now()
-        product.finish_timestamp = datetime.datetime.now()
+        product.start_timestamp = timezone.now()
+        product.finish_timestamp = timezone.now()
         product.staff_maker = Staff.objects.get(user=request.user)
         product.save()
         order_content = OrderContent.objects.filter(order_id=product.order_id)
@@ -5816,9 +5815,13 @@ def send_order_to_1c(order, is_return):
             }
         )
     try:
-        result = requests.post('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + ORDER_URL,
-                               auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
-                               json=order_dict)
+        # result = requests.post('http://' + SERVER_1C_IP + ':' + SERVER_1C_PORT + ORDER_URL,
+        #                        auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
+        #                        json=order_dict)
+        result = requests.post(
+            'http://' + order.servery.service_point.server_1c.ip_address + ':' + order.servery.service_point.server_1c.port + ORDER_URL,
+            auth=(SERVER_1C_USER.encode('utf8'), SERVER_1C_PASS),
+            json=order_dict)
     except ConnectionError:
         data = {
             'success': False,
@@ -6241,7 +6244,7 @@ def get_queue_info(staff, device_ip):
     if result['success']:
         service_point = result['service_point']
 
-    text = 'Время события: ' + str(datetime.datetime.now())[:-7] + '\r\n' + \
+    text = 'Время события: ' + str(timezone.now())[:-7] + '\r\n' + \
            'Место события: ' + str(service_point) + '\r\n\r\n'
 
     cooks = Staff.objects.filter(available=True, staff_category__title__iexact='Cook',

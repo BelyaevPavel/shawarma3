@@ -277,6 +277,11 @@ td.item {
     background-color: #7dcd69;
 }
 
+.preorder_ready {
+    background: rgb(255, 113, 41);
+    background: linear-gradient(90deg, rgba(125, 205, 105, 1) 0%, rgba(185, 163, 76, 1) 75%, rgba(255, 113, 41, 1) 100%);
+}
+
 .fixed {
     position: fixed;
 }
