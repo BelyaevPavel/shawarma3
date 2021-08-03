@@ -1462,14 +1462,26 @@ def order_history(request):
     try:
         context = {
             'open_orders': [{'order': open_order,
+                             'display_number': str(open_order.daily_number % 100) + "Д" if DeliveryOrder.objects.filter(
+                                 order=open_order) else open_order.daily_number % 100,
                              'printed': open_order.printed,
                              'cook_part_ready_count': OrderContent.objects.filter(order=open_order).filter(
                                  menu_item__can_be_prepared_by__title__iexact='cook').filter(
                                  finish_timestamp__isnull=False).aggregate(count=Count('id')),
                              'cook_part_count': OrderContent.objects.filter(order=open_order).filter(
                                  menu_item__can_be_prepared_by__title__iexact='cook').aggregate(count=Count('id')),
-                             'operator_part': OrderContent.objects.filter(order=open_order).filter(
-                                 menu_item__can_be_prepared_by__title__iexact='operator')
+                             'operator_part': OrderContent.objects.filter(order=open_order, is_canceled=False).filter(
+                                 menu_item__can_be_prepared_by__title__iexact='operator').values('menu_item__title',
+                                                                                                 'note').annotate(
+                                 count_titles=Count('menu_item__title')),
+                             'shashlychnik_part_ready_count': OrderContent.objects.filter(order=open_order,
+                                                                                          is_canceled=False).filter(
+                                 menu_item__can_be_prepared_by__title__iexact='shashlychnik').filter(
+                                 finish_timestamp__isnull=False).aggregate(count=Count('id')),
+                             'shashlychnik_part_count': OrderContent.objects.filter(order=open_order,
+                                                                                    is_canceled=False).filter(
+                                 menu_item__can_be_prepared_by__title__iexact='shashlychnik').aggregate(
+                                 count=Count('id'))
                              } for open_order in open_orders],
             'open_length': len(open_orders),
             'staff_category': StaffCategory.objects.get(staff__user=request.user),
