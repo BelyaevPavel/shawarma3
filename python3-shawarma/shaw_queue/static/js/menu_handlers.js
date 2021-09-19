@@ -8,6 +8,7 @@ $(document).ready(function () {
     $('.menu-item').hide();
     $('.subm').prop('disabled', false);
     $('#cook_auto').prop('checked', true);
+    $('[name=discount]').prop('checked', false);
     preorder_checkbox = $('[name=preorder_checkbox]');
     preorder_checkbox.prop("checked", false);
 

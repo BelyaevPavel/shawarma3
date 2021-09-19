@@ -4922,7 +4922,8 @@ def statistic_page(request):
                            'open_time', 'close_time').aggregate(preparation_time=Max(F('close_time') - F('open_time')))[
                            'preparation_time']).split('.', 2)[0]
                    }
-                  for cook in Staff.objects.filter(staff_category__title__iexact='Cook').order_by('user__first_name')]
+                  for cook in
+                  Staff.objects.filter(staff_category__title__iexact='Cook', fired=False).order_by('user__first_name')]
     }
     return HttpResponse(template.render(context, request))
 
@@ -5083,7 +5084,8 @@ def statistic_page_ajax(request):
                                                 'preparation_time']).split('.', 2)[0]
                        }
                       for cook in
-                      Staff.objects.filter(staff_category__title__iexact='Cook').order_by('user__first_name')]
+                      Staff.objects.filter(staff_category__title__iexact='Cook', fired=False).order_by(
+                          'user__first_name')]
         }
     except:
         data = {
@@ -5338,7 +5340,7 @@ def pause_statistic_page_ajax(request):
         return JsonResponse(data)
 
     try:
-        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cook')
+        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cook', fired=False)
     except:
         data = {
             'success': False,
