@@ -60,8 +60,8 @@ function Refresher() {
         complete: function () {
             setTimeout(Refresher, 30000);
         }
-    }).fail(function () {
-        alert('У вас нет прав!');
+    }).fail(function (jQXHR, textStatus, errorThrown) {
+        alert("При попытке соединения с сервером произошла ошибка: " + jQXHR.status + " " + textStatus + " " + errorThrown);
     });
 }
 
@@ -86,8 +86,8 @@ function RightSideRefresher() {
         complete: function () {
             setTimeout(RightSideRefresher, 5000);
         }
-    }).fail(function () {
-        alert('У вас нет прав!');
+    }).fail(function (jQXHR, textStatus, errorThrown) {
+        alert("При попытке соединения с сервером произошла ошибка: " + jQXHR.status + " " + textStatus + " " + errorThrown);
     });
 }
 
@@ -118,8 +118,7 @@ function TakeItem(id) {
                     $('#product_id_'+id.toString()).addClass('in-progress-item');
                     $('#product_id_'+id.toString()).attr('onclick', 'FinishItemCooking('+id+')');
                     //alert('Успех!');
-                }
-                else {
+                } else {
                     alert('Ужа делается ' + data['staff_maker'] + '!');
                 }
             },
@@ -129,9 +128,9 @@ function TakeItem(id) {
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 alert(textStatus + ' ' + errorThrown + ' ' + XMLHttpRequest);
             }
-        }).fail(function () {
-                    alert('Some error...');
-                });
+        }).fail(function (jQXHR, textStatus, errorThrown) {
+            alert("При попытке соединения с сервером произошла ошибка: " + jQXHR.status + " " + textStatus + " " + errorThrown);
+        });
     }
 
 }

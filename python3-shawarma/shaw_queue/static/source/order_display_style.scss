@@ -1,0 +1,138 @@
+@function pxToRem($value) {
+  $remValue: ($value / 14px) + rem;
+  @return $remValue;
+}
+
+@function remToPx($value) {
+  $pxValue: ($value /1rem* 14px);
+  @return $pxValue;
+}
+
+$mainFontSize: 1.3rem;
+$auxFontSize: 1rem;
+$accentTextColor: #FF9200;
+$horizontalWidth: 1024px;
+$verticalWidth: 768px;
+$horizontalHeight: $verticalWidth;
+$verticalHeight: $horizontalWidth;
+$horizontalContainerWidth: $horizontalWidth*0.9;
+$verticalContainerWidth: $verticalWidth*0.9;
+$orderItemsToFit: 10;
+$orderItemMargin: 1rem;
+$orderItemMinHeight: $mainFontSize*3;
+$orderTotalRelHeight: 10%;
+$horizontalMarginPart: remToPx($orderItemMargin)/$horizontalHeight*($orderItemsToFit+1);
+$horizontalRelHeight: (100%-$horizontalMarginPart*100-$orderTotalRelHeight)/$orderItemsToFit;
+
+
+@font-face {
+  font-family: SegoeReg;
+  src: url(../fonts/SegoeUIRegular.ttf);
+  font-display: swap;
+}
+
+@font-face {
+  font-family: SegoeSemiBold;
+  src: url(../fonts/SegoeUISemiBold.ttf);
+  font-display: swap;
+}
+
+
+body {
+  font-family: SegoeReg !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  font-size: $mainFontSize !important;
+  //line-height: 19px !important;
+  background: url(../img/background.png) no-repeat #160D00 !important;
+  color: #fff !important;
+
+}
+
+.page-content {
+  max-width: $horizontalContainerWidth;
+  height: 100%;
+  margin: 0px auto;
+}
+
+.flex-column-container {
+  display: flex;
+  height: 100%;
+  margin: 0 -15px;
+}
+
+.flex-two-column {
+  flex: 0 1 50%;
+  padding: 0 15px;
+}
+
+.order-item_container {
+  display: flex;
+  max-height: $horizontalRelHeight;
+  min-height: $orderItemMinHeight;
+  margin: $orderItemMargin 0;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.5);
+}
+
+.order-item_text-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 70%;
+}
+
+.order-item_title {
+  flex: 0 0 50%;
+  text-overflow: ellipsis;
+  height: 50%;
+  overflow: hidden;
+
+  > span {
+    color: $accentTextColor;
+    font-family: SegoeSemiBold;
+  }
+}
+
+.order-item_note {
+  flex: 0 0 50%;
+  text-overflow: ellipsis;
+  height: 50%;
+  overflow: hidden;
+
+  > span {
+    font-size: $auxFontSize;
+  }
+}
+
+.order-item_quantity {
+  flex: 0 1 15%;
+  text-overflow: ellipsis;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.order-item_price {
+  flex: 0 1 15%;
+  text-overflow: ellipsis;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.order-total {
+  height: $orderTotalRelHeight;
+  display: flex;
+  flex-direction: row;
+  justify-content: right;
+
+  div {
+    flex: 1;
+  }
+
+  .order-total_display {
+    flex: 0 1 15%;
+  }
+}
+
+.adv-img {
+  width: 100%;
+  margin: $orderItemMargin 0;
+}

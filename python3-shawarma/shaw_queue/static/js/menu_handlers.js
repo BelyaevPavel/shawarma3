@@ -2,12 +2,13 @@
  * Created by paul on 15.07.17.
  */
 var preorder_checkbox;
+const channel = new BroadcastChannel('app-data');
 
 $(document).ready(function () {
     $('#menu').addClass('header-active');
     $('.menu-item').hide();
     $('.subm').prop('disabled', false);
-    $('#cook_auto').prop('checked', true);
+    $('#cook_none').prop('checked', true);
     $('[name=discount]').prop('checked', false);
     preorder_checkbox = $('[name=preorder_checkbox]');
     preorder_checkbox.prop("checked", false);
@@ -319,6 +320,7 @@ function Remove(index) {
         currOrder[index]['quantity'] = parseInt(currOrder[index]['quantity']) - parseInt(quantity);
     CalculateTotal();
     DrawOrderTable();
+    channel.postMessage(JSON.stringify(currOrder));
 }
 
 function AddOne(id, title, price) {
@@ -339,6 +341,7 @@ function AddOne(id, title, price) {
     else {
         currOrder[index]['quantity'] = parseInt(quantity) + parseInt(currOrder[index]['quantity']);
     }
+    channel.postMessage(JSON.stringify(currOrder));
     CalculateTotal();
     DrawOrderTable();
 }
@@ -368,6 +371,7 @@ function SelectSuggestion(id, note) {
         currOrder[id]['note'] = $('#item-note').val();
     }
     DrawOrderTable();
+    channel.postMessage(JSON.stringify(currOrder));
 }
 
 function Add(id, title, price) {
@@ -392,6 +396,7 @@ function Add(id, title, price) {
     }
     CalculateTotal();
     DrawOrderTable();
+    channel.postMessage(JSON.stringify(currOrder));
 }
 
 function PlusOneItem(index) {
@@ -400,6 +405,7 @@ function PlusOneItem(index) {
     quantity.val(currOrder[index]['quantity']);
     CalculateTotal();
     DrawOrderTable();
+    channel.postMessage(JSON.stringify(currOrder));
 }
 
 function MinusOneItem(index) {
@@ -416,6 +422,7 @@ function MinusOneItem(index) {
     }
     CalculateTotal();
     DrawOrderTable();
+    channel.postMessage(JSON.stringify(currOrder));
 }
 
 function UpdateQuantity(index) {
@@ -433,6 +440,7 @@ function UpdateQuantity(index) {
     }
     CalculateTotal();
     DrawOrderTable();
+    channel.postMessage(JSON.stringify(currOrder));
 }
 
 function FindItem(id, note) {

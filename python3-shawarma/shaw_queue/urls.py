@@ -6,6 +6,7 @@ urlpatterns = [
     url(r'^reload_menu', views.get_1c_menu, name='reload_menu'),
     url(r'^order_status', views.recive_1c_order_status, name='order_status'),
     url(r'^menu/$', views.menu, name='menu'),
+    url(r'^order_display', views.order_display, name='order_display'),
     url(r'^new_menu/$', views.new_menu, name='new_menu'),
     url(r'^delivery_interface', views.delivery_interface, name='delivery_interface'),
     url(r'^ats_listner', views.ats_listner, name='ats_listner'),

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0">
+    <title>Шаурма На Труда</title>
+    {% load static %}
+    <link rel="icon" sizes="192x192" href="{% static 'img/logo svg 240 x 240 no paint.svg' %}">
+    <link rel="shortcut icon" href="{% static 'img/logo svg 240 x 240 no paint.svg' %}">
+</head>
+<body>
+{% csrf_token %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'queue/nullstyle.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'queue/order_display_style.min.css' %}">
+<script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/order_display_handlers.js' %}"></script>
+<div class="page-content">
+    {% block content %}
+        <div class="flex-column-container">
+            <div class="flex-two-column" id="order-container">
+                {% comment %} {% for foo in '0123456789'|make_list %}
+                        <div class="order-item_container">
+                            <div class="order-item_text-info">
+                                <div class="order-item_title">
+                                    <span>{% lorem %}</span>
+                                </div>
+                                <div class="order-item_note">
+                                    <span>{% lorem %}</span>
+                                </div>
+                            </div>
+                            <div class="order-item_quantity">
+                                x100
+                            </div>
+                            <div class="order-item_price">
+                                99999p.
+                            </div>
+                        </div>
+                    {% endfor %}{% endcomment %}
+                <div class="order-item_container">
+                    <div class="order-item_text-info">
+                        <div class="order-item_title">
+                            <span>Ждём Ваш Заказ!</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="order-total">
+                    <div>Итого:</div>
+                    <div class="order-total_display" id="order-total-display">0p.</div>
+                </div>
+            </div>
+            <div class="flex-two-column">
+                <img class="adv-img" src="{% static 'img/cards_4.png' %}">
+            </div>
+        </div>
+    {% endblock %}
+    {% block aditional_static %}
+    {% endblock %}
+</div>
+</body>
+</html>

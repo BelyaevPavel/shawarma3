@@ -1,0 +1,22 @@
+$bgColor: #2b2b2b;
+$fontColor: #aeb0b3;
+$successColor: rgb(0, 255, 0);
+$warningColor: rgb(255, 208, 27);
+$alertColor: rgb(255, 0, 2);
+
+body {
+  background-color: $bgColor;
+
+  a {
+    color: #00dd1c;
+  }
+
+  p {
+    color: black;
+  }
+
+  .trembo {
+    color: black;
+    font-weight: initial;
+  }
+}

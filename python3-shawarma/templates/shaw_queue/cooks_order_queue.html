@@ -1,9 +1,18 @@
-{% for cooks_order in cooks_orders %}
-    {% include 'shaw_queue/cook_order_block.html' with cooks_order=cooks_order %}
-{% empty %}
-    Ваша очередь заказов пуста.
-{% endfor %}
-
-<div class="finished_orders_count_display">
-    <span>Закончено товаров: {{ finished_content_count }}</span>
+<div class="taken-orders-container">
+    {% for cooks_order in cooks_orders %}
+        {% include 'shaw_queue/cook_order_block.html' with cooks_order=cooks_order %}
+    {% empty %}
+        <span>Ваша очередь заказов пуста.</span>
+    {% endfor %}
 </div>
+<div class="free-orders-container">
+    {% for free_order in free_orders %}
+        {% include 'shaw_queue/cook_order_block.html' with cooks_order=free_order %}
+    {% empty %}
+        <span>Общая очередь заказов пуста.</span>
+    {% endfor %}
+</div>
+
+{% comment %}<div class="finished_orders_count_display">
+    <span>Закончено товаров: {{ finished_content_count }}</span>
+</div>{% endcomment %}
