@@ -8,7 +8,11 @@
     {% if not open_order.order.is_paid %}unpaid{% endif %}">
         <div class="order-block-header">
             <div class="order-number    {% if open_order.order.is_preorder %}
-                                                    inProduction
+                                            {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
+                                                ready
+                                            {% else %}
+                                                inProduction
+                                            {% endif %}
                                         {% else %}
                                             {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
                                                     ready
@@ -21,7 +25,11 @@
                 <a href="{% url 'order_content' open_order.order.id %}">№ {{ open_order.display_number }}</a>
             </div>
             <div class="order-cook-part {% if open_order.order.is_preorder %}
-                                                    inProduction
+                                            {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
+                                                preorder_ready
+                                            {% else %}
+                                                inProduction
+                                            {% endif %}
                                         {% else %}
                                             {% if open_order.order.content_completed and open_order.order.shashlyk_completed %}
                                                     ready

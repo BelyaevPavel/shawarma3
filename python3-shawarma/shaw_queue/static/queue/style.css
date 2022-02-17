@@ -277,6 +277,11 @@ td.item {
     background-color: #7dcd69;
 }
 
+.preorder_ready {
+    background: rgb(255, 113, 41);
+    background: linear-gradient(90deg, rgba(125, 205, 105, 1) 0%, rgba(185, 163, 76, 1) 75%, rgba(255, 113, 41, 1) 100%);
+}
+
 .fixed {
     position: fixed;
 }
@@ -963,6 +968,21 @@ div.cook-order-queue-display {
     height: 100%;
     float: left;
     border-left: solid 2px #D8D8D8;
+    display: grid;
+    grid-template-rows: minmax(700px,3fr) 1fr;
+}
+
+
+.taken-orders-container {
+    border-bottom: solid 2px #D8D8D8;
+    padding-bottom: 2rem;
+    overflow-y: scroll;
+}
+
+.free-orders-container {
+    border-top: solid 2px #D8D8D8;
+    padding-top: 2rem;
+    overflow-y: scroll;
 }
 
 .finished_orders_count_display{

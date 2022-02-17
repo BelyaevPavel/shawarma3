@@ -1943,6 +1943,11 @@ def cook_interface(request):
         return HttpResponse(template.render(context, request))
 
     def new_processor_with_queue(request):
+        device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if DEBUG_SERVERY:
+            device_ip = '127.0.0.1'
+
+        result = define_service_point(device_ip)
         user = request.user
         staff = Staff.objects.get(user=user)
         # if not staff.available:
@@ -1963,12 +1968,12 @@ def cook_interface(request):
         new_order = regular_new_order | today_delivery_new_order
         regular_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
                                                     start_shawarma_cooking=True,
-                                                    open_time__contains=datetime.date.today(), is_canceled=False,
+                                                    open_time__contains=datetime.date.today(), is_canceled=False, servery__service_point=result['service_point'],
                                                     close_time__isnull=True).order_by('open_time')
         today_delivery_other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False,
                                                            start_shawarma_cooking=True,
                                                            deliveryorder__delivered_timepoint__contains=timezone.datetime.now().date(),
-                                                           is_canceled=False,
+                                                           is_canceled=False, servery__service_point=result['service_point'],
                                                            close_time__isnull=True).order_by('open_time')
         other_orders = regular_other_orders | today_delivery_other_orders
         has_order = False
@@ -2104,6 +2109,12 @@ def c_i_a(request):
         return JsonResponse(data)
 
     def queue_processor(request):
+        device_ip = request.META.get('HTTP_X_REAL_IP', '') or request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if DEBUG_SERVERY:
+            device_ip = '127.0.0.1'
+
+        result = define_service_point(device_ip)
+
         user = request.user
         try:
             staff = Staff.objects.get(user=user)
@@ -2130,6 +2141,18 @@ def c_i_a(request):
                                                            close_time__isnull=True).filter(
             Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         other_orders = regular_other_orders | today_delivery_other_orders
+
+        regular_free_orders = Order.objects.filter(prepared_by__isnull=True, open_time__isnull=False,
+                                                    start_shawarma_cooking=True, is_delivery=False,
+                                                    open_time__contains=timezone.now().date(),
+                                                    is_canceled=False, servery__service_point=result['service_point'],
+                                                    close_time__isnull=True).order_by('open_time')
+        today_delivery_free_orders = Order.objects.filter(prepared_by__isnull=True, open_time__isnull=False, is_delivery=True,
+                                                           deliveryorder__delivered_timepoint__contains=timezone.now().date(),
+                                                           is_canceled=False, servery__service_point=result['service_point'],
+                                                           close_time__isnull=True).filter(
+            Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
+        free_orders = regular_free_orders | today_delivery_free_orders
         # other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_preparation=True,
         #                                     open_time__contains=datetime.date.today(),
         #                                     is_canceled=False, close_time__isnull=True).filter(
@@ -2233,7 +2256,13 @@ def c_i_a(request):
                               'cook_content_count': len(OrderContent.objects.filter(order=cooks_order,
                                                                                     menu_item__can_be_prepared_by__title__iexact='cook'))}
                              for cooks_order in other_orders if len(OrderContent.objects.filter(order=cooks_order,
-                                                                                                menu_item__can_be_prepared_by__title__iexact='cook')) > 0]
+                                                                                                menu_item__can_be_prepared_by__title__iexact='cook')) > 0],
+                              'free_orders': [{'order': free_order,
+                                               'display_number': free_order.daily_number % 100,
+                                               'cook_content_count': len(OrderContent.objects.filter(order=free_order,
+                                                                                    menu_item__can_be_prepared_by__title__iexact='cook'))}
+                             for free_order in free_orders if len(OrderContent.objects.filter(order=free_order,
+                                                                                              menu_item__can_be_prepared_by__title__iexact='cook')) > 0]
         }
         template_other = loader.get_template('shaw_queue/cooks_order_queue.html')
         data = {
@@ -3092,6 +3121,10 @@ def select_order(request):
         'success': False
     }
     if order_id:
+        selected_order = Order.objects.get(id=order_id)
+        if selected_order.prepared_by is None:
+            selected_order.prepared_by = staff
+            selected_order.save()
         try:
             # TODO: Uncomment, when product variants will be ready.
             context = {
@@ -3663,22 +3696,23 @@ def make_order_func(content, cook_choose, is_paid, order_id, paid_with_cash, ser
             file.write("Выбранный повар: {}\n".format(cooks[min_index]))
             order.prepared_by = cooks[min_index]
         else:
-            try:
-                order.prepared_by = Staff.objects.get(id=int(cook_choose))
-            except MultipleObjectsReturned:
-                data = {
-                    'success': False,
-                    'message': 'Multiple staff returned while binding cook to order!'
-                }
-                client.captureException()
-                return data
-            except:
-                data = {
-                    'success': False,
-                    'message': 'Something wrong happened while getting set of orders!'
-                }
-                client.captureException()
-                return data
+            if cook_choose!='none':
+                try:
+                    order.prepared_by = Staff.objects.get(id=int(cook_choose))
+                except MultipleObjectsReturned:
+                    data = {
+                        'success': False,
+                        'message': 'Multiple staff returned while binding cook to order!'
+                    }
+                    client.captureException()
+                    return data
+                except:
+                    data = {
+                        'success': False,
+                        'message': 'Something wrong happened while getting set of orders!'
+                    }
+                    client.captureException()
+                    return data
     content_to_send = []
     order.servery = servery
     order.is_delivery = True if cook_choose == 'delivery' else False
@@ -4704,10 +4738,10 @@ def pay_order(request):
 
         cash_to_throw_out = 0
         rounding_discount = 0
-        if order.with_shashlyk:
-            rounding_discount = (round(total, 2) - order.discount) % 5
-        order.discount += rounding_discount
-        order.is_paid = True
+        #if order.with_shashlyk:
+        #    rounding_discount = (round(total, 2) - order.discount) % 5
+        #order.discount += rounding_discount
+        # order.is_paid = True
         order.paid_with_cash = paid_with_cash
         # if servery_id != 'auto':
         #     order.servery = servery
@@ -4754,16 +4788,18 @@ def pay_order(request):
                 order.is_paid = False
                 order.save()
             else:
-                order.is_paid = True
+                # order.is_paid = True
                 order.save()
         else:
             data = send_order_to_1c(order, False)
+            print('Order is paid with status {} {} {} and saved .'.format(order.status_1c,order.paid_in_1c,order.sent_to_1c))
             if not data["success"]:
                 print("Payment canceled.")
                 order.is_paid = False
                 order.save()
             else:
-                order.is_paid = True
+                # order.is_paid = True
+                data["guid"] = order.guid_1c
                 order.save()
 
         data['total'] = order.total - order.discount
@@ -4897,7 +4933,7 @@ def statistic_page(request):
                            'open_time', 'close_time').aggregate(preparation_time=Max(F('close_time') - F('open_time')))[
                            'preparation_time']).split('.', 2)[0]
                    }
-                  for cook in Staff.objects.filter(staff_category__title__iexact='Cook').order_by('user__first_name')]
+                  for cook in Staff.objects.filter(staff_category__title__iexact='Cook', fired=False).order_by('user__first_name')]
     }
     return HttpResponse(template.render(context, request))
 
@@ -5058,7 +5094,7 @@ def statistic_page_ajax(request):
                                                 'preparation_time']).split('.', 2)[0]
                        }
                       for cook in
-                      Staff.objects.filter(staff_category__title__iexact='Cook').order_by('user__first_name')]
+                      Staff.objects.filter(staff_category__title__iexact='Cook', fired=False).order_by('user__first_name')]
         }
     except:
         data = {
@@ -5312,7 +5348,7 @@ def pause_statistic_page_ajax(request):
         return JsonResponse(data)
 
     try:
-        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cook')
+        engaged_staff = Staff.objects.filter(staff_category__title__iexact='Cook', fired=False)
     except:
         data = {
             'success': False,
@@ -5850,7 +5886,6 @@ def send_order_to_1c(order, is_return):
             }
             client.captureException()
             return data
-
         order.save()
 
         return {"success": True}
@@ -6037,6 +6072,8 @@ def status_refresher(request):
                     'status': order.status_1c,
                     'guid': order.guid_1c
                 }
+                order.is_paid = True
+                order.save()
                 return JsonResponse(data)
             else:
                 if order.status_1c == 397:
@@ -6047,8 +6084,9 @@ def status_refresher(request):
                         'status': order.status_1c,
                         'guid': order.guid_1c
                     }
-                    log_deleted_order(order)
-                    order.delete()
+                    if order.is_paid:
+                        log_deleted_order(order)
+                        order.delete()
                     return JsonResponse(data)
                 else:
                     if order.status_1c == 396:
@@ -6059,8 +6097,9 @@ def status_refresher(request):
                             'status': order.status_1c,
                             'guid': order.guid_1c
                         }
-                        log_deleted_order(order)
-                        order.delete()
+                        if order.is_paid:
+                            log_deleted_order(order)
+                            order.delete()
                         return JsonResponse(data)
                     else:
                         if order.status_1c == 395:
@@ -6072,8 +6111,9 @@ def status_refresher(request):
                                 'status': order.status_1c,
                                 'guid': order.guid_1c
                             }
-                            log_deleted_order(order)
-                            order.delete()
+                            if order.is_paid:
+                                log_deleted_order(order)
+                                order.delete()
                             return JsonResponse(data)
                         else:
                             if order.status_1c == 394:
@@ -6085,8 +6125,9 @@ def status_refresher(request):
                                     'status': order.status_1c,
                                     'guid': order.guid_1c
                                 }
-                                log_deleted_order(order)
-                                order.delete()
+                                if order.is_paid:
+                                    log_deleted_order(order)
+                                    order.delete()
                                 return JsonResponse(data)
                             else:
                                 if order.status_1c == 393:
@@ -6120,8 +6161,9 @@ def status_refresher(request):
                                                 'status': order.status_1c,
                                                 'guid': order.guid_1c
                                             }
-                                            log_deleted_order(order)
-                                            order.delete()
+                                            if order.is_paid:
+                                                log_deleted_order(order)
+                                                order.delete()
                                             return JsonResponse(data)
                                         else:
                                             if order.status_1c == 390:
@@ -6133,8 +6175,9 @@ def status_refresher(request):
                                                     'status': order.status_1c,
                                                     'guid': order.guid_1c
                                                 }
-                                                log_deleted_order(order)
-                                                order.delete()
+                                                if order.is_paid:
+                                                    log_deleted_order(order)
+                                                    order.delete()
                                                 return JsonResponse(data)
                                             else:
                                                 if order.status_1c == 389:
@@ -6156,8 +6199,9 @@ def status_refresher(request):
                                                         'status': order.status_1c,
                                                         'guid': order.guid_1c
                                                     }
-                                                    log_deleted_order(order)
-                                                    order.delete()
+                                                    if order.is_paid:
+                                                        log_deleted_order(order)
+                                                        order.delete()
                                                     return JsonResponse(data)
     else:
         data = {
