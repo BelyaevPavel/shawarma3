@@ -9,7 +9,7 @@ $(document).ready(function () {
     $('.menu-item').hide();
     $('.subm').prop('disabled', false);
     $('#cook_none').prop('checked', true);
-    $('[name=discount]').prop('checked', false);
+    $('[name="discount"]').prop('checked', false);
     preorder_checkbox = $('[name=preorder_checkbox]');
     preorder_checkbox.prop("checked", false);
 
@@ -516,6 +516,7 @@ function ShowModalEdit(index) {
     note.keyup(
         function (event) {
             if (event.keyCode === 13) {
+                SelectSuggestion(index, note.val());
                 CloseModalEdit();
             }
             else {

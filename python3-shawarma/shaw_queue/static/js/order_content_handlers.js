@@ -128,13 +128,11 @@ function PayOrderCash(id) {
             success: function (data) {
                 if (data['success']) {
                     alert("К оплате: " + data['total']);
-
                     ShowModalStatusOC();
                     status.text('Заказ №' + data.display_number + ' добавлен! Введите полученную сумму:');
                     setTimeout(function () {
                         StatusRefresherOC(data['guid']);
                     }, 1000);
-                    // location.href = $('#current-queue').parent().attr('href');
                 }
                 else {
                     status.text(data['message']);
@@ -246,21 +244,21 @@ function PayOrderCard(id) {
             },
             dataType: 'json',
             success: function (data) {
-                //location.href = $('#current-queue').parent().attr('href');
                 if (data['success']) {
                     ShowModalStatusOC();
                     status.text('Заказ №' + data.display_number + ' добавлен! Активация платёжного терминала...');
                     setTimeout(function () {
-                        StatusRefresher(data['guid']);
+                        StatusRefresherOC(data['guid']);
                     }, 1000);
-                } else {
+                }
+                else {
                     status.text(data['message']);
                     OK.prop('disabled', true);
                     cancel.prop('disabled', false);
                     retry.prop('disabled', false);
                     loading_indiactor.hide();
                 }
-            }
+                           }
         });
     }
 }
@@ -376,7 +374,6 @@ function FinishAllContent(id) {
         });
     }
 }
-
 
 function ShowModalStatusOC() {
     var retry_cash = $('#status-retry-cash-button');
@@ -516,7 +513,8 @@ function StatusRefresherOC(guid) {
                             loading_indiactor.hide();
                         if (data['status'] != 200)
                             status.text('Заказ №' + data.daily_number + '. ' + data['message']);
-                    } else {
+                    }
+                    else {
                         OK.prop('disabled', true);
                         cancel.prop('disabled', false);
                         retry.prop('disabled', false);
@@ -532,7 +530,8 @@ function StatusRefresherOC(guid) {
             loading_indiactor.hide();
             status.text('Необработанное исключение!');
         });
-    } else {
+    }
+    else {
         OK.prop('disabled', false);
         cancel.prop('disabled', true);
         retry.prop('disabled', true);

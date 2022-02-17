@@ -1916,16 +1916,14 @@ def c_i_a(request):
         other_orders = regular_other_orders | today_delivery_other_orders
 
         regular_free_orders = Order.objects.filter(prepared_by__isnull=True, open_time__isnull=False,
-                                                   start_shawarma_cooking=True, is_delivery=False,
-                                                   open_time__contains=timezone.now().date(),
-                                                   is_canceled=False, servery__service_point=result['service_point'],
-                                                   close_time__isnull=True).order_by('open_time')
-        today_delivery_free_orders = Order.objects.filter(prepared_by__isnull=True, open_time__isnull=False,
-                                                          is_delivery=True,
-                                                          deliveryorder__delivered_timepoint__contains=timezone.now().date(),
-                                                          is_canceled=False,
-                                                          servery__service_point=result['service_point'],
-                                                          close_time__isnull=True).filter(
+                                                    start_shawarma_cooking=True, is_delivery=False,
+                                                    open_time__contains=timezone.now().date(),
+                                                    is_canceled=False, servery__service_point=result['service_point'],
+                                                    close_time__isnull=True).order_by('open_time')
+        today_delivery_free_orders = Order.objects.filter(prepared_by__isnull=True, open_time__isnull=False, is_delivery=True,
+                                                           deliveryorder__delivered_timepoint__contains=timezone.now().date(),
+                                                           is_canceled=False, servery__service_point=result['service_point'],
+                                                           close_time__isnull=True).filter(
             Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         free_orders = regular_free_orders | today_delivery_free_orders
         # other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_preparation=True,
@@ -4523,9 +4521,9 @@ def pay_order(request):
 
         cash_to_throw_out = 0
         rounding_discount = 0
-        if order.with_shashlyk:
-            rounding_discount = (round(total, 2) - order.discount) % 5
-        order.discount += rounding_discount
+        #if order.with_shashlyk:
+        #    rounding_discount = (round(total, 2) - order.discount) % 5
+        #order.discount += rounding_discount
         # order.is_paid = True
         order.paid_with_cash = paid_with_cash
         # if servery_id != 'auto':
@@ -4577,6 +4575,7 @@ def pay_order(request):
                 order.save()
         else:
             data = send_order_to_1c(order, False)
+            print('Order is paid with status {} {} {} and saved .'.format(order.status_1c,order.paid_in_1c,order.sent_to_1c))
             if not data["success"]:
                 print("Payment canceled.")
                 order.is_paid = False
@@ -5684,7 +5683,6 @@ def send_order_to_1c(order, is_return):
             }
             client.captureException()
             return data
-
         order.save()
 
         return {"success": True}
@@ -5873,6 +5871,7 @@ def status_refresher(request):
                     'guid': order.guid_1c
                 }
                 order.is_paid = True
+                order.save()
                 return JsonResponse(data)
             else:
                 if order.status_1c == 397:
@@ -5883,8 +5882,9 @@ def status_refresher(request):
                         'status': order.status_1c,
                         'guid': order.guid_1c
                     }
-                    log_deleted_order(order)
-                    order.delete()
+                    if order.is_paid:
+                        log_deleted_order(order)
+                        order.delete()
                     return JsonResponse(data)
                 else:
                     if order.status_1c == 396:
@@ -5895,8 +5895,9 @@ def status_refresher(request):
                             'status': order.status_1c,
                             'guid': order.guid_1c
                         }
-                        log_deleted_order(order)
-                        order.delete()
+                        if order.is_paid:
+                            log_deleted_order(order)
+                            order.delete()
                         return JsonResponse(data)
                     else:
                         if order.status_1c == 395:
@@ -5908,8 +5909,9 @@ def status_refresher(request):
                                 'status': order.status_1c,
                                 'guid': order.guid_1c
                             }
-                            log_deleted_order(order)
-                            order.delete()
+                            if order.is_paid:
+                                log_deleted_order(order)
+                                order.delete()
                             return JsonResponse(data)
                         else:
                             if order.status_1c == 394:
@@ -5921,8 +5923,9 @@ def status_refresher(request):
                                     'status': order.status_1c,
                                     'guid': order.guid_1c
                                 }
-                                log_deleted_order(order)
-                                order.delete()
+                                if order.is_paid:
+                                    log_deleted_order(order)
+                                    order.delete()
                                 return JsonResponse(data)
                             else:
                                 if order.status_1c == 393:
@@ -5956,8 +5959,9 @@ def status_refresher(request):
                                                 'status': order.status_1c,
                                                 'guid': order.guid_1c
                                             }
-                                            log_deleted_order(order)
-                                            order.delete()
+                                            if order.is_paid:
+                                                log_deleted_order(order)
+                                                order.delete()
                                             return JsonResponse(data)
                                         else:
                                             if order.status_1c == 390:
@@ -5969,8 +5973,9 @@ def status_refresher(request):
                                                     'status': order.status_1c,
                                                     'guid': order.guid_1c
                                                 }
-                                                log_deleted_order(order)
-                                                order.delete()
+                                                if order.is_paid:
+                                                    log_deleted_order(order)
+                                                    order.delete()
                                                 return JsonResponse(data)
                                             else:
                                                 if order.status_1c == 389:
@@ -5992,8 +5997,9 @@ def status_refresher(request):
                                                         'status': order.status_1c,
                                                         'guid': order.guid_1c
                                                     }
-                                                    log_deleted_order(order)
-                                                    order.delete()
+                                                    if order.is_paid:
+                                                        log_deleted_order(order)
+                                                        order.delete()
                                                     return JsonResponse(data)
     else:
         data = {

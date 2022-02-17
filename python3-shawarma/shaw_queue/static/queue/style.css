@@ -980,17 +980,18 @@ div.cook-order-queue-display {
     float: left;
     border-left: solid 2px #D8D8D8;
     display: grid;
-    grid-template-rows: minmax(700px, 3fr) 1fr;
+    grid-template-rows: minmax(700px,3fr) 1fr;
 }
 
+
 .taken-orders-container {
-    border-bottom: solid 4px #D8D8D8;
+    border-bottom: solid 2px #D8D8D8;
     padding-bottom: 2rem;
     overflow-y: scroll;
 }
 
 .free-orders-container {
-    border-top: solid 4px #D8D8D8;
+    border-top: solid 2px #D8D8D8;
     padding-top: 2rem;
     overflow-y: scroll;
 }

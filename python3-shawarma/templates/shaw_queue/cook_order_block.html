@@ -2,23 +2,23 @@
     <div class="order-block shadowed">
         <div class="cook-order-block-header" onclick="SelectOrder({{ cooks_order.order.id }})">
             <div class="cook-order-number
-                        {% if cooks_order.order.is_preorder %}
-                            {% if cooks_order.order.content_completed %}
+{% if cooks_order.order.is_preorder %}
+                              {% if cooks_order.order.content_completed %}
                                 preorder_ready
                             {% else %}
                                 alert-background
                             {% endif %}
-                        {% else %}
-                            {% if cooks_order.order.content_completed %}
-                                ready
-                            {% else %}
-                                {% if cooks_order.order.start_shawarma_preparation and not cooks_order.order.start_shawarma_cooking %}
-                                    start_preparation
-                                {% elif cooks_order.order.is_grilling %}
-                                    grilling
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}"
+{% else %}
+                {% if cooks_order.order.content_completed %}
+                    ready
+                {% else %}
+                    {% if cooks_order.order.start_shawarma_preparation and not cooks_order.order.start_shawarma_cooking %}
+                        start_preparation
+                    {% elif cooks_order.order.is_grilling %}
+                        grilling
+                    {% endif %}
+                {% endif %}
+            {% endif %}"
                  onclick="SelectOrder({{ cooks_order.order.id }})">
                 № {{ cooks_order.display_number }}
             </div>
