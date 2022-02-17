@@ -9,34 +9,10 @@
            edit-order-url="{% url 'menu' %}" data-cancel-order-url="{% url 'cancel_order' %}"
            data-finish-item-url="{% url 'finish_supplement' %}"
            data-finish-all-content-url="{% url 'finish_all_content' %}" data-pay-url="{% url 'pay_order' %}"
-data-status-refresh-url="{% url 'status_refresh' %}"           
-data-grill-all-content-url="{% url 'grill_all_content' %}"
+
+           data-grill-all-content-url="{% url 'grill_all_content' %}"
            data-update-quantity-url="{% url 'update_item_quantity' %}">
     <div class="modal" id="modal-menu" {% comment %}onclick="HideMenu()"{% endcomment %}>
-</div>
-     <div class="modal" id="modal-status">
-        <div class="modal-content">
-{#            <span class="close" id="close-modal-status">&times;</span>#}
-            <div class="loader-container" id="loader-container">
-                <div class="loader" id="loading-indicator"></div>
-            </div>
-            <p class="status-display" id="status-display">
-                Статус...
-            </p>
-            <p class="modal-cash-input-container">
-                <label for="order-change" class="modal-label" id="order-change-label" hidden>Наличные</label>
-                <input type="text" value="" class="modal-quantity-input" id="order-change" onclick="this.setSelectionRange(0, this.value.length)" onkeyup="CalculateChangeOC()" hidden>
-            </p>
-            <p class="status-display" id="change-display" hidden>
-                Сдача...
-            </p>
-            <p class="modal-buttons-container">
-                <button class="btn success" id="status-OK-button" onclick="OKHandelerOC()">OK</button>
-                <button class="btn danger" id="status-cancel-button" onclick="CancelHandlerOC()">Отмена</button>
-                <button class="btn warning" id="status-retry-button" onclick="RetryHandlerOC({{ order_info.id }})">Оплатить картой</button>
-                <button class="btn warning" id="status-retry-cash-button" onclick="RetryCashHandlerOC({{ order_info.id }})">Оплатить наличными</button>
-            </p>
-        </div>
     </div>
     <table class="currentOrderTable">
         <thead>
@@ -142,13 +118,12 @@ data-grill-all-content-url="{% url 'grill_all_content' %}"
             Картой
         </button>
     {% endif %}
-{% if not order_info.is_grilling and not order_info.content_completed %}    
-{% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryAdmin' or staff_category.title == 'DeliveryOperator' %}
+    {% if staff_category.title == 'Cashier' or staff_category.title == 'DeliveryAdmin' or staff_category.title == 'DeliveryOperator' %}
         <button class="small-btn info" onclick="EditOrder({{ order_info.id }})"
                 {% if order_info.is_paid %}disabled{% endif %}>Редактировать
         </button>
     {% endif %}
-{% endif %}
+
     {% if not order_info.shashlyk_completed %}
         {#        {% if staff_category.title == 'Operator' or staff_category.title == 'DeliveryOperator' %}#}
         {% if order_info.with_shashlyk and not order_info.is_grilling_shash %}

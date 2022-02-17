@@ -3,7 +3,11 @@
         <div class="cook-order-block-header" onclick="SelectOrder({{ cooks_order.order.id }})">
             <div class="cook-order-number
 {% if cooks_order.order.is_preorder %}
-                               alert-background
+                              {% if cooks_order.order.content_completed %}
+                                preorder_ready
+                            {% else %}
+                                alert-background
+                            {% endif %}
 {% else %}
                 {% if cooks_order.order.content_completed %}
                     ready

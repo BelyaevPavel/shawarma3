@@ -74,6 +74,7 @@ class ServiceAreaPolyCoord(models.Model):
 class Staff(models.Model):
     staff_category = models.ForeignKey(StaffCategory, on_delete=models.SET_NULL, null=True)
     available = models.BooleanField(default="False")
+    fired = models.BooleanField(default="False")
     super_guy = models.BooleanField(default="False")
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     service_point = models.ForeignKey(ServicePoint, default=None, null=True, on_delete=models.SET_NULL)
