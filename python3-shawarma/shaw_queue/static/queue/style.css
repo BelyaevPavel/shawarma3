@@ -415,8 +415,6 @@ div.order-block {
     border: solid 1px #D8D8D8;
     background: #F6F6F6;
     line-height: 20px;
-    display: grid;
-    grid-template-columns: 2fr 1fr;
 }
 
 div.order-block-header {
