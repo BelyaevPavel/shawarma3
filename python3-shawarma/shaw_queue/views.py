@@ -978,9 +978,68 @@ def new_menu(request):
                             for content_option in
                             MacroProductContent.objects.filter(macro_product=macro_product).distinct()],
                     }
-                    for macro_product in macro_products]
-
+                    for macro_product in macro_products
+                ]
         }
+
+        context = {
+            'user': request.user,
+            'available_cookers': Staff.objects.filter(available=True, staff_category__title__iexact='Cook',
+                                                      service_point=result['service_point']),
+            'staff_category': StaffCategory.objects.get(staff__user=request.user),
+            'macro_products': []
+        }
+        for macro_product in macro_products:
+            content_options = []
+            for content_option in MacroProductContent.objects.filter(macro_product=macro_product).distinct():
+                content_option_item = {
+                    'item': content_option,
+                    'id': unidecode(macro_product.title + "_" + content_option.title),
+                    'display_title': content_option.menu_title if content_option.menu_title
+                    else content_option.title,
+                    'size_options': []
+                }
+                size_options = []
+
+                for size_option in SizeOption.objects.filter(
+                        productvariant__macro_product_content=content_option).distinct():
+                    try:
+                        size_option_item = {
+                            'item': size_option,
+                            'id': unidecode(
+                                macro_product.title + "_" + content_option.title + "_" + size_option.title),
+                            'product_variant': ProductVariant.objects.get(
+                                macro_product_content=content_option, size_option=size_option),
+                            'product_options': [{'item': product_option} for product_option in
+                                                ProductOption.objects.filter(
+                                                    product_variants__macro_product_content=content_option,
+                                                    product_variants__size_option=size_option)]
+                        }
+                    except ProductVariant.MultipleObjectsReturned:
+                        aux_str = '\n'
+                        error_set = ProductVariant.objects.filter(macro_product_content=content_option,
+                                                                  size_option=size_option)
+                        for error_item in error_set:
+                            aux_str += error_item.title + '\n'
+                        data = {
+                            'success': False,
+                            'message': 'По запросу {} {} найдено более одного товара: {}'.format(content_option,
+                                                                                                 size_option, aux_str)
+                        }
+                        client.captureException()
+                        return JsonResponse(data)
+                    size_options.append(size_option_item)
+
+                content_option_item['size_options'] = size_options
+                content_options.append(content_option_item)
+
+            macro_product_item = {
+                'item': macro_product,
+                'id': unidecode(macro_product.title),
+                'content_options': content_options
+            }
+            context['macro_products'].append(macro_product_item)
+
         # except:
         #     data = {
         #         'success': False,
@@ -1916,14 +1975,16 @@ def c_i_a(request):
         other_orders = regular_other_orders | today_delivery_other_orders
 
         regular_free_orders = Order.objects.filter(prepared_by__isnull=True, open_time__isnull=False,
-                                                    start_shawarma_cooking=True, is_delivery=False,
-                                                    open_time__contains=timezone.now().date(),
-                                                    is_canceled=False, servery__service_point=result['service_point'],
-                                                    close_time__isnull=True).order_by('open_time')
-        today_delivery_free_orders = Order.objects.filter(prepared_by__isnull=True, open_time__isnull=False, is_delivery=True,
-                                                           deliveryorder__delivered_timepoint__contains=timezone.now().date(),
-                                                           is_canceled=False, servery__service_point=result['service_point'],
-                                                           close_time__isnull=True).filter(
+                                                   start_shawarma_cooking=True, is_delivery=False,
+                                                   open_time__contains=timezone.now().date(),
+                                                   is_canceled=False, servery__service_point=result['service_point'],
+                                                   close_time__isnull=True).order_by('open_time')
+        today_delivery_free_orders = Order.objects.filter(prepared_by__isnull=True, open_time__isnull=False,
+                                                          is_delivery=True,
+                                                          deliveryorder__delivered_timepoint__contains=timezone.now().date(),
+                                                          is_canceled=False,
+                                                          servery__service_point=result['service_point'],
+                                                          close_time__isnull=True).filter(
             Q(start_shawarma_cooking=True) | Q(start_shawarma_preparation=True)).order_by('open_time')
         free_orders = regular_free_orders | today_delivery_free_orders
         # other_orders = Order.objects.filter(prepared_by=staff, open_time__isnull=False, start_shawarma_preparation=True,
@@ -4521,9 +4582,9 @@ def pay_order(request):
 
         cash_to_throw_out = 0
         rounding_discount = 0
-        #if order.with_shashlyk:
+        # if order.with_shashlyk:
         #    rounding_discount = (round(total, 2) - order.discount) % 5
-        #order.discount += rounding_discount
+        # order.discount += rounding_discount
         # order.is_paid = True
         order.paid_with_cash = paid_with_cash
         # if servery_id != 'auto':
@@ -4575,7 +4636,8 @@ def pay_order(request):
                 order.save()
         else:
             data = send_order_to_1c(order, False)
-            print('Order is paid with status {} {} {} and saved .'.format(order.status_1c,order.paid_in_1c,order.sent_to_1c))
+            print('Order is paid with status {} {} {} and saved .'.format(order.status_1c, order.paid_in_1c,
+                                                                          order.sent_to_1c))
             if not data["success"]:
                 print("Payment canceled.")
                 order.is_paid = False
