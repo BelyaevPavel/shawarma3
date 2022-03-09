@@ -1,9 +1,11 @@
 <div class="pad-menu__block" id="{{ current|slugify }}">
     {% if current != "top" %}
-        <div class="pad-menu__button" {% comment %}onclick="GoToSubmenu('{{ top|slugify }}')"{% endcomment %} onclick="ClearToppings()"><a
-                href="#{{ top|slugify }}">Наверх</a></div>
-        <div class="pad-menu__button" {% comment %}onclick="GoToSubmenu('{{ previous|slugify }}')"{% endcomment %} onclick="ClearToppings()"><a
-                href="#{{ previous|slugify }}">Назад</a></div>
+        <a class="pad-menu__button"
+           href="#{{ top|slugify }}" {% comment %}onclick="GoToSubmenu('{{ top|slugify }}')"{% endcomment %}
+           onclick="ClearToppings()">Наверх</a>
+        <a class="pad-menu__button"
+           href="#{{ previous|slugify }}" {% comment %}onclick="GoToSubmenu('{{ previous|slugify }}')"{% endcomment %}
+           onclick="ClearToppings()">Назад</a>
     {% endif %}
     {% for item in collection %}
         {% comment %}  {% if item.product_variant %}
@@ -11,15 +13,17 @@
                  onclick="AddToOrder({{ item.product_variant.menu_item.id }}, '{{ item.product_variant.menu_item.title }}', {{ item.product_variant.menu_item.price }})">{{ item.item.title }}</div>
         {% else %}{% endcomment %}
         {% if product_variant %}
-            <div class="pad-menu__button" topping_id="{{ item.item.menu_item.id }}" onclick="RegisterTopping({{ item.item.menu_item.id }}, '{{ item.item.title }}', {{ item.item.menu_item.price }})">
+            <div class="pad-menu__button" topping_id="{{ item.item.menu_item.id }}"
+                 onclick="RegisterTopping({{ item.item.menu_item.id }}, '{{ item.item.title }}', {{ item.item.menu_item.price }})">
                 {% if item.item.menu_item.icon %}
                     <img src="{{ item.item.menu_item.icon.url }}" alt="{{ item.item.menu_item.icon.url }}"/>
                 {% else %}
                     <span>{{ item.item.title }}</span>
                 {% endif %} </div>
         {% else %}
-            <div class="pad-menu__button" {% comment %}onclick="GoToSubmenu('{{ item.id|slugify }}')"{% endcomment %}><a
-                    href="#{{ item.id|slugify }}"><span>{{ item.item.title }}</span></a></div>
+            <a class="pad-menu__button"
+               href="#{{ item.id|slugify }}"{% comment %}onclick="GoToSubmenu('{{ item.id|slugify }}')"{% endcomment %}>
+                <span>{{ item.item.title }}</span></a>
         {% endif %}
         {% comment %}{% endif %}{% endcomment %}
     {% endfor %}

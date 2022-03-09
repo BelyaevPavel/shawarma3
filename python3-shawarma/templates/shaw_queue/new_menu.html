@@ -60,78 +60,82 @@
                                 </div>
                             </div>
                         </div>
-                    {% endfor %}
-                    <div class="sidemenu__button">
-                        <a class="sidemenu__icon" href="#shashlyk" onclick="ClearToppings()">
-                            <img src="/static/img/btns/spicy30.png" alt="icon">
-                        </a>
-                        <div class="sidemenu__title">
-                            <a class="sidemenu__category-title" href="#shashlyk" onclick="ClearToppings()">
-                                Шашлык
+                    {% empty %}
+                        <div class="sidemenu__button">
+                            <a class="sidemenu__icon" href="#shashlyk" onclick="ClearToppings()">
+                                <img src="/static/img/btns/spicy30.png" alt="icon">
                             </a>
-                            <div class="sidemenu__subcategories">
-
-                                <a class="sidemenu__subcategory" href="#shashlyk_sous-ostryi" onclick="ClearToppings()">
-                                    Соус острый
+                            <div class="sidemenu__title">
+                                <a class="sidemenu__category-title" href="#shashlyk" onclick="ClearToppings()">
+                                    Шашлык
                                 </a>
+                                <div class="sidemenu__subcategories">
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_kuritsa-bk-bedro-1kg"
-                                   onclick="ClearToppings()">
-                                    Курица б/к бедро 1кг
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_sous-ostryi"
+                                       onclick="ClearToppings()">
+                                        Соус острый
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_baranina-spinka-1kg"
-                                   onclick="ClearToppings()">
-                                    Баранина спинка 1кг
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_kuritsa-bk-bedro-1kg"
+                                       onclick="ClearToppings()">
+                                        Курица б/к бедро 1кг
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_ryba-semga-1kg"
-                                   onclick="ClearToppings()">
-                                    Рыба семга 1кг
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_baranina-spinka-1kg"
+                                       onclick="ClearToppings()">
+                                        Баранина спинка 1кг
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_goviadina-miakot-1kg"
-                                   onclick="ClearToppings()">
-                                    Говядина мякоть 1кг
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_ryba-semga-1kg"
+                                       onclick="ClearToppings()">
+                                        Рыба семга 1кг
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-baranina"
-                                   onclick="ClearToppings()">
-                                    Люля-Кебаб баранина
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_goviadina-miakot-1kg"
+                                       onclick="ClearToppings()">
+                                        Говядина мякоть 1кг
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-kuritsa"
-                                   onclick="ClearToppings()">
-                                    Люля-Кебаб курица
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-baranina"
+                                       onclick="ClearToppings()">
+                                        Люля-Кебаб баранина
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-goviadina"
-                                   onclick="ClearToppings()">
-                                    Люля-Кебаб говядина
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-kuritsa"
+                                       onclick="ClearToppings()">
+                                        Люля-Кебаб курица
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_sheika-marinovannaia-1kg"
-                                   onclick="ClearToppings()">
-                                    Шейка маринованная 1кг
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_liulia-kebab-goviadina"
+                                       onclick="ClearToppings()">
+                                        Люля-Кебаб говядина
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_sous-krasnyi"
-                                   onclick="ClearToppings()">
-                                    Соус красный
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_sheika-marinovannaia-1kg"
+                                       onclick="ClearToppings()">
+                                        Шейка маринованная 1кг
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_goviadina-miakot-mram-1kg"
-                                   onclick="ClearToppings()">
-                                    Говядина мякоть мрам 1кг
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_sous-krasnyi"
+                                       onclick="ClearToppings()">
+                                        Соус красный
+                                    </a>
 
-                                <a class="sidemenu__subcategory" href="#shashlyk_sous-belyi" onclick="ClearToppings()">
-                                    Соус Белый
-                                </a>
+                                    <a class="sidemenu__subcategory" href="#shashlyk_goviadina-miakot-mram-1kg"
+                                       onclick="ClearToppings()">
+                                        Говядина мякоть мрам 1кг
+                                    </a>
 
+                                    <a class="sidemenu__subcategory" href="#shashlyk_sous-belyi"
+                                       onclick="ClearToppings()">
+                                        Соус Белый
+                                    </a>
+
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    {% endfor %}
+
                 </div>
             </div>
             <div class="pad-menu-container">
@@ -186,8 +190,16 @@
                     </div>
                     <div class="shadowed">
                         <p>
-                            <input type="checkbox" id="metro_discount" name="discount" value="20">
-                            <label for="metro_discount">Скидка METRO 20%</label>
+                            <input type="radio" id="discount_10" name="discount" value="10">
+                            <label for="discount_10">Скидка 10%</label>
+                        </p>
+                        <p>
+                            <input type="radio" id="discount_15" name="discount" value="15">
+                            <label for="discount_15">Скидка 15%</label>
+                        </p>
+                        <p>
+                            <input type="checkbox" id="preorder" name="preorder_checkbox" value="1">
+                            <label for="preorder_checkbox">Предзаказ</label>
                         </p>
                     </div>
                 </div>
